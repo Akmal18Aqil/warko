@@ -15,9 +15,6 @@ export interface Env {
   MIDTRANS_API_BASE?: string;
 }
 
-export type { StaffRole } from "@wakro/shared";
-export { STAFF_ROLES } from "@wakro/shared";
-
 export interface SessionStaff {
   id: string;
   username: string;

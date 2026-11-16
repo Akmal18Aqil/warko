@@ -67,37 +67,14 @@ export async function loadPricing(env: Env): Promise<PricingSettings> {
 
 // ---- writing -------------------------------------------------------------
 
-function readRateInput(body: Record<string, unknown>, field: string, errors: Record<string, string[]>): number {
-  const value = body[field];
-  if (value === undefined || value === null) {
-    errors[field] = [`${field} wajib diisi.`];
-  } else if (typeof value !== "number" || !Number.isFinite(value)) {
-    errors[field] = [`${field} harus berupa angka.`];
-  } else if (value < 0) {
-    errors[field] = [`${field} minimal 0.`];
-  } else if (value > MAX_RATE) {
-    errors[field] = [`${field} maksimal ${MAX_RATE}.`];
-  } else {
-    return value;
-  }
-  return 0;
-}
-
 /** Validates a PUT /api/pricing body; throws 422 with per-field errors. */
 export function parsePricingInput(body: Record<string, unknown>): PricingSettings {
-  const errors: Record<string, string[]> = {};
   const r = new Reader(body);
   const taxEnabled = r.boolean("taxEnabled");
+  const taxRate = r.number("taxRate", { min: 0, max: MAX_RATE });
   const serviceChargeEnabled = r.boolean("serviceChargeEnabled");
-  const taxRate = readRateInput(body, "taxRate", errors);
-  const serviceChargeRate = readRateInput(body, "serviceChargeRate", errors);
-  try {
-    r.done();
-  } catch (error) {
-    if (!(error instanceof HttpError) || !error.errors) throw error;
-    Object.assign(errors, error.errors);
-  }
-  if (Object.keys(errors).length > 0) throw new HttpError(422, "Data yang dikirim tidak valid.", errors);
+  const serviceChargeRate = r.number("serviceChargeRate", { min: 0, max: MAX_RATE });
+  r.done();
   // `+ 0` folds -0 into 0 so it is stored as "0".
   return { taxEnabled, taxRate: taxRate + 0, serviceChargeEnabled, serviceChargeRate: serviceChargeRate + 0 };
 }

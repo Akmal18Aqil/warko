@@ -1,5 +1,6 @@
 import { hmacSign, randomToken, safeEqual, sha256Hex } from "./crypto";
-import type { Env, SessionStaff, StaffRole } from "./env";
+import type { StaffRole } from "@wakro/shared";
+import type { Env, SessionStaff } from "./env";
 import { HttpError } from "./http";
 
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -14,7 +15,7 @@ export function sessionSecret(env: Env): string {
   return secret;
 }
 
-type StaffRow = {
+export type StaffRow = {
   id: string;
   username: string;
   name: string;
@@ -147,48 +148,48 @@ export async function requireSession(env: Env, request: Request, url: URL): Prom
   return staff;
 }
 
-export function requireRole(staff: SessionStaff, ...roles: StaffRole[]): void {
-  if (!roles.includes(staff.role)) throw new HttpError(403, "Peran Anda tidak diizinkan melakukan aksi ini.");
-}
-
 // ---- throttling ----------------------------------------------------------
 
-const WINDOW_MS = 15 * 60 * 1000;
+/** Window for login / setup attempt counters; also the age after which `purgeExpired` drops them. */
+export const THROTTLE_WINDOW_MS = 15 * 60 * 1000;
 
-export async function isThrottled(env: Env, key: string, limit: number): Promise<boolean> {
-  const row = await env.DB.prepare("SELECT failures, window_start FROM auth_throttle WHERE key = ?")
-    .bind(key)
-    .first<{ failures: number; window_start: number }>();
-  if (!row) return false;
-  return Date.now() - row.window_start <= WINDOW_MS && row.failures >= limit;
-}
-
-export async function recordFailure(env: Env, key: string): Promise<void> {
-  const now = Date.now();
-  await env.DB.prepare(
+/**
+ * Counts one attempt for `key` and reports whether it is still within `limit` attempts per window.
+ * Increment-then-check in a single upsert, so parallel requests cannot all slip under the limit.
+ */
+export async function consumeAttempt(env: Env, key: string, limit: number, windowMs = THROTTLE_WINDOW_MS): Promise<boolean> {
+  const row = await env.DB.prepare(
     `INSERT INTO auth_throttle (key, failures, window_start) VALUES (?1, 1, ?2)
      ON CONFLICT(key) DO UPDATE SET
        failures = CASE WHEN ?2 - window_start > ?3 THEN 1 ELSE failures + 1 END,
-       window_start = CASE WHEN ?2 - window_start > ?3 THEN ?2 ELSE window_start END`,
+       window_start = CASE WHEN ?2 - window_start > ?3 THEN ?2 ELSE window_start END
+     RETURNING failures`,
   )
-    .bind(key, now, WINDOW_MS)
-    .run();
+    .bind(key, Date.now(), windowMs)
+    .first<{ failures: number }>();
+  return row !== null && row.failures <= limit;
 }
 
-export async function clearFailures(env: Env, key: string): Promise<void> {
+/** Gives back one attempt (a successful login does not count against the shared per-IP budget). */
+export async function releaseAttempt(env: Env, key: string): Promise<void> {
+  await env.DB.prepare("UPDATE auth_throttle SET failures = MAX(failures - 1, 0) WHERE key = ?").bind(key).run();
+}
+
+export async function clearAttempts(env: Env, key: string): Promise<void> {
   await env.DB.prepare("DELETE FROM auth_throttle WHERE key = ?").bind(key).run();
 }
 
+/** Drops expired sessions and stale throttle counters. Runs from the daily cron trigger. */
 export async function purgeExpired(env: Env): Promise<void> {
   const now = Date.now();
   await env.DB.batch([
     env.DB.prepare("DELETE FROM sessions WHERE expires_at <= ?").bind(now),
-    env.DB.prepare("DELETE FROM auth_throttle WHERE window_start < ?").bind(now - WINDOW_MS),
+    env.DB.prepare("DELETE FROM auth_throttle WHERE window_start < ?").bind(now - THROTTLE_WINDOW_MS),
   ]);
 }
 
 export function throttledError(): HttpError {
   return new HttpError(429, "Terlalu banyak percobaan gagal. Coba lagi dalam 15 menit.", undefined, {
-    "Retry-After": String(WINDOW_MS / 1000),
+    "Retry-After": String(THROTTLE_WINDOW_MS / 1000),
   });
 }
