@@ -66,6 +66,37 @@ describe("closing a shift", () => {
     });
   });
 
+  it("attributes a concurrent cash payment to the shift only if it commits before closing", async () => {
+    const { session } = await signIn("kasir");
+    const openedAt = Date.now() - 1_000;
+    expect((await putShift(session, "race-shift", { openedAt, status: "OPEN" })).status).toBe(200);
+    const [payment, closed] = await Promise.all([
+      api("/api/orders", {
+        session,
+        body: { orderType: "bawa-pulang", items: [{ barcode: "A1", qty: 1 }], expectedTotal: 11_100, method: "tunai", cashReceived: 15_000 },
+      }),
+      putShift(session, "race-shift", { openedAt, closedAt: Date.now() + 1_000, actualCash: 0, status: "CLOSED" }),
+    ]);
+    expect(payment.status).toBe(201);
+    expect(closed.status).toBe(200);
+    const created = (await readJson(payment)).data;
+    const stored = await env.DB.prepare("SELECT cash_shift_id FROM orders WHERE no = ?").bind(created.no).first<{ cash_shift_id: string | null }>();
+    expect((await readJson(closed)).data.cashSalesTotal).toBe(stored?.cash_shift_id === "race-shift" ? 11_100 : 0);
+  });
+
+  it("includes settlement in its open shift even when the client close clock is behind", async () => {
+    const { session } = await signIn("kasir");
+    const openedAt = Date.now() - 60_000;
+    await putShift(session, "clock-shift", { openedAt, status: "OPEN" });
+    const created = await api("/api/orders", {
+      session, body: { orderType: "bawa-pulang", items: [{ barcode: "A1", qty: 1 }], expectedTotal: 11_100 },
+    });
+    const no = (await readJson(created)).data.no;
+    expect((await api(`/api/orders/${no}/payment`, { session, body: { method: "tunai", cashReceived: 15_000 } })).status).toBe(200);
+    const closed = await putShift(session, "clock-shift", { openedAt, closedAt: openedAt + 1, actualCash: 11_100, status: "CLOSED" });
+    expect((await readJson(closed)).data.cashSalesTotal).toBe(11_100);
+  });
+
   it("rejects totals, cashier names and unknown fields sent by the client", async () => {
     const { session } = await signIn("kasir");
     const response = await putShift(session, "shift-1", {

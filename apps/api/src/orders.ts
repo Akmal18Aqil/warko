@@ -361,8 +361,8 @@ export async function placeOrder(env: Env, input: PlaceOrderInput): Promise<Plac
   ];
   const orderColumns = `status, payment_status, kitchen_status, order_type, table_number, table_name, guests,
     customer_name, waiter_id, waiter_name, source, payment_choice, item_count, subtotal, discount, service_charge,
-    tax, total, method, paid_at, cash_received, paid_by, table_id, client_ref, created_at, updated_at`;
-  const valueSlots = orderValues.map(() => "?").join(", ");
+    tax, total, method, paid_at, cash_received, paid_by, table_id, client_ref, created_at, updated_at, cash_shift_id`;
+  const valueSlots = `${orderValues.map(() => "?").join(", ")}, ${input.payment?.method === "tunai" ? "(SELECT id FROM shifts WHERE status = 'OPEN' LIMIT 1)" : "NULL"}`;
 
   const statements: D1PreparedStatement[] = [
     table
@@ -445,10 +445,11 @@ export async function settleOrder(env: Env, no: number, input: SettleInput): Pro
 
   const result = await env.DB.prepare(
     `UPDATE orders SET payment_status = 'paid', method = ?, paid_at = ?, cash_received = ?, paid_by = ?,
-       payment_ref = COALESCE(?, payment_ref), updated_at = ?
+       payment_ref = COALESCE(?, payment_ref), updated_at = ?,
+       cash_shift_id = CASE WHEN ? = 'tunai' THEN (SELECT id FROM shifts WHERE status = 'OPEN' LIMIT 1) ELSE NULL END
      WHERE no = ? AND payment_status = 'unpaid' AND total = ?`,
   )
-    .bind(input.method, Date.now(), input.cashReceived, input.paidBy, input.paymentRef, Date.now(), no, current.total)
+    .bind(input.method, Date.now(), input.cashReceived, input.paidBy, input.paymentRef, Date.now(), input.method, no, current.total)
     .run();
   const order = (await loadOrder(env, no))!;
   if ((result.meta.changes ?? 0) === 0) {

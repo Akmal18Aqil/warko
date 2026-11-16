@@ -109,12 +109,7 @@ function readDenominations(r: Reader): string | null {
   return JSON.stringify(clean);
 }
 
-/**
- * Shift totals are never taken from the client. While the shift is CLOSED, the statement itself sums
- * cash sales (paid `tunai` orders inside [openedAt, closedAt]) and the shift's live cash movements
- * (the `modal_awal` opening float is already part of startingCash, so it is not counted as cash in),
- * then derives expected cash and the difference, so the numbers always match what the database holds.
- */
+/** Cash sales belong to the shift open when payment commits; opening float is excluded from cash-in. */
 async function upsertShift({ env, staff }: AuthedContext, id: string, body: Record<string, unknown>): Promise<unknown> {
   assertBodyId(body, id);
   const r = new Reader(body, { strict: true });
@@ -154,7 +149,7 @@ async function upsertShift({ env, staff }: AuthedContext, id: string, body: Reco
        ?7, ?8, ?9, ?10, ?10
      FROM (SELECT
        (SELECT COALESCE(SUM(total), 0) FROM orders
-         WHERE payment_status = 'paid' AND method = 'tunai' AND paid_at >= ?2 AND paid_at <= ?3) AS sales,
+         WHERE payment_status = 'paid' AND method = 'tunai' AND cash_shift_id = ?1) AS sales,
        (SELECT COALESCE(SUM(amount), 0) FROM cash_movements
          WHERE shift_id = ?1 AND type = 'CASH_IN' AND category <> 'modal_awal' AND deleted_at IS NULL) AS cash_in,
        (SELECT COALESCE(SUM(amount), 0) FROM cash_movements
