@@ -1,57 +1,35 @@
 # Dependencies
 node_modules/
-vendor/
 
-# Environment and Secrets (CRITICAL: Do NOT commit any credentials or tokens)
+# Environment and secrets (never commit credentials)
 .env
 .env.*
 !.env.example
-*.key
-auth.json
-oauth-private.key
-oauth-public.key
+!.env.cloudflare
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 
-# Build outputs
+# Build output and local tool state
 dist/
 dist-ssr/
 *.local
-public/build/
-public/hot/
-
-# Storage and Logs
+.wrangler/
 *.log
-*.log.*
-storage/
-!server/storage/
-server/storage/*.key
-server/storage/logs/*
-server/storage/framework/cache/*
-server/storage/framework/sessions/*
-server/storage/framework/views/*
-!server/storage/.gitignore
-dev-server.log
 
-# Databases (local sqlite)
-*.sqlite
-*.sqlite-journal
-database/*.sqlite
-
-# Editor and Tooling state
+# Editor and OS
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 .opencode/
 .opencode-trace/
-.phpunit.cache/
-.phpunit.result.cache
-
-# Ephemeral output & Prompts
 .impeccable/
+
+# Ephemeral prompts
 Master Prompt*.md
 *.prompt.md
 *.scratchpad.md
-
 
 # Database exports (contain production data)
 backups/

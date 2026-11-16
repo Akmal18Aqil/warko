@@ -1,0 +1,19 @@
+{
+  "name": "wakro-digital",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @wakro/web --filter @wakro/api dev",
+    "build": "pnpm --filter @wakro/web build",
+    "check": "pnpm -r check",
+    "test": "pnpm -r test",
+    "deploy": "pnpm --filter @wakro/api deploy"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd"
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+/**
+ * WAKRO Digital POS: one Worker serves the web app (static assets from apps/web/dist) and /api/* (D1).
+ * Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+ *
+ * Secrets are never committed here; set them with `wrangler secret put`.
+ * After setup, replace BOOTSTRAP_SECRET with a value shorter than 32 characters to disable bootstrap.
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "kasa-pos",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-11-16",
+	"observability": {
+		"enabled": true,
+		"traces": {
+			"enabled": true
+		}
+	},
+	"assets": {
+		"directory": "../web/dist",
+		"binding": "ASSETS",
+		// The Worker only runs first for the API; every other path is served from
+		// static assets, falling back to index.html so client-side routes work.
+		"run_worker_first": [
+			"/api/*"
+		],
+		"not_found_handling": "single-page-application"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "kasa-pos",
+			"migrations_dir": "migrations",
+			"database_id": "df9b905b-761d-4b0c-9c17-5cffd8cbee0a"
+		}
+	],
+	// Daily purge of expired sessions and login-throttle rows.
+	"triggers": {
+		"crons": [
+			"17 3 * * *"
+		]
+	},
+	"secrets": {
+		"required": [
+			"SESSION_SECRET",
+			"BOOTSTRAP_SECRET"
+		]
+	}
+}
