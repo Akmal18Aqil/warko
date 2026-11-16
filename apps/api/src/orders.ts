@@ -378,9 +378,9 @@ export async function placeOrder(env: Env, input: PlaceOrderInput): Promise<Plac
       env.DB.prepare(
         `INSERT INTO order_items (order_no, product_id, product_name, unit_price, qty, note)
          VALUES ((SELECT no FROM orders WHERE client_ref = ?), ?,
-           (SELECT name FROM products WHERE id = ? AND is_active = 1 AND price = ?),
-           (SELECT price FROM products WHERE id = ? AND is_active = 1 AND price = ?), ?, ?)`,
-      ).bind(ref, product.id, product.id, product.price, product.id, product.price, line.qty, line.note),
+           (SELECT name FROM products WHERE id = ? AND is_active = 1 AND price = ? AND (stock IS NULL) = ?),
+           (SELECT price FROM products WHERE id = ? AND is_active = 1 AND price = ? AND (stock IS NULL) = ?), ?, ?)`,
+      ).bind(ref, product.id, product.id, product.price, product.stock === null ? 1 : 0, product.id, product.price, product.stock === null ? 1 : 0, line.qty, line.note),
     ),
   ];
   for (const { product, qty } of qtyByProduct.values()) {

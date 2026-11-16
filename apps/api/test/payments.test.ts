@@ -155,4 +155,23 @@ describe("self-order QRIS", () => {
     expect(second.status).toBe(200);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
+
+  it("persists the charge before contacting Midtrans and avoids a second charge after a timeout", async () => {
+    await seedTable("table-timeout", "Meja Timeout");
+    const key = randomRef();
+    const placed = await api("/api/public/orders", {
+      body: { tableId: "table-timeout", clientRef: key, items: [{ itemId: "A1", qty: 1 }], expectedTotal: 11_100 },
+    });
+    const { data } = await readJson(placed);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      const request = JSON.parse(String(init?.body)) as { transaction_details: { order_id: string } };
+      const row = await env.DB.prepare("SELECT status, qr_string FROM payment_charges WHERE gateway_order_id = ?")
+        .bind(request.transaction_details.order_id).first<{ status: string; qr_string: string }>();
+      expect(row).toEqual({ status: "pending", qr_string: "" });
+      throw new Error("timeout");
+    });
+    expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(500);
+    expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(503);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
 });

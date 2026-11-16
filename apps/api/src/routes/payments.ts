@@ -111,11 +111,23 @@ async function startQris({ request, env, params }: RouteContext): Promise<Respon
     `SELECT gateway_order_id, amount, qr_string, status, expires_at FROM payment_charges
      WHERE order_no = ? AND status = 'pending' AND expires_at > ? AND amount = ? ORDER BY created_at DESC LIMIT 1`,
   )
-    .bind(no, now + 60_000, order.total)
+    .bind(no, now, order.total)
     .first<ChargeRow>();
-  if (pending) return json({ data: { qrString: pending.qr_string, amount: pending.amount, expiresAt: pending.expires_at } });
+  if (pending) {
+    if (!pending.qr_string) throw new HttpError(503, "QRIS sedang diproses. Coba lagi nanti atau bayar di kasir.");
+    return json({ data: { qrString: pending.qr_string, amount: pending.amount, expiresAt: pending.expires_at } });
+  }
 
-  const gatewayOrderId = `WAKRO-${no}-${now}`;
+  const gatewayOrderId = `WAKRO-${no}-${crypto.randomUUID()}`;
+  const expiresAt = now + CHARGE_TTL_MINUTES * 60_000;
+  const intent = await env.DB.prepare(
+    `INSERT INTO payment_charges (gateway_order_id, order_no, amount, qr_string, status, expires_at, created_at, updated_at)
+     SELECT ?, ?, ?, '', 'pending', ?, ?, ?
+     WHERE NOT EXISTS (
+       SELECT 1 FROM payment_charges WHERE order_no = ? AND status = 'pending' AND expires_at > ?
+     )`,
+  ).bind(gatewayOrderId, no, order.total, expiresAt, now, now, no, now).run();
+  if (!intent.meta.changes) throw new HttpError(503, "QRIS sedang diproses. Coba lagi nanti atau bayar di kasir.");
   const charge = parseCharge(
     await midtrans(env, key, "/v2/charge", {
       method: "POST",
@@ -131,13 +143,9 @@ async function startQris({ request, env, params }: RouteContext): Promise<Respon
     console.error("Midtrans QRIS charge rejected", charge.statusCode, charge.statusMessage);
     throw new HttpError(502, "QRIS gagal dibuat. Silakan bayar di kasir.");
   }
-  const expiresAt = now + CHARGE_TTL_MINUTES * 60_000;
   await env.DB.prepare(
-    `INSERT INTO payment_charges (gateway_order_id, order_no, amount, qr_string, status, transaction_id, expires_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
-  )
-    .bind(gatewayOrderId, no, order.total, charge.qrString, charge.transactionId ?? null, expiresAt, now, now)
-    .run();
+    "UPDATE payment_charges SET qr_string = ?, transaction_id = COALESCE(transaction_id, ?), updated_at = ? WHERE gateway_order_id = ?",
+  ).bind(charge.qrString, charge.transactionId ?? null, Date.now(), gatewayOrderId).run();
   return json({ data: { qrString: charge.qrString, amount: order.total, expiresAt } }, 201);
 }
 
