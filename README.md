@@ -301,6 +301,8 @@ pnpm build     # build web mode remote
 
 **Jangan deploy untuk transaksi produksi sebelum risiko berikut diselesaikan:** penutupan shift dapat bersaing dengan pembayaran tunai, dan retry self-order setelah respons gagal ambigu dapat menggandakan atau salah mengonfirmasi pesanan. Intent QRIS dicatat sebelum memanggil Midtrans, tetapi pemulihan otomatis QR setelah gangguan gateway belum tersedia.
 
+Midtrans Get Transaction Status dapat dipanggil memakai `order_id`, tetapi dokumentasinya tidak menjanjikan `qr_string` untuk QRIS. Jangan mengasumsikan QR yang hilang dapat dipulihkan dari respons status; rekonsiliasi status transaksi sebelum membuat charge pengganti. Referensi: https://docs.midtrans.com/reference/get-transaction-status
+
 ```bash
 cd apps/api
 pnpm exec wrangler secret put SESSION_SECRET
