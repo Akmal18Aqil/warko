@@ -208,12 +208,10 @@ async function listMovements({ env, url }: AuthedContext): Promise<Response> {
   return json({ data: page.rows.map(serializeCashMovement), nextCursor: page.nextCursor });
 }
 
-/** Movements that belong to a CLOSED shift are frozen for everyone but admins. */
-async function assertShiftsOpenForEdit(env: Env, staff: AuthedContext["staff"], shiftIds: (string | null)[]): Promise<void> {
-  if (staff.role === "admin") return;
+async function assertShiftsOpenForEdit(env: Env, shiftIds: (string | null)[]): Promise<void> {
   const [a, b] = [shiftIds[0] ?? null, shiftIds[1] ?? null];
   const closed = await env.DB.prepare("SELECT 1 AS found FROM shifts WHERE status = 'CLOSED' AND id IN (?, ?)").bind(a, b).first();
-  if (closed) throw new HttpError(403, "Mutasi kas pada shift yang sudah ditutup hanya dapat diubah oleh admin.");
+  if (closed) throw new HttpError(403, "Mutasi kas pada shift yang sudah ditutup tidak dapat diubah.");
 }
 
 async function upsertMovement({ env, staff }: AuthedContext, id: string, body: Record<string, unknown>): Promise<unknown> {
@@ -229,26 +227,25 @@ async function upsertMovement({ env, staff }: AuthedContext, id: string, body: R
   r.done();
 
   const shiftId = shiftIdInput ? validId("shiftId", shiftIdInput) : null;
-  const isAdmin = staff.role === "admin" ? 1 : 0;
   const existing = await env.DB.prepare("SELECT shift_id, deleted_at FROM cash_movements WHERE id = ?")
     .bind(id)
     .first<{ shift_id: string | null; deleted_at: number | null }>();
   if (existing?.deleted_at != null) throw conflict("Mutasi kas ini sudah dihapus.");
-  await assertShiftsOpenForEdit(env, staff, [existing?.shift_id ?? null, shiftId]);
+  await assertShiftsOpenForEdit(env, [existing?.shift_id ?? null, shiftId]);
 
   // The closed-shift guard is repeated inside the statement so a concurrent shift close cannot be bypassed.
   // The actor (`cashier_name`) is recorded once, from the session, and kept on later edits.
   const result = await env.DB.prepare(
     `INSERT INTO cash_movements (id, shift_id, type, category, amount, description, cashier_name, occurred_at)
-     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, COALESCE(?8, ?10)
-      WHERE (?9 = 1 OR NOT EXISTS (SELECT 1 FROM shifts WHERE id = ?2 AND status = 'CLOSED'))
+     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, COALESCE(?8, ?9)
+      WHERE NOT EXISTS (SELECT 1 FROM shifts WHERE id = ?2 AND status = 'CLOSED')
      ON CONFLICT(id) DO UPDATE SET shift_id = excluded.shift_id, type = excluded.type,
        category = excluded.category, amount = excluded.amount, description = excluded.description,
        occurred_at = COALESCE(?8, cash_movements.occurred_at)
      WHERE cash_movements.deleted_at IS NULL
-       AND (?9 = 1 OR NOT EXISTS (SELECT 1 FROM shifts WHERE id = cash_movements.shift_id AND status = 'CLOSED'))`,
+       AND NOT EXISTS (SELECT 1 FROM shifts WHERE id = cash_movements.shift_id AND status = 'CLOSED')`,
   )
-    .bind(id, shiftId, type, category, amount, description ?? "", staff.name, createdAt ?? null, isAdmin, Date.now())
+    .bind(id, shiftId, type, category, amount, description ?? "", staff.name, createdAt ?? null, Date.now())
     .run();
   if (changes(result) === 0) throw conflict("Mutasi kas berubah saat disimpan; muat ulang lalu coba lagi.");
 
@@ -258,18 +255,18 @@ async function upsertMovement({ env, staff }: AuthedContext, id: string, body: R
 }
 
 /** Soft delete: the row stays for audit but never appears in lists or bootstrap again. */
-async function removeMovement({ env, staff }: AuthedContext, id: string): Promise<void> {
+async function removeMovement({ env }: AuthedContext, id: string): Promise<void> {
   const existing = await env.DB.prepare("SELECT shift_id FROM cash_movements WHERE id = ? AND deleted_at IS NULL")
     .bind(id)
     .first<{ shift_id: string | null }>();
   if (!existing) return;
-  await assertShiftsOpenForEdit(env, staff, [existing.shift_id]);
+  await assertShiftsOpenForEdit(env, [existing.shift_id]);
   await env.DB.prepare(
     `UPDATE cash_movements SET deleted_at = ?1
       WHERE id = ?2 AND deleted_at IS NULL
-        AND (?3 = 1 OR NOT EXISTS (SELECT 1 FROM shifts WHERE id = cash_movements.shift_id AND status = 'CLOSED'))`,
+        AND NOT EXISTS (SELECT 1 FROM shifts WHERE id = cash_movements.shift_id AND status = 'CLOSED')`,
   )
-    .bind(Date.now(), id, staff.role === "admin" ? 1 : 0)
+    .bind(Date.now(), id)
     .run();
 }
 

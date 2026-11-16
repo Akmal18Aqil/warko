@@ -117,12 +117,13 @@ describe("cash movements", () => {
     expect(forged.status).toBe(422);
   });
 
-  it("freezes movements of a closed shift for everyone except admins", async () => {
+  it("freezes movements of a closed shift for all roles", async () => {
     const { cashier, admin } = await closedShiftWithMovement();
     expect((await putMovement(cashier.session, "m1", { shiftId: "shift-1", amount: 9_000 })).status).toBe(403);
     expect((await api("/api/resources/cashMovements/m1", { session: cashier.session, method: "DELETE" })).status).toBe(403);
     expect((await putMovement(cashier.session, "m-new", { shiftId: "shift-1" })).status).toBe(403);
-    expect((await putMovement(admin.session, "m1", { shiftId: "shift-1", amount: 9_000 })).status).toBe(200);
+    expect((await putMovement(admin.session, "m1", { shiftId: "shift-1", amount: 9_000 })).status).toBe(403);
+    expect((await api("/api/resources/cashMovements/m1", { session: admin.session, method: "DELETE" })).status).toBe(403);
   });
 
   it("soft-deletes: the row stays for audit but disappears from lists", async () => {

@@ -12,7 +12,6 @@ import { formatShortDate, formatTime } from "./format";
 
 interface MovementTableProps {
   movements: readonly CashMovementRow[];
-  /** Admins may delete any movement; others only those of the open shift. */
   canDelete: (movement: CashMovementRow) => boolean;
   onDelete: (movement: CashMovementRow) => void;
 }

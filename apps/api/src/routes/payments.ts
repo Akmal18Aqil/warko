@@ -176,8 +176,13 @@ async function handleNotification({ request, env }: RouteContext): Promise<Respo
   const charge = await env.DB.prepare("SELECT gateway_order_id, order_no, amount, status FROM payment_charges WHERE gateway_order_id = ?")
     .bind(orderId)
     .first<{ gateway_order_id: string; order_no: number; amount: number; status: string }>();
-  // Unknown charge (e.g. another app on the same Midtrans account): acknowledge so it is not retried.
-  if (!charge) return json({ data: { ignored: true } });
+  if (!charge) {
+    if (orderId.startsWith("WAKRO-")) {
+      console.error("QRIS notification has no matching charge", orderId);
+      throw new HttpError(503, "Transaksi QRIS belum tersedia untuk diproses.");
+    }
+    return json({ data: { ignored: true } });
+  }
   // Midtrans repeats notifications; a charge that already reached a paid state is done.
   if (charge.status === "paid" || charge.status === "paid_duplicate") return json({ data: { received: true } });
 

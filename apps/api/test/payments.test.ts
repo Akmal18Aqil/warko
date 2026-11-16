@@ -73,6 +73,10 @@ describe("Midtrans notification", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("requests a retry for an unknown WAKRO charge", async () => {
+    expect((await notify()).status).toBe(503);
+  });
+
   it("settles the order after re-reading the transaction, and tolerates a repeated delivery", async () => {
     const { no } = await createUnpaidOrder();
     const fetchSpy = mockMidtransStatus({});

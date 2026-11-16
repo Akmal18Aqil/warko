@@ -46,8 +46,7 @@ export default function CashDrawerPage() {
     });
   };
 
-  // The server refuses edits to a closed shift's movements for anyone but an admin, so hide what would fail.
-  const canDelete = (movement: CashMovementRow) => currentStaff.role === "admin" || (activeShift !== null && movement.shiftId === activeShift.id);
+  const canDelete = (movement: CashMovementRow) => !movement.shiftId || (activeShift !== null && movement.shiftId === activeShift.id);
 
   const tabs = [
     { id: "movements", label: text.tabs.movements(movements.length) },
