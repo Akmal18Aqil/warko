@@ -299,7 +299,7 @@ pnpm build     # build web mode remote
 
 ### Deploy Cloudflare
 
-**Jangan deploy untuk transaksi produksi sebelum risiko berikut diselesaikan:** pembuatan charge Midtrans belum atomik dengan pencatatan lokal; penutupan shift dapat bersaing dengan pembayaran tunai; perubahan pelacakan stok dapat bersaing dengan penjualan; dan retry self-order setelah respons gagal ambigu dapat menggandakan atau salah mengonfirmasi pesanan.
+**Jangan deploy untuk transaksi produksi sebelum risiko berikut diselesaikan:** penutupan shift dapat bersaing dengan pembayaran tunai, dan retry self-order setelah respons gagal ambigu dapat menggandakan atau salah mengonfirmasi pesanan. Intent QRIS dicatat sebelum memanggil Midtrans, tetapi pemulihan otomatis QR setelah gangguan gateway belum tersedia.
 
 ```bash
 cd apps/api

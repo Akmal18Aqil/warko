@@ -1,5 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
+import { placeOrder } from "../src/orders";
+import type { Env } from "../src/env";
 import { api, randomRef, readJson, resetDb, seedCategory, seedProduct, seedTable, signIn } from "./helpers";
 
 // Default pricing: 11% tax, no service charge. Two portions of a 10.000 menu = 20.000 + 2.200.
@@ -43,6 +45,36 @@ describe("placing orders", () => {
     expect(await stockOf("A1")).toBe(3);
     const log = await env.DB.prepare("SELECT delta, stock_after, reason, order_no FROM stock_movements").first();
     expect(log).toEqual({ delta: -2, stock_after: 3, reason: "sale", order_no: data.no });
+  });
+
+  it.each([null, 5])("rejects an order when stock tracking changes after the read (stock=%s)", async (initialStock) => {
+    await env.DB.prepare("UPDATE products SET stock = ? WHERE barcode = 'A1'").bind(initialStock).run();
+    let batchCount = 0;
+    const db = new Proxy(env.DB, {
+      get(target, property) {
+        if (property === "batch") {
+          return async (statements: D1PreparedStatement[]) => {
+            if (++batchCount === 2) {
+              await target.prepare("UPDATE products SET stock = ? WHERE barcode = 'A1'")
+                .bind(initialStock === null ? 5 : null).run();
+            }
+            return target.batch(statements);
+          };
+        }
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const input = {
+      lines: [{ barcode: "A1", qty: 2, note: null }], discount: 0, orderType: "bawa-pulang" as const,
+      tableId: null, tableName: null, guests: null, customerName: null, waiterId: null, waiterName: null,
+      source: "pos" as const, paymentChoice: "pay-later" as const, kitchenStatus: "queued" as const,
+      payment: null, expectedTotal: TOTAL_FOR_TWO, clientRefHash: null, staffName: null,
+    };
+    await expect(placeOrder({ ...env, DB: db } as Env, input)).rejects.toMatchObject({ status: 409 });
+    expect(await orderCount()).toBe(0);
+    const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM stock_movements").first<{ n: number }>();
+    expect(count?.n).toBe(0);
   });
 
   it("rejects an order whose expected total no longer matches", async () => {
