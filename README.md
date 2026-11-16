@@ -299,7 +299,7 @@ pnpm build     # build web mode remote
 
 ### Deploy Cloudflare
 
-**Jangan deploy untuk transaksi produksi sebelum risiko berikut diselesaikan:** penutupan shift dapat bersaing dengan pembayaran tunai, dan retry self-order setelah respons gagal ambigu dapat menggandakan atau salah mengonfirmasi pesanan. Intent QRIS dicatat sebelum memanggil Midtrans, tetapi pemulihan otomatis QR setelah gangguan gateway belum tersedia.
+**Jangan deploy untuk transaksi produksi sebelum verifikasi integrasi selesai:** retry self-order belum diuji end-to-end dan pemulihan otomatis QR setelah gangguan gateway belum tersedia. Pembayaran tunai yang dibuat tanpa shift terbuka tidak terhitung dalam shift mana pun; operasikan kasir hanya saat shift terbuka.
 
 Midtrans Get Transaction Status dapat dipanggil memakai `order_id`, tetapi dokumentasinya tidak menjanjikan `qr_string` untuk QRIS. Jangan mengasumsikan QR yang hilang dapat dipulihkan dari respons status; rekonsiliasi status transaksi sebelum membuat charge pengganti. Referensi: https://docs.midtrans.com/reference/get-transaction-status
 
@@ -307,13 +307,14 @@ Midtrans Get Transaction Status dapat dipanggil memakai `order_id`, tetapi dokum
 cd apps/api
 pnpm exec wrangler secret put SESSION_SECRET
 pnpm exec wrangler secret put BOOTSTRAP_SECRET
-pnpm migrate:remote        # wajib sebelum deploy: menerapkan semua migrasi termasuk 0004
+pnpm migrate:remote        # wajib sebelum deploy: menerapkan semua migrasi termasuk 0004 dan 0005
 pnpm deploy                # build web (mode remote) lalu wrangler deploy
 ```
 
 - Admin pertama dibuat lewat `POST /api/setup/bootstrap` dengan header `X-Bootstrap-Secret` dan body JSON `username`, `name`, `password`. Setelah itu ganti `BOOTSTRAP_SECRET` dengan nilai < 32 karakter untuk menonaktifkan endpoint.
 - Cron harian (`triggers.crons`) membersihkan sesi kedaluwarsa dan catatan throttle login.
 - Migrasi `0004_integrity_and_indexes.sql` memindahkan `products.category` (nama) menjadi `category_id` (FK) dan mewajibkan nama kategori unik tanpa membedakan huruf besar/kecil. Jika D1 produksi punya dua kategori yang hanya beda huruf besar/kecil, gabungkan dulu sebelum menjalankan migrasi; cadangkan data (`wrangler d1 export`) sebelum `migrate:remote`.
+- Migrasi `0005_cash_shift_attribution.sql` menghubungkan pembayaran tunai lama ke shift berdasarkan rentang `paid_at`; bila rentang tumpang tindih, shift dengan waktu buka paling baru dipilih. Tinjau pembayaran yang tidak cocok dan shift yang tumpang tindih sebelum migrasi. Hentikan sementara transaksi saat menerapkan migrasi dan deploy agar Worker lama tidak mencatat pembayaran tanpa atribusi setelah backfill.
 
 ---
 
