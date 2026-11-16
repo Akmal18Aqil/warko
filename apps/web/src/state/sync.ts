@@ -29,17 +29,19 @@ function categoriesFromProducts(products: Snapshot["products"]): CategoryRow[] {
   ];
 }
 
-async function loadPublic(): Promise<void> {
+async function loadPublic(isActive: () => boolean): Promise<void> {
   const menu = await loadPublicMenu();
+  if (!isActive()) return;
   pricingStore.set({ pricing: menu.pricing });
   catalogStore.set({ products: menu.products, tables: menu.tables, categories: categoriesFromProducts(menu.products) });
   ordersStore.set({ orders: [] });
   shiftStore.set({ activeShift: null, cashMovements: [] });
 }
 
-async function loadStaff(): Promise<void> {
+async function loadStaff(isActive: () => boolean): Promise<void> {
   await dataSource.init();
-  applySnapshot(await dataSource.loadSnapshot());
+  const snapshot = await dataSource.loadSnapshot();
+  if (isActive()) applySnapshot(snapshot);
 }
 
 function logFailure(what: string) {
@@ -89,7 +91,7 @@ export function startDataSync(publicCustomer: boolean): () => void {
 
   void (async () => {
     try {
-      await (publicCustomer ? loadPublic() : loadStaff());
+      await (publicCustomer ? loadPublic(() => alive) : loadStaff(() => alive));
       if (alive) sessionStore.set({ dataSourceError: null });
     } catch (error) {
       console.error(error);

@@ -41,8 +41,6 @@ function toSnapshot(payload: BootstrapPayload): Snapshot {
   return { ...rest, activeShift: shifts.find((shift) => shift.status === "OPEN") ?? null };
 }
 
-/** `ETag` of the last bootstrap we applied; lets the poll ask "anything new?" without a body. */
-let bootstrapEtag: string | null = null;
 
 export const remoteSource: DataSource = {
   kind: "remote",
@@ -52,13 +50,13 @@ export const remoteSource: DataSource = {
   async loadSnapshot() {
     const result = await requestConditional<BootstrapPayload>("/bootstrap", null);
     if (result.notModified) throw new Error("Respons bootstrap tidak valid.");
-    bootstrapEtag = result.etag;
     return toSnapshot(result.data);
   },
 
   watch({ onSnapshot, onHealthy, onError }) {
     let active = true;
     let inFlight = false;
+    let bootstrapEtag: string | null = null;
     const timer = window.setInterval(() => {
       if (!active || inFlight || document.hidden) return;
       inFlight = true;
@@ -67,8 +65,8 @@ export const remoteSource: DataSource = {
           if (!active) return;
           onHealthy();
           if (result.notModified) return;
-          bootstrapEtag = result.etag;
           onSnapshot(toSnapshot(result.data));
+          bootstrapEtag = result.etag;
         })
         .catch((error: unknown) => {
           if (active) onError(error);
