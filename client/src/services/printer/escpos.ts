@@ -51,9 +51,9 @@ export function generateEscPosReceipt(payload: ReceiptPayload, paperWidth: 58 | 
   append(ESC_POS_COMMANDS.ALIGN_CENTER);
   append(ESC_POS_COMMANDS.BOLD_ON);
   append(ESC_POS_COMMANDS.DOUBLE_SIZE);
-  appendText("KASA KASIR\n");
+  appendText("WAKRO DIGITAL\n");
   append(ESC_POS_COMMANDS.NORMAL_SIZE);
-  appendText("Sistem Kasir Kuliner\n");
+  appendText("Warung WakRo Baru\n");
   appendText(`${new Date().toLocaleDateString("id-ID")} ${new Date().toLocaleTimeString("id-ID")}\n`);
   append(ESC_POS_COMMANDS.BOLD_OFF);
 
@@ -64,6 +64,7 @@ export function generateEscPosReceipt(payload: ReceiptPayload, paperWidth: 58 | 
   append(ESC_POS_COMMANDS.ALIGN_LEFT);
   if (payload.orderNo > 0) {
     appendText(`No. Pesanan: #${payload.orderNo}\n`);
+    for (const line of payload.details ?? []) appendText(`${line}\n`);
   } else {
     appendText("UJI COBA CETAK STRUK\n");
   }
@@ -81,11 +82,13 @@ export function generateEscPosReceipt(payload: ReceiptPayload, paperWidth: 58 | 
 
   // 6. Divider & Total
   appendText("-".repeat(maxChars) + "\n");
+  for (const row of payload.summary ?? []) appendText(formatTwoColumns(row.label, row.amount, maxChars));
   if (payload.total) {
     append(ESC_POS_COMMANDS.BOLD_ON);
     appendText(formatTwoColumns("TOTAL", payload.total, maxChars));
     append(ESC_POS_COMMANDS.BOLD_OFF);
   }
+  for (const row of payload.payment ?? []) appendText(formatTwoColumns(row.label, row.amount, maxChars));
 
   // 7. Footer
   append(ESC_POS_COMMANDS.ALIGN_CENTER);

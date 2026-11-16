@@ -2,6 +2,8 @@ import Dexie, { type EntityTable } from "dexie";
 import { MENU_SEED, type MenuItem } from "../data/menu";
 
 export type PayMethod = "kartu-qr" | "tunai" | "qris";
+export type PaymentStatus = "unpaid" | "paid" | "refunded";
+export type KitchenStatus = "draft" | "queued" | "preparing" | "ready" | "served";
 export type OrderStatus = "disimpan" | "memasak" | "siap" | "sudah-dibayar";
 export type OrderType = "bawa-pulang" | "meja";
 
@@ -16,6 +18,8 @@ export type OrderItemLine = {
 export type OrderRow = {
   no: number;
   status: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  kitchenStatus?: KitchenStatus;
   total: number;
   subtotal?: number;
   tax?: number;
@@ -25,22 +29,31 @@ export type OrderRow = {
   items?: OrderItemLine[];
   method?: PayMethod;
   orderType: OrderType;
+  /** Stable table id; `tableName`/`tableArea` are display snapshots. */
+  tableId?: string;
   tableNumber?: number;
   tableName?: string;
+  /** Floor / area of the table (Lantai 1, Lantai 2, Rooftop). */
+  tableArea?: string;
   guests?: number;
   customerName?: string;
   waiterId?: string;
   waiterName?: string;
   source?: "pos" | "waiter" | "self-order";
   paymentChoice?: "paid-now" | "pay-later";
+  cashReceived?: number;
+  paidBy?: string;
   paidAt?: number;
   createdAt: number;
+  /** Local mode only: idempotency key of the submit that created this order. */
+  clientRef?: string;
 };
 
 export type TableRow = {
   id: string;
   name: string;
   seats: number;
+  /** Floor / area: Lantai 1, Lantai 2, Rooftop. */
   area: string;
   active?: boolean;
 };
@@ -93,20 +106,25 @@ export interface CategoryRow {
 }
 
 export const DEFAULT_CATEGORIES: CategoryRow[] = [
-  { id: "cat-favorit", name: "Favorit", kind: "Makanan", color: "counterlime", sortOrder: 1, isDefault: true, createdAt: 1700000000000 },
+  { id: "cat-favorit", name: "Favorit", kind: "Makanan", color: "accent", sortOrder: 1, isDefault: true, createdAt: 1700000000000 },
   { id: "cat-sarapan", name: "Sarapan", kind: "Makanan", color: "amber", sortOrder: 2, isDefault: true, createdAt: 1700000001000 },
   { id: "cat-makanan", name: "Makanan", kind: "Makanan", color: "rose", sortOrder: 3, isDefault: true, createdAt: 1700000002000 },
   { id: "cat-minuman", name: "Minuman", kind: "Minuman", color: "blue", sortOrder: 4, isDefault: true, createdAt: 1700000003000 },
   { id: "cat-camilan", name: "Camilan", kind: "Camilan", color: "emerald", sortOrder: 5, isDefault: true, createdAt: 1700000004000 },
 ];
 
+export const DEFAULT_FLOORS = ["Lantai 1", "Lantai 2", "Rooftop"] as const;
+
 export const DEFAULT_TABLES: TableRow[] = [
-  { id: "meja-01", name: "Meja 01", seats: 2, area: "Utama" },
-  { id: "meja-02", name: "Meja 02", seats: 4, area: "Utama" },
-  { id: "meja-03", name: "Meja 03", seats: 4, area: "Utama" },
-  { id: "meja-04", name: "Meja 04", seats: 4, area: "Utama" },
-  { id: "teras-01", name: "Teras 01", seats: 6, area: "Teras" },
-  { id: "teras-02", name: "Teras 02", seats: 4, area: "Teras" },
+  { id: "meja-01", name: "Meja 01", seats: 2, area: "Lantai 1" },
+  { id: "meja-02", name: "Meja 02", seats: 4, area: "Lantai 1" },
+  { id: "meja-03", name: "Meja 03", seats: 4, area: "Lantai 1" },
+  { id: "meja-04", name: "Meja 04", seats: 4, area: "Lantai 1" },
+  { id: "meja-05", name: "Meja 05", seats: 4, area: "Lantai 2" },
+  { id: "meja-06", name: "Meja 06", seats: 6, area: "Lantai 2" },
+  { id: "meja-07", name: "Meja 07", seats: 4, area: "Lantai 2" },
+  { id: "rooftop-01", name: "Rooftop 01", seats: 4, area: "Rooftop" },
+  { id: "rooftop-02", name: "Rooftop 02", seats: 6, area: "Rooftop" },
 ];
 
 export const db = new Dexie("kasa-kasir") as Dexie & {
@@ -157,14 +175,18 @@ const SEED_ORDERS: OrderRow[] = [
   {
     no: 1048,
     status: "memasak",
+    paymentStatus: "unpaid",
+    kitchenStatus: "preparing",
     total: 85000,
     subtotal: 76500,
     tax: 8500,
     discount: 0,
     itemCount: 3,
     orderType: "meja",
+    tableId: "meja-01",
     tableNumber: 1,
     tableName: "Meja 01",
+    tableArea: "Lantai 1",
     customerName: "Budi Santoso",
     source: "self-order",
     paymentChoice: "pay-later",
@@ -178,14 +200,18 @@ const SEED_ORDERS: OrderRow[] = [
   {
     no: 1047,
     status: "siap",
+    paymentStatus: "unpaid",
+    kitchenStatus: "ready",
     total: 284000,
     subtotal: 255855,
     tax: 28145,
     discount: 0,
     itemCount: 2,
     orderType: "meja",
+    tableId: "meja-04",
     tableNumber: 4,
     tableName: "Meja 04",
+    tableArea: "Lantai 1",
     customerName: "Rina & Teman",
     source: "waiter",
     paymentChoice: "pay-later",
@@ -198,6 +224,8 @@ const SEED_ORDERS: OrderRow[] = [
   {
     no: 1046,
     status: "sudah-dibayar",
+    paymentStatus: "paid",
+    kitchenStatus: "served",
     total: 198000,
     itemCount: 2,
     method: "kartu-qr",
@@ -209,12 +237,16 @@ const SEED_ORDERS: OrderRow[] = [
   },
   {
     no: 1045,
-    status: "disimpan",
+    status: "memasak",
+    paymentStatus: "unpaid",
+    kitchenStatus: "queued",
     total: 442000,
     itemCount: 5,
     orderType: "meja",
+    tableId: "meja-02",
     tableNumber: 2,
     tableName: "Meja 02",
+    tableArea: "Lantai 1",
     customerName: "Pak Wijaya",
     source: "self-order",
     paymentChoice: "pay-later",
@@ -224,6 +256,8 @@ const SEED_ORDERS: OrderRow[] = [
   {
     no: 1044,
     status: "sudah-dibayar",
+    paymentStatus: "paid",
+    kitchenStatus: "served",
     total: 118000,
     itemCount: 1,
     method: "tunai",

@@ -1,5 +1,6 @@
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
+import { receiptFromOrder } from "../lib/receipt";
 import { usePos } from "./PosContext";
 import { usePrint } from "./PrintContext";
 
@@ -44,19 +45,88 @@ export function PrintLayer() {
     );
   }
 
+  if (print.mode === "order" && print.order) return <OrderReceiptPrint />;
+
   return <ReceiptPrint />;
+}
+
+function OrderReceiptPrint() {
+  const { order } = usePrint();
+  const r = receiptFromOrder(order!);
+  return (
+    <div id="print-root" aria-hidden="true">
+      <div className="receipt-print">
+        <div className="rp-head">
+          <p className="rp-logo">{t.appName}</p>
+          <p className="rp-tagline">{t.receipt.headerTagline}</p>
+        </div>
+        <div className="rp-sep" />
+        <p className="rp-strong">
+          {t.cart.orderPrefix} {r.orderNo}
+        </p>
+        <p className="rp-muted">
+          {r.details.map((line) => (
+            <span key={line}>
+              {line}
+              <br />
+            </span>
+          ))}
+        </p>
+        <div className="rp-sep" />
+        <table className="rp-items">
+          <tbody>
+            {r.lines.map((line, i) => (
+              <tr key={i}>
+                <td className="rp-qty">{line.qty}×</td>
+                <td className="rp-name">
+                  {line.name}
+                  {line.note ? <span className="rp-unit"> ({line.note})</span> : null}
+                  <span className="rp-unit"> {t.receipt.unitPrice(line.unit)}</span>
+                </td>
+                <td className="rp-amt">{line.amount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="rp-sep" />
+        <table className="rp-summary">
+          <tbody>
+            {r.summary.map((row) => (
+              <tr key={row.label}>
+                <td>{row.label}</td>
+                <td className="rp-amt">{row.amount}</td>
+              </tr>
+            ))}
+            <tr className="rp-total-row">
+              <td>{t.receipt.totalLabel}</td>
+              <td className="rp-amt">{r.total}</td>
+            </tr>
+            {r.payment.map((row) => (
+              <tr key={row.label}>
+                <td>{row.label}</td>
+                <td className="rp-amt">{row.amount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="rp-sep" />
+        <p className="rp-center rp-muted">{t.receipt.thanks}</p>
+        <p className="rp-center rp-muted">{t.receipt.keepReceipt}</p>
+      </div>
+    </div>
+  );
 }
 
 function ReceiptPrint() {
   const pos = usePos();
-  const { orderNo, orderType, tableNumber, guests, lines, totals } = pos;
+  const { orderNo, orderType, selectedTable, guests, lines, totals } = pos;
   const hasItems = lines.length > 0;
 
   return (
     <div id="print-root" aria-hidden="true">
       <div className="receipt-print">
         <div className="rp-head">
-          <p className="rp-logo">KASA</p>
+          <p className="rp-logo">{t.appName}</p>
           <p className="rp-tagline">{t.receipt.headerTagline}</p>
         </div>
 
@@ -66,7 +136,7 @@ function ReceiptPrint() {
           {t.cart.orderPrefix} {orderNo} ·{" "}
           {orderType === "bawa-pulang"
             ? t.receipt.orderTypeTakeaway
-            : t.receipt.orderTypeTable(tableNumber)}
+            : t.receipt.orderTypeTable(selectedTable ? `${selectedTable.name} · ${selectedTable.area}` : "-")}
           {orderType === "meja" ? ` · ${guests} ${t.cart.guestsUnit}` : ""}
         </p>
         <p className="rp-muted">

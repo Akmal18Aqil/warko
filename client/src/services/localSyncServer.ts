@@ -108,7 +108,7 @@ export function getNetworkHostInfo(): NetworkHostInfo {
     }
   }
 
-  const baseUrl = `${protocol}//${host}${port ? `:${port}` : ""}`;
+  const baseUrl = `${protocol}//${host}${window.location.port ? `:${window.location.port}` : ""}`;
 
   const isLocalServer =
     host === "localhost" ||

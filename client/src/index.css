@@ -1,29 +1,43 @@
 @import "tailwindcss";
 
 @theme {
-  --color-mineral: #eef0eb;
-  --color-ink: #14211f;
-  --color-counterlime: #c7f36b;
-  --color-counterlime-dark: #82b02a;
-  --color-coral: #bf493e;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-}
-
-/* ---- Sleek, non-intrusive modern scrollbars ---- */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  /* Claymorphism white canvas: blue remains an action color, not a page background. */
+  --color-mineral: #f3f6fa;
+  --color-paper: #f3f6fa;
+  --color-ink: #172b4d;
+  --color-ink-soft: #284a73;
+  --color-accent: #2d6cdf;
+  --color-accent-dark: #1749a5;
+  --color-coral: #e78383;
+  --color-success: #8fcdb6;
+  --color-success-dark: #34745f;
+  --color-warning: #f2c866;
+  --color-warning-dark: #896516;
+  --color-error: #e78383;
+  --color-error-dark: #a64646;
+  --color-surface: #ffffff;
+  --color-surface-muted: #e7f2fc;
+  --color-border: #c6dced;
+  --color-border-hover: #7fa9cf;
+  --color-text: #172b4d;
+  --color-text-muted: #526b89;
+  --color-text-light: #7890aa;
+  --touch-min: 44px;
+  --font-display: "Trebuchet MS", "Arial Rounded MT Bold", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
+  /* Legacy persisted class compatibility. */
+  --color-counterlime: #2d6cdf;
+  --color-counterlime-dark: #1749a5;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgb(20 33 31 / 0.16);
+  background: rgb(23 43 77 / 0.2);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(20 33 31 / 0.35);
+  background: rgb(23 43 77 / 0.36);
 }
 
 .scrollbar-none::-webkit-scrollbar {
@@ -45,7 +59,7 @@ body {
 }
 
 ::selection {
-  background-color: var(--color-counterlime);
+  background-color: var(--color-accent);
   color: var(--color-ink);
 }
 
@@ -71,7 +85,9 @@ body {
 
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px -14px rgb(20 33 31 / 0.22);
+  box-shadow:
+    10px 10px 22px rgb(23 43 77 / 0.16),
+    -8px -8px 18px rgb(255 255 255 / 0.75);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -84,17 +100,117 @@ body {
   }
 }
 
-/* ---- Thermal receipt texture (screen panel) ---- */
+/* ---- Claymorphism tactile surfaces ---- */
 
-.receipt-paper {
-  background-color: #ffffff;
+.receipt-paper,
+.service-rail-surface {
+  background-color: var(--color-mineral);
+  color: var(--color-text);
+}
+
+.service-rail-surface {
+  background-image:
+    radial-gradient(circle at 12% 8%, rgb(255 255 255 / 0.9), transparent 26rem),
+    radial-gradient(circle at 88% 92%, rgb(226 234 243 / 0.55), transparent 24rem);
 }
 
 .receipt-perforation {
-  height: 2px;
-  background-image: linear-gradient(90deg, rgb(20 33 31 / 0.35) 50%, transparent 50%);
-  background-size: 8px 2px;
+  height: 3px;
+  background-image: linear-gradient(
+    90deg,
+    rgb(23 43 77 / 0.3) 50%,
+    transparent 50%
+  );
+  background-size: 10px 3px;
   background-repeat: repeat-x;
+}
+
+.service-ticket {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid rgb(198 220 237 / 0.9);
+  border-radius: 1.25rem;
+  box-shadow:
+    10px 10px 22px rgb(23 43 77 / 0.14),
+    -8px -8px 18px rgb(255 255 255 / 0.8);
+}
+
+.service-ticket::before,
+.service-ticket::after {
+  content: "";
+  position: absolute;
+  top: 0.85rem;
+  bottom: 0.85rem;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  opacity: 0.75;
+}
+
+.service-ticket::before { left: -2px; }
+.service-ticket::after { right: -2px; }
+
+button,
+input,
+select,
+textarea {
+  border-radius: 0.875rem;
+}
+
+input,
+select,
+textarea {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow:
+    inset 2px 2px 5px rgb(23 43 77 / 0.1),
+    inset -2px -2px 5px rgb(255 255 255 / 0.75);
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+.clay-control {
+  box-shadow:
+    5px 5px 10px rgb(23 43 77 / 0.16),
+    -4px -4px 9px rgb(255 255 255 / 0.75);
+}
+
+.clay-control:active:not(:disabled) {
+  box-shadow:
+    inset 3px 3px 6px rgb(23 43 77 / 0.16),
+    inset -3px -3px 6px rgb(255 255 255 / 0.7);
+}
+
+.clay-surface {
+  background: var(--color-surface);
+  border: 1px solid rgb(198 220 237 / 0.9);
+  border-radius: 1.25rem;
+  box-shadow:
+    10px 10px 22px rgb(23 43 77 / 0.14),
+    -8px -8px 18px rgb(255 255 255 / 0.8);
+}
+.bg-white {
+  background-color: var(--color-surface);
+}
+
+.bg-white.rounded-xl,
+.bg-white.rounded-2xl,
+.bg-surface.rounded-xl,
+.bg-surface.rounded-2xl {
+  border-color: rgb(198 220 237 / 0.9);
+  box-shadow:
+    10px 10px 22px rgb(23 43 77 / 0.12),
+    -8px -8px 18px rgb(255 255 255 / 0.72);
+}
+
+.bg-ink .clay-control {
+  color: rgb(255 255 255 / 0.82);
+  background-color: rgb(255 255 255 / 0.1);
+  box-shadow:
+    4px 4px 9px rgb(10 22 44 / 0.35),
+    -3px -3px 8px rgb(255 255 255 / 0.08);
 }
 
 .label-caps {
@@ -102,6 +218,44 @@ body {
   letter-spacing: 0.08em;
   font-family: var(--font-display);
 }
+
+.app-header-light [class*="text-white"],
+.focus-header-light [class*="text-white"] {
+  color: var(--color-ink-soft) !important;
+}
+
+.app-header-light [class*="bg-white/"],
+.focus-header-light [class*="bg-white/"] {
+  background-color: var(--color-mineral) !important;
+  border-color: var(--color-border) !important;
+}
+
+.clay-sidebar [class*="text-white"] {
+  color: var(--color-ink-soft) !important;
+}
+
+.clay-sidebar .bg-accent.text-white {
+  color: #fff !important;
+}
+.clay-sidebar [class*="border-white"],
+.clay-sidebar [class*="bg-white/"] {
+  border-color: var(--color-border) !important;
+  background-color: var(--color-mineral) !important;
+}
+.order-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgb(45 108 223 / 0.28);
+  background-color: rgb(45 108 223 / 0.1);
+  color: var(--color-accent-dark);
+}
+
+.source-chip {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-ink-soft);
+}
+
 
 /* ---- Mobile / touch hardening (fondasi Android) ---- */
 
@@ -154,7 +308,7 @@ button {
 
 .report-print {
   width: 100%;
-  color: #14211f;
+  color: var(--color-ink);
   font-family: var(--font-body);
   font-size: 11px;
   line-height: 1.5;
@@ -169,7 +323,7 @@ button {
 
 .report-print .rp-sub {
   font-size: 10px;
-  color: rgb(20 33 31 / 0.6);
+  color: rgb(11 27 51 / 0.6);
   margin-bottom: 8px;
 }
 
@@ -182,7 +336,7 @@ button {
 .report-print td {
   text-align: left;
   padding: 4px 8px;
-  border-bottom: 1px solid rgb(20 33 31 / 0.15);
+  border-bottom: 1px solid rgb(11 27 51 / 0.15);
 }
 
 .report-print th {
@@ -199,7 +353,7 @@ button {
 
 .report-print .report-total td {
   font-weight: 700;
-  border-top: 1px solid #14211f;
+  border-top: 1px solid var(--color-ink);
   border-bottom: none;
 }
 
@@ -207,7 +361,7 @@ button {
 
 .receipt-print {
   width: 64mm;
-  color: #14211f;
+  color: var(--color-ink);
   font-family: var(--font-body);
   font-size: 10.5px;
   line-height: 1.45;
@@ -230,7 +384,7 @@ button {
 }
 
 .rp-sep {
-  border-top: 1px dashed #14211f;
+  border-top: 1px dashed var(--color-ink);
   margin: 6px 0;
 }
 
@@ -240,7 +394,7 @@ button {
 }
 
 .rp-muted {
-  color: rgb(20 33 31 / 0.65);
+  color: rgb(11 27 51 / 0.65);
 }
 
 .rp-center {
@@ -271,7 +425,7 @@ button {
 .rp-unit {
   display: block;
   font-size: 9px;
-  color: rgb(20 33 31 / 0.55);
+  color: rgb(11 27 51 / 0.55);
 }
 
 .rp-amt {
@@ -287,7 +441,7 @@ button {
 
 .rp-total-row td {
   padding-top: 4px;
-  border-top: 1px solid #14211f;
+  border-top: 1px solid var(--color-ink);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 13px;

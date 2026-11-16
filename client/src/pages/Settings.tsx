@@ -30,9 +30,14 @@ import { getPrinterDriver, setPrinterDriver } from "../services/printer";
 import { cn } from "../lib/cn";
 import { NetworkHubModal } from "../components/NetworkHubModal";
 import { LocalServerGuideModal } from "../components/LocalServerGuideModal";
+import { RemoteStaffManager } from "../components/RemoteStaffManager";
+import { useAuth } from "../components/AuthContext";
+import { isRemoteDataSource } from "../lib/remote";
 import { getNetworkHostInfo } from "../services/localSyncServer";
+import { isPaid } from "../lib/orderStatus";
 
 export default function Settings() {
+  const { currentStaff } = useAuth();
   const [, setLocation] = useLocation();
   const {
     products,
@@ -44,8 +49,7 @@ export default function Settings() {
     taxRate,
     serviceChargeEnabled,
     serviceChargeRate,
-    setTaxConfig,
-    setServiceChargeConfig,
+    savePricing,
     activeShift,
     openShift,
     closeShift,
@@ -67,6 +71,7 @@ export default function Settings() {
   const [tempTaxRate, setTempTaxRate] = useState(String(taxRate));
   const [tempScEnabled, setTempScEnabled] = useState(serviceChargeEnabled);
   const [tempScRate, setTempScRate] = useState(String(serviceChargeRate));
+  const [savingPricing, setSavingPricing] = useState(false);
 
   // Shift form state
   const [cashierName, setCashierName] = useState("Jamie Morgan");
@@ -75,7 +80,7 @@ export default function Settings() {
   const [closingNotes, setClosingNotes] = useState("");
 
   const cashSalesToday = orders
-    .filter((o) => o.status === "sudah-dibayar" && o.method === "tunai")
+    .filter((o) => isPaid(o) && o.method === "tunai" && (o.paidAt ?? 0) >= (activeShift?.openedAt ?? 0))
     .reduce((sum, o) => sum + o.total, 0);
 
   const estimatedDrawerCash = (activeShift?.startingCash || 200_000) + cashSalesToday;
@@ -88,13 +93,28 @@ export default function Settings() {
     toast.success(`Driver printer diubah ke: ${updated.label}`);
   };
 
-  const handleSaveTax = () => {
-    const rate = Number.parseInt(tempTaxRate, 10) || 0;
-    const scRate = Number.parseInt(tempScRate, 10) || 0;
-    setTaxConfig(tempTaxEnabled, rate);
-    setServiceChargeConfig(tempScEnabled, scRate);
-    setTaxModalOpen(false);
-    toast.success("Pengaturan Pajak & Service Charge berhasil disimpan!");
+  const handleSaveTax = async () => {
+    const rate = Number.parseFloat(tempTaxRate);
+    const scRate = Number.parseFloat(tempScRate);
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100 || !Number.isFinite(scRate) || scRate < 0 || scRate > 100) {
+      toast.error("Tarif pajak dan service charge harus berupa angka 0–100.");
+      return;
+    }
+    setSavingPricing(true);
+    try {
+      await savePricing({
+        taxEnabled: tempTaxEnabled,
+        taxRate: rate,
+        serviceChargeEnabled: tempScEnabled,
+        serviceChargeRate: scRate,
+      });
+      setTaxModalOpen(false);
+      toast.success("Pengaturan Pajak & Service Charge berhasil disimpan!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal menyimpan pengaturan pajak");
+    } finally {
+      setSavingPricing(false);
+    }
   };
 
   const handleOpenShiftSubmit = async (e: React.FormEvent) => {
@@ -148,7 +168,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="service-rail-surface flex min-h-screen flex-col">
       <Header title={t.settingsPage.title} />
       <div className="flex-1 p-5 md:p-8">
         <p className="-mt-1 mb-5 text-sm text-ink/55">{t.settingsPage.subtitle}</p>
@@ -243,7 +263,7 @@ export default function Settings() {
                 size="sm"
                 onClick={() => setLocation("/laci-kas")}
               >
-                <Vault size={15} className="text-counterlime-dark" aria-hidden="true" />
+                <Vault size={15} className="text-accent-dark" aria-hidden="true" />
                 Buka Modul Laci Kas Penuh
               </Button>
             </div>
@@ -337,6 +357,7 @@ export default function Settings() {
             </div>
           </SettingsCard>
         </div>
+        {isRemoteDataSource && currentStaff.role === "admin" && <RemoteStaffManager currentStaffId={currentStaff.id} />}
       </div>
 
       {/* Modal Pajak */}
@@ -377,7 +398,7 @@ export default function Settings() {
                     type="checkbox"
                     checked={tempTaxEnabled}
                     onChange={(e) => setTempTaxEnabled(e.target.checked)}
-                    className="h-4 w-4 rounded accent-counterlime-dark cursor-pointer"
+                    className="h-4 w-4 rounded text-accent-dark cursor-pointer"
                   />
                 </div>
                 {tempTaxEnabled && (
@@ -389,7 +410,7 @@ export default function Settings() {
                       max="100"
                       value={tempTaxRate}
                       onChange={(e) => setTempTaxRate(e.target.value)}
-                      className="w-24 rounded border border-ink/15 bg-white px-2 py-1 text-xs font-bold text-ink focus:outline-none focus:ring-1 focus:ring-counterlime"
+                      className="w-24 rounded border border-ink/15 bg-white px-2 py-1 text-xs font-bold text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                     />
                     <div className="flex gap-1">
                       {[0, 10, 11, 12].map((r) => (
@@ -414,7 +435,7 @@ export default function Settings() {
                     type="checkbox"
                     checked={tempScEnabled}
                     onChange={(e) => setTempScEnabled(e.target.checked)}
-                    className="h-4 w-4 rounded accent-counterlime-dark cursor-pointer"
+                    className="h-4 w-4 rounded text-accent-dark cursor-pointer"
                   />
                 </div>
                 {tempScEnabled && (
@@ -426,7 +447,7 @@ export default function Settings() {
                       max="100"
                       value={tempScRate}
                       onChange={(e) => setTempScRate(e.target.value)}
-                      className="w-24 rounded border border-ink/15 bg-white px-2 py-1 text-xs font-bold text-ink focus:outline-none focus:ring-1 focus:ring-counterlime"
+                      className="w-24 rounded border border-ink/15 bg-white px-2 py-1 text-xs font-bold text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                     />
                     <div className="flex gap-1">
                       {[0, 5, 7, 10].map((r) => (
@@ -446,11 +467,11 @@ export default function Settings() {
             </div>
 
             <div className="mt-6 flex justify-end gap-2 border-t border-ink/10 pt-3">
-              <Button size="sm" variant="outline" onClick={() => setTaxModalOpen(false)}>
+              <Button size="sm" variant="outline" disabled={savingPricing} onClick={() => setTaxModalOpen(false)}>
                 Batal
               </Button>
-              <Button size="sm" onClick={handleSaveTax}>
-                Simpan Perubahan
+              <Button size="sm" disabled={savingPricing} onClick={() => void handleSaveTax()}>
+                {savingPricing ? "Menyimpan..." : "Simpan Perubahan"}
               </Button>
             </div>
           </div>
@@ -501,7 +522,7 @@ export default function Settings() {
                     value={cashierName}
                     onChange={(e) => setCashierName(e.target.value)}
                     placeholder="Contoh: Jamie Morgan"
-                    className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                    className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent/60"
                   />
                 </div>
 
@@ -517,7 +538,7 @@ export default function Settings() {
                     value={startingCash}
                     onChange={(e) => setStartingCash(e.target.value)}
                     placeholder="200000"
-                    className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm font-bold text-ink focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                    className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent/60"
                   />
                   <p className="mt-1 text-[11px] text-ink/45">Uang pecahan kecil untuk uang kembalian.</p>
                 </div>
@@ -544,7 +565,7 @@ export default function Settings() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-ink/60">Total Penjualan Tunai:</span>
-                    <span className="font-bold text-counterlime-dark">+{formatIDR(cashSalesToday)}</span>
+                    <span className="font-bold text-accent-dark">+{formatIDR(cashSalesToday)}</span>
                   </div>
                   <div className="border-t border-ink/10 pt-1.5 flex justify-between font-bold text-sm">
                     <span>Uang Seharusnya di Laci:</span>
@@ -563,7 +584,7 @@ export default function Settings() {
                     value={actualCash}
                     onChange={(e) => setActualCash(e.target.value)}
                     placeholder={String(estimatedDrawerCash)}
-                    className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm font-bold text-ink focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                    className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent/60"
                   />
                   {actualCash && (
                     <p className="mt-1 text-xs font-bold">
@@ -591,7 +612,7 @@ export default function Settings() {
                     value={closingNotes}
                     onChange={(e) => setClosingNotes(e.target.value)}
                     placeholder="Contoh: Pengeluaran Rp 20.000 beli plastik, uang pas."
-                    className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-counterlime"
+                    className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3 py-1.5 text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
 
@@ -652,7 +673,7 @@ function SettingsCard({
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-counterlime text-ink">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-white">
           {icon}
         </span>
         {actionLabel && onAction && (

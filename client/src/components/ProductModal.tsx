@@ -105,6 +105,8 @@ export function ProductModal({
         barcode: barcode.trim() || generateRandomBarcode(),
         image,
         badge: badge.trim() ? badge.trim() : undefined,
+        // Stock is managed from the "Stok" dialog; editing details must not reset it.
+        stock: itemToEdit?.stock ?? null,
       };
 
       await onSave(itemData);
@@ -186,7 +188,7 @@ export function ProductModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Contoh: Nasi Goreng Spesial"
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
               />
             </div>
 
@@ -198,7 +200,7 @@ export function ProductModal({
                 <button
                   type="button"
                   onClick={() => setInlineNewCatOpen(!inlineNewCatOpen)}
-                  className="text-[11px] font-semibold text-counterlime-dark hover:underline flex items-center gap-0.5"
+                  className="text-[11px] font-semibold text-accent-dark hover:underline flex items-center gap-0.5"
                 >
                   <Plus size={12} />
                   {inlineNewCatOpen ? "Tutup" : "+ Kategori Baru"}
@@ -206,7 +208,7 @@ export function ProductModal({
               </div>
 
               {inlineNewCatOpen ? (
-                <div className="mt-1 p-2.5 rounded-lg border border-counterlime/40 bg-counterlime/10 space-y-2">
+                <div className="mt-1 p-2.5 rounded-lg border border-accent/40 bg-accent/10 space-y-2">
                   <div className="flex items-center gap-1.5">
                     <input
                       type="text"
@@ -218,7 +220,7 @@ export function ProductModal({
                     <button
                       type="button"
                       onClick={handleCreateInlineCategory}
-                      className="px-2.5 py-1.5 rounded-md bg-counterlime text-ink text-xs font-bold hover:bg-counterlime-dark flex items-center gap-1"
+                      className="px-2.5 py-1.5 rounded-md bg-accent text-white text-xs font-bold hover:bg-accent-dark flex items-center gap-1"
                     >
                       <Check size={13} />
                       Simpan
@@ -246,7 +248,7 @@ export function ProductModal({
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                  className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
                 >
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.name}>
@@ -271,7 +273,7 @@ export function ProductModal({
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="Contoh: 25000"
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
               />
             </div>
 
@@ -284,7 +286,7 @@ export function ProductModal({
                   <button
                     type="button"
                     onClick={() => setScannerOpen(true)}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-counterlime/30 hover:bg-counterlime/60 px-2 py-0.5 rounded-md transition-colors"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-accent/30 hover:bg-accent/60 px-2 py-0.5 rounded-md transition-colors"
                   >
                     <ScanLine size={12} /> Pindai
                   </button>
@@ -302,7 +304,7 @@ export function ProductModal({
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
                 placeholder="899..."
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm font-mono text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-mono text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
               />
             </div>
           </div>
@@ -317,7 +319,7 @@ export function ProductModal({
                 value={badge}
                 onChange={(e) => setBadge(e.target.value)}
                 placeholder="Contoh: Terlaris / Populer / Rekomendasi"
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
               />
             </div>
 
@@ -330,7 +332,7 @@ export function ProductModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Deskripsi bahan atau catatan rasa..."
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
               />
             </div>
           </div>

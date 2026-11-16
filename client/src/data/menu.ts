@@ -13,7 +13,20 @@ export type MenuItem = {
   badge?: string;
   kind: MenuKind;
   prepMinutes: number;
+  /** Ready-to-sell portions. `null`/absent = not tracked; 0 = sold out (HABIS). */
+  stock?: number | null;
 };
+
+/** Stock at or below this many portions shows a low-stock warning. */
+export const LOW_STOCK_THRESHOLD = 5;
+
+export function isSoldOut(item: Pick<MenuItem, "stock">): boolean {
+  return item.stock !== undefined && item.stock !== null && item.stock <= 0;
+}
+
+export function isLowStock(item: Pick<MenuItem, "stock">): boolean {
+  return item.stock !== undefined && item.stock !== null && item.stock > 0 && item.stock < LOW_STOCK_THRESHOLD;
+}
 
 const unsplash = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=640&q=70`;
@@ -59,6 +72,7 @@ export const MENU_SEED: MenuItem[] = [
     category: "Camilan",
     kind: "Camilan",
     prepMinutes: 3,
+    stock: 12,
     image: unsplash("photo-1578985545062-69928b1d9587"),
   },
   {
@@ -81,6 +95,7 @@ export const MENU_SEED: MenuItem[] = [
     category: "Sarapan",
     kind: "Makanan",
     prepMinutes: 6,
+    stock: 4,
     image: unsplash("photo-1509440159596-0249088772ff"),
   },
   {
@@ -92,6 +107,7 @@ export const MENU_SEED: MenuItem[] = [
     category: "Makanan",
     kind: "Makanan",
     prepMinutes: 8,
+    stock: 20,
     badge: "Pilihan dapur",
     image: unsplash("photo-1512058564366-18510be2db19"),
   },
@@ -115,6 +131,7 @@ export const MENU_SEED: MenuItem[] = [
     category: "Camilan",
     kind: "Camilan",
     prepMinutes: 3,
+    stock: 0,
     image: unsplash("photo-1464349095431-e9a21285b5f3"),
   },
 ];

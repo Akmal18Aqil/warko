@@ -13,6 +13,7 @@ import {
 import { useAuth, type StaffUser, type StaffRole } from "./AuthContext";
 import { cn } from "../lib/cn";
 import { Button } from "./ui/Button";
+import { isRemoteDataSource } from "../lib/remote";
 
 export function QuickSwitchRoleModal() {
   const {
@@ -78,6 +79,10 @@ export function QuickSwitchRoleModal() {
     if (!isSwitchModalOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isRemoteDataSource) {
+        if (e.key === "Escape") closeSwitchModal();
+        return;
+      }
       if (e.key >= "0" && e.key <= "9") {
         handleKeyPress(e.key);
       } else if (e.key === "Backspace") {
@@ -92,6 +97,21 @@ export function QuickSwitchRoleModal() {
   }, [isSwitchModalOpen, handleKeyPress, handleDelete, closeSwitchModal]);
 
   if (!isSwitchModalOpen) return null;
+
+  if (isRemoteDataSource) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4" onClick={closeSwitchModal}>
+        <div role="dialog" aria-modal="true" aria-labelledby="remote-account-title" className="w-full max-w-sm rounded-2xl border border-ink/15 bg-white p-5 text-ink shadow-lg" onClick={(event) => event.stopPropagation()}>
+          <h2 id="remote-account-title" className="font-display text-lg font-bold">Akun {currentStaff.name}</h2>
+          <p className="mt-2 text-sm text-ink/70">Keluar untuk masuk menggunakan akun staf lain.</p>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={closeSwitchModal}>Batal</Button>
+            <Button type="button" onClick={() => { closeSwitchModal(); window.dispatchEvent(new Event("kasa-remote-logout")); }}>Keluar / ganti akun</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getRoleIcon = (role: StaffRole) => {
     switch (role) {
@@ -110,7 +130,7 @@ export function QuickSwitchRoleModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/65 p-4 backdrop-blur-xs animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs animate-in fade-in"
       onClick={closeSwitchModal}
     >
       <div
@@ -122,7 +142,7 @@ export function QuickSwitchRoleModal() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-ink/10 bg-mineral/30 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-counterlime text-ink shadow-xs">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white shadow-xs">
               <KeyRound size={20} />
             </div>
             <div>
@@ -173,8 +193,8 @@ export function QuickSwitchRoleModal() {
                     className={cn(
                       "flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all relative overflow-hidden",
                       isSelected
-                        ? "bg-ink text-white border-ink shadow-md ring-2 ring-counterlime/50"
-                        : "bg-mineral/30 text-ink border-ink/10 hover:bg-white hover:border-ink/30",
+                        ? "bg-accent text-white border-accent-dark shadow-md ring-2 ring-accent/50"
+                        : "bg-surface-muted/30 text-ink border-ink/10 hover:bg-white hover:border-ink/30",
                     )}
                   >
                     <div
@@ -193,7 +213,7 @@ export function QuickSwitchRoleModal() {
                           <span
                             className={cn(
                               "text-[9px] px-1.5 py-0.2 rounded font-semibold",
-                              isSelected ? "bg-counterlime text-ink" : "bg-emerald-100 text-emerald-800",
+                              isSelected ? "bg-white text-accent-dark" : "bg-emerald-100 text-emerald-800",
                             )}
                           >
                             Aktif
@@ -210,7 +230,7 @@ export function QuickSwitchRoleModal() {
                     </div>
 
                     {isSelected && (
-                      <div className="absolute top-2 right-2 text-counterlime">
+                      <div className="absolute top-2 right-2 text-white">
                         <CheckCircle2 size={15} />
                       </div>
                     )}
@@ -246,12 +266,12 @@ export function QuickSwitchRoleModal() {
                     className={cn(
                       "h-3.5 w-3.5 rounded-full border-2 transition-all flex items-center justify-center",
                       filled
-                        ? "bg-ink border-ink scale-110 shadow-xs"
+                        ? "bg-accent border-accent-dark scale-110 shadow-xs"
                         : "bg-white border-ink/25",
                       errorMsg && "border-rose-500 bg-rose-100",
                     )}
                   >
-                    {filled && <span className="h-1.5 w-1.5 rounded-full bg-counterlime" />}
+                    {filled && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
                   </div>
                 );
               })}
@@ -270,7 +290,7 @@ export function QuickSwitchRoleModal() {
                   key={digit}
                   type="button"
                   onClick={() => handleKeyPress(digit)}
-                  className="h-10 rounded-xl bg-white border border-ink/10 font-display font-bold text-sm text-ink hover:bg-counterlime hover:border-ink/30 active:scale-95 shadow-2xs transition-all flex items-center justify-center"
+                  className="h-10 rounded-xl bg-white border border-ink/10 font-display font-bold text-sm text-ink hover:bg-accent hover:border-ink/30 active:scale-95 shadow-2xs transition-all flex items-center justify-center"
                 >
                   {digit}
                 </button>
@@ -287,7 +307,7 @@ export function QuickSwitchRoleModal() {
               <button
                 type="button"
                 onClick={() => handleKeyPress("0")}
-                className="h-10 rounded-xl bg-white border border-ink/10 font-display font-bold text-sm text-ink hover:bg-counterlime hover:border-ink/30 active:scale-95 shadow-2xs transition-all flex items-center justify-center"
+                  className="h-10 rounded-xl bg-white border border-ink/10 font-display font-bold text-sm text-ink hover:bg-accent hover:border-ink/30 active:scale-95 shadow-2xs transition-all flex items-center justify-center"
               >
                 0
               </button>
@@ -319,7 +339,7 @@ export function QuickSwitchRoleModal() {
                 onClick={() => switchStaffDirect(s.id)}
                 className={cn(
                   "h-7 text-[11px] px-2.5 gap-1",
-                  currentStaff.id === s.id && "border-ink bg-ink text-counterlime font-bold",
+                  currentStaff.id === s.id && "!border-accent-dark !bg-accent !text-white font-bold",
                 )}
               >
                 {s.name.split(" ")[0]}

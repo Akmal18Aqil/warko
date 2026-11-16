@@ -21,7 +21,7 @@ export const DEFAULT_STAFF_LIST: StaffUser[] = [
     name: "Jamie Morgan",
     role: "kasir",
     pin: "1234",
-    avatarColor: "bg-counterlime text-ink",
+    avatarColor: "bg-accent text-white",
     initials: "JM",
     title: "Kasir & Admin",
     description: "Akses lengkap: POS kasir, produk, laporan, meja, laci kas & sistem",
@@ -124,28 +124,30 @@ function getInitialCurrentStaff(list: StaffUser[]): StaffUser {
   return list[0] || DEFAULT_STAFF_LIST[0];
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [staffList, setStaffList] = useState<StaffUser[]>(getInitialStaffList);
-  const [currentStaff, setCurrentStaff] = useState<StaffUser>(() => getInitialCurrentStaff(staffList));
+export function AuthProvider({ children, remoteStaff }: { children: ReactNode; remoteStaff?: StaffUser }) {
+  const [staffList, setStaffList] = useState<StaffUser[]>(() => remoteStaff ? [remoteStaff] : getInitialStaffList());
+  const [currentStaff, setCurrentStaff] = useState<StaffUser>(() => remoteStaff ?? getInitialCurrentStaff(staffList));
   const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
   const [, setLocation] = useLocation();
 
   // Save changes to localStorage
   useEffect(() => {
+    if (remoteStaff) return;
     try {
       localStorage.setItem(STORAGE_STAFF_KEY, JSON.stringify(staffList));
     } catch (err) {
       console.warn("Could not save staff list", err);
     }
-  }, [staffList]);
+  }, [staffList, remoteStaff]);
 
   useEffect(() => {
+    if (remoteStaff) return;
     try {
       localStorage.setItem(STORAGE_CURRENT_STAFF_KEY, currentStaff.id);
     } catch (err) {
       console.warn("Could not save current staff id", err);
     }
-  }, [currentStaff]);
+  }, [currentStaff, remoteStaff]);
 
   const openSwitchModal = useCallback(() => setIsSwitchModalOpen(true), []);
   const closeSwitchModal = useCallback(() => setIsSwitchModalOpen(false), []);
@@ -182,9 +184,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return path === "/dapur" || path.startsWith("/order/");
       }
 
-      // Manajer accesses reports, orders, cash drawer, settings, tables
+      // Manajer (owner) accesses dashboard/reports, ready stock, orders, cash drawer, settings, tables
       if (role === "manajer") {
-        const allowed = ["/laporan", "/pesanan", "/laci-kas", "/pengaturan", "/meja"];
+        const allowed = ["/laporan", "/produk", "/pesanan", "/laci-kas", "/pengaturan", "/meja"];
         return allowed.includes(path) || path.startsWith("/order/");
       }
 

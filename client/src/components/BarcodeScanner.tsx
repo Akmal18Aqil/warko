@@ -312,6 +312,14 @@ export function BarcodeScanner({
   const demoItems = useMemo(() => {
     return pos.products.slice(0, 6);
   }, [pos.products]);
+  useEffect(() => {
+    if (!open) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -321,7 +329,7 @@ export function BarcodeScanner({
         {/* Modal Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0 bg-stone-900/90">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-counterlime/20 text-counterlime">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/20 text-accent">
               <BarcodeIcon size={20} />
             </div>
             <div>
@@ -351,7 +359,7 @@ export function BarcodeScanner({
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg transition-all",
               activeTab === "camera"
-                ? "bg-counterlime text-ink font-bold shadow-sm"
+                ? "bg-accent text-white font-bold shadow-sm"
                 : "text-white/60 hover:text-white hover:bg-white/5"
             )}
           >
@@ -364,7 +372,7 @@ export function BarcodeScanner({
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg transition-all",
               activeTab === "upload"
-                ? "bg-counterlime text-ink font-bold shadow-sm"
+                ? "bg-accent text-white font-bold shadow-sm"
                 : "text-white/60 hover:text-white hover:bg-white/5"
             )}
           >
@@ -377,7 +385,7 @@ export function BarcodeScanner({
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg transition-all",
               activeTab === "manual"
-                ? "bg-counterlime text-ink font-bold shadow-sm"
+                ? "bg-accent text-white font-bold shadow-sm"
                 : "text-white/60 hover:text-white hover:bg-white/5"
             )}
           >
@@ -390,7 +398,7 @@ export function BarcodeScanner({
             className={cn(
               "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg transition-all",
               activeTab === "demo"
-                ? "bg-counterlime text-ink font-bold shadow-sm"
+                ? "bg-accent text-white font-bold shadow-sm"
                 : "text-white/60 hover:text-white hover:bg-white/5"
             )}
           >
@@ -419,7 +427,7 @@ export function BarcodeScanner({
                     <button
                       type="button"
                       onClick={() => setActiveTab("manual")}
-                      className="px-3 py-1.5 rounded-lg bg-counterlime text-ink font-bold text-xs"
+                      className="px-3 py-1.5 rounded-lg bg-accent text-white font-bold text-xs"
                     >
                       Ketik Manual
                     </button>
@@ -443,15 +451,15 @@ export function BarcodeScanner({
 
                   {/* Viewfinder Target Box with animated Laser Line */}
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <div className="relative h-52 w-72 sm:w-80 rounded-2xl border-2 border-counterlime/80 shadow-[0_0_0_9999px_rgb(0_0_0/0.55)] overflow-hidden">
+                    <div className="relative h-52 w-72 sm:w-80 rounded-2xl border-2 border-accent/80 shadow-[0_0_0_9999px_rgb(0_0_0/0.55)] overflow-hidden">
                       {/* Laser scanning line */}
-                      <div className="absolute left-0 right-0 h-0.5 bg-counterlime shadow-[0_0_8px_#b8e621] animate-[scan_2s_ease-in-out_infinite]" />
+                      <div className="absolute left-0 right-0 h-0.5 bg-accent shadow-[0_0_8px_#2563eb] animate-[scan_2s_ease-in-out_infinite]" />
 
                       {/* Corner Target Markers */}
-                      <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-counterlime" />
-                      <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-counterlime" />
-                      <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-counterlime" />
-                      <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-counterlime" />
+                      <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-accent" />
+                      <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-accent" />
+                      <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-accent" />
+                      <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-accent" />
                     </div>
                   </div>
 
@@ -516,7 +524,7 @@ export function BarcodeScanner({
 
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full max-w-md border-2 border-dashed border-white/20 hover:border-counterlime/80 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all bg-white/5 hover:bg-white/10 group"
+                className="w-full max-w-md border-2 border-dashed border-white/20 hover:border-accent/80 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all bg-white/5 hover:bg-white/10 group"
               >
                 {uploadPreview ? (
                   <div className="space-y-3">
@@ -525,13 +533,13 @@ export function BarcodeScanner({
                       alt="Preview Barcode"
                       className="max-h-48 rounded-xl object-contain mx-auto border border-white/10 shadow-md"
                     />
-                    <p className="text-xs text-counterlime font-semibold">
+                    <p className="text-xs text-accent font-semibold">
                       Klik untuk ganti gambar lain
                     </p>
                   </div>
                 ) : (
                   <>
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-white/60 group-hover:text-counterlime group-hover:scale-110 transition-all mb-3">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/5 text-white/60 group-hover:text-accent group-hover:scale-110 transition-all mb-3">
                       <Upload size={28} />
                     </div>
                     <p className="font-semibold text-sm text-white">
@@ -546,7 +554,7 @@ export function BarcodeScanner({
 
               {uploadStatus && (
                 <div className="mt-4 flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl bg-white/5 border border-white/10">
-                  <RefreshCw size={14} className="animate-spin text-counterlime" />
+                  <RefreshCw size={14} className="animate-spin text-accent" />
                   <span>{uploadStatus}</span>
                 </div>
               )}
@@ -577,16 +585,16 @@ export function BarcodeScanner({
                       }
                     }}
                     placeholder="Contoh: 8991002100015 atau Nasi Goreng"
-                    className="w-full rounded-xl border border-white/15 bg-white/5 pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-counterlime focus:outline-none focus:ring-2 focus:ring-counterlime/40"
+                    className="w-full rounded-xl border border-white/15 bg-white/5 pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
                   />
                 </div>
               </div>
 
               {/* Instant Search Result Preview */}
               {manualFoundProduct ? (
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-counterlime/10 border border-counterlime/30 text-white">
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-accent/10 border border-accent/30 text-white">
                   <div className="min-w-0 pr-3">
-                    <p className="font-bold text-sm text-counterlime truncate">
+                    <p className="font-bold text-sm text-accent truncate">
                       {manualFoundProduct.name}
                     </p>
                     <p className="text-xs text-white/60">
@@ -596,7 +604,7 @@ export function BarcodeScanner({
                   <button
                     type="button"
                     onClick={() => void processRawCode(manualFoundProduct.barcode)}
-                    className="px-3.5 py-1.5 rounded-lg bg-counterlime font-bold text-xs text-ink shrink-0 hover:bg-counterlime/90 transition-transform active:scale-95"
+                    className="px-3.5 py-1.5 rounded-lg bg-accent font-bold text-xs text-white shrink-0 hover:bg-accent/90 transition-transform active:scale-95"
                   >
                     Tambahkan
                   </button>
@@ -631,7 +639,7 @@ export function BarcodeScanner({
                     className={cn(
                       "h-11 rounded-xl font-bold text-sm transition-all active:scale-95",
                       key === "OK"
-                        ? "bg-counterlime text-ink"
+                        ? "bg-accent text-white"
                         : key === "C"
                         ? "bg-red-500/20 text-red-300 hover:bg-red-500/30"
                         : "bg-white/5 text-white hover:bg-white/10"
@@ -656,9 +664,9 @@ export function BarcodeScanner({
                     key={item.id}
                     type="button"
                     onClick={() => void processRawCode(item.barcode)}
-                    className="flex flex-col items-start p-3 rounded-xl bg-white/5 hover:bg-counterlime/15 border border-white/10 hover:border-counterlime/40 text-left transition-all group"
+                    className="flex flex-col items-start p-3 rounded-xl bg-white/5 hover:bg-accent/15 border border-white/10 hover:border-accent/40 text-left transition-all group"
                   >
-                    <span className="font-bold text-xs text-white group-hover:text-counterlime truncate w-full">
+                    <span className="font-bold text-xs text-white group-hover:text-accent truncate w-full">
                       {item.name}
                     </span>
                     <span className="text-[11px] font-mono text-white/50 group-hover:text-white/80 mt-0.5">
@@ -674,14 +682,14 @@ export function BarcodeScanner({
                   <button
                     type="button"
                     onClick={() => void processRawCode("/order/meja-01")}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/5 hover:bg-counterlime/20 border border-white/10 hover:border-counterlime text-xs font-semibold text-white"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/5 hover:bg-accent/20 border border-white/10 hover:border-accent text-xs font-semibold text-white"
                   >
                     <QrCode size={13} /> Meja 01
                   </button>
                   <button
                     type="button"
                     onClick={() => void processRawCode("/order/meja-03")}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/5 hover:bg-counterlime/20 border border-white/10 hover:border-counterlime text-xs font-semibold text-white"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/5 hover:bg-accent/20 border border-white/10 hover:border-accent text-xs font-semibold text-white"
                   >
                     <QrCode size={13} /> Meja 03
                   </button>
@@ -694,11 +702,11 @@ export function BarcodeScanner({
         {/* Modal Footer Info */}
         <div className="px-5 py-3 border-t border-white/10 bg-stone-950/80 flex items-center justify-between text-xs text-white/60 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-counterlime animate-pulse" />
+            <span className="flex h-2 w-2 rounded-full bg-accent animate-pulse" />
             <span>Mendukung Scanner Gun USB/Bluetooth & Kamera</span>
           </div>
           {lastScannedCode && (
-            <span className="font-mono text-[11px] text-counterlime truncate max-w-[200px]">
+            <span className="font-mono text-[11px] text-accent truncate max-w-[200px]">
               Terakhir: {lastScannedCode}
             </span>
           )}

@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { MessageSquarePlus, Minus, Plus, ReceiptText, Tag, Trash2, Edit3, X, Check } from "lucide-react";
+import {
+  MessageSquarePlus,
+  Minus,
+  Plus,
+  ReceiptText,
+  Tag,
+  Trash2,
+  Edit3,
+  X,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
@@ -8,6 +18,7 @@ import { getPrinterDriver } from "../services/printer";
 import { FoodImage } from "./FoodImage";
 import { Button } from "./ui/Button";
 import { cn } from "../lib/cn";
+import { floorsOf } from "../lib/orderStatus";
 
 export function CartPanel({
   onPay,
@@ -18,7 +29,7 @@ export function CartPanel({
   const {
     orderNo,
     orderType,
-    tableNumber,
+    selectedTable,
     guests,
     lines,
     totals,
@@ -43,7 +54,10 @@ export function CartPanel({
   const [noteInput, setNoteInput] = useState("");
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [inputDiscountValue, setInputDiscountValue] = useState("");
-  const [inputDiscountType, setInputDiscountType] = useState<"percent" | "fixed">("percent");
+  const [inputDiscountType, setInputDiscountType] = useState<"percent" | "fixed">(
+    "percent",
+  );
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const totalItemCount = lines.reduce((sum, l) => sum + l.qty, 0);
 
@@ -53,11 +67,19 @@ export function CartPanel({
     toast(t.toasts.clearedTitle, { description: t.toasts.clearedBody });
   };
 
-  const handleSaveToKitchen = () => {
-    const no = saveDraft();
-    toast.success(`Pesanan #${no} dikirim ke Dapur (KDS)!`, {
-      description: "Koki dan barista dapat melihat tiket di halaman /dapur",
-    });
+  const handleSaveToKitchen = async () => {
+    if (savingDraft) return;
+    setSavingDraft(true);
+    try {
+      const no = await saveDraft();
+      toast.success(`Pesanan #${no} dikirim ke Dapur (KDS)!`, {
+        description: "Koki dan barista dapat melihat tiket di halaman /dapur",
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Pesanan gagal dikirim. Belum tercatat di server.");
+    } finally {
+      setSavingDraft(false);
+    }
   };
 
   const handleOpenNote = (itemId: string, currentNote?: string) => {
@@ -76,7 +98,9 @@ export function CartPanel({
     setDiscount(inputDiscountType, val);
     setShowDiscountModal(false);
     if (val > 0) {
-      toast.success(`Diskon ${inputDiscountType === "percent" ? `${val}%` : formatIDR(val)} diterapkan!`);
+      toast.success(
+        `Diskon ${inputDiscountType === "percent" ? `${val}%` : formatIDR(val)} diterapkan!`,
+      );
     } else {
       toast.info("Diskon dihapus");
     }
@@ -85,17 +109,20 @@ export function CartPanel({
   return (
     <section
       aria-label={t.cart.title}
-      className="flex h-full max-h-full flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-md"
+      className="service-ticket receipt-paper flex min-h-0 h-auto max-h-none flex-col overflow-y-auto overflow-x-hidden rounded-xl max-[1199px]:min-h-[520px] min-[1200px]:h-full min-[1200px]:max-h-full"
     >
       {/* Header Section */}
-      <div className="border-b border-ink/10 bg-white px-4 pt-3.5 pb-3 shrink-0">
+      <div className="border-b border-ink/10 bg-surface px-4 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center justify-between gap-2">
           <div>
+            <p className="label-caps mb-1 text-[10px] font-bold text-ink/45">
+              Service ticket
+            </p>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-base font-bold tracking-tight text-ink">
                 {t.cart.title}
               </h2>
-              <span className="rounded-md bg-ink/5 px-2 py-0.5 text-xs font-bold text-ink/70">
+              <span className="order-chip rounded-md px-2 py-0.5 font-mono text-xs font-bold">
                 #{orderNo}
               </span>
             </div>
@@ -103,7 +130,9 @@ export function CartPanel({
               {totalItemCount} item dipilih ·{" "}
               {orderType === "bawa-pulang"
                 ? "Bawa Pulang"
-                : `Makan di Tempat (${String(tableNumber).padStart(2, "0")})`}
+                : selectedTable
+                  ? `${selectedTable.name} · ${selectedTable.area}`
+                  : "Pilih meja"}
             </p>
           </div>
 
@@ -120,7 +149,7 @@ export function CartPanel({
         </div>
 
         {/* Order Type Toggle */}
-        <div className="mt-2.5 grid grid-cols-2 gap-1.5 rounded-xl bg-mineral/70 p-1">
+        <div className="mt-2.5 grid grid-cols-2 gap-1.5 rounded-md bg-surface-muted p-1">
           <TypeToggle
             active={orderType === "bawa-pulang"}
             label={t.cart.takeaway}
@@ -128,7 +157,7 @@ export function CartPanel({
           />
           <TypeToggle
             active={orderType === "meja"}
-            label={`Makan di Tempat (${String(tableNumber).padStart(2, "0")})`}
+            label={selectedTable ? `Dine-in (${selectedTable.name})` : "Dine-in (Meja)"}
             onClick={() => setOrderType("meja")}
           />
         </div>
@@ -139,23 +168,34 @@ export function CartPanel({
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-ink/60">Meja:</span>
               <select
-                value={tableNumber}
-                onChange={(e) => pos.setTableNumber(Number.parseInt(e.target.value, 10))}
-                className="h-7 rounded-lg border border-ink/15 bg-white px-2 text-xs font-bold text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                value={pos.tableId ?? ""}
+                onChange={(e) => {
+                  const table = pos.tables.find((tbl) => tbl.id === e.target.value);
+                  if (table) pos.selectTable(table);
+                }}
+                aria-label="Pilih meja"
+                className="h-7 rounded-lg border border-ink/15 bg-white px-2 text-xs font-bold text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
               >
-                {pos.tables.map((tbl) => {
-                  const numMatch = tbl.name.match(/\d+/);
-                  const num = numMatch ? Number.parseInt(numMatch[0], 10) : 1;
-                  return (
-                    <option key={tbl.id} value={num}>
-                      {tbl.name} ({tbl.area || "Utama"})
-                    </option>
-                  );
-                })}
+                <option value="" disabled>
+                  Pilih meja…
+                </option>
+                {floorsOf(pos.tables).map((floor) => (
+                  <optgroup key={floor} label={floor}>
+                    {pos.tables
+                      .filter((tbl) => tbl.area === floor && tbl.active !== false)
+                      .map((tbl) => (
+                        <option key={tbl.id} value={tbl.id}>
+                          {tbl.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
               </select>
             </div>
           ) : (
-            <span className="text-xs font-medium text-ink/50">Takeaway (Bawa pulang)</span>
+            <span className="text-xs font-medium text-ink/50">
+              Takeaway (Bawa pulang)
+            </span>
           )}
 
           <div className="flex items-center gap-1.5 ml-auto">
@@ -180,10 +220,13 @@ export function CartPanel({
           </div>
         </div>
       </div>
+      <div className="receipt-perforation mx-4 shrink-0" aria-hidden="true" />
 
-      {/* Item List (Spacious & Clean Preview) */}
+      {/* Item List */}
       {lines.length === 0 ? (
-        <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-2.5 p-6 text-center bg-mineral/20">
+        <div
+          className="flex flex-1 min-h-0 flex-col items-center justify-center gap-2.5 p-6 text-center bg-mineral/20"
+        >
           <div className="w-12 h-12 rounded-2xl bg-mineral flex items-center justify-center border border-ink/10 text-ink/30 shadow-2xs">
             <ReceiptText size={24} />
           </div>
@@ -197,7 +240,7 @@ export function CartPanel({
           </div>
         </div>
       ) : (
-        <ul className="flex-1 min-h-0 overflow-y-auto px-3.5 py-3 space-y-2 bg-mineral/20 overscroll-contain divide-y-0">
+        <ul className="flex-1 min-h-0 min-[1200px]:min-h-[230px] overflow-y-auto px-3.5 py-3 space-y-2 bg-mineral/20 overscroll-contain divide-y-0">
           {lines.map((line) => {
             const item = pos.products.find((p) => p.id === line.itemId);
             if (!item) return null;
@@ -259,7 +302,7 @@ export function CartPanel({
                           "inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-semibold transition-colors border",
                           line.note
                             ? "bg-amber-50 border-amber-300 text-amber-900 font-bold"
-                            : "bg-white border-ink/12 text-ink/60 hover:text-ink hover:border-ink/30"
+                            : "bg-white border-ink/12 text-ink/60 hover:text-ink hover:border-ink/30",
                         )}
                       >
                         <MessageSquarePlus size={11} className={line.note ? "text-amber-700" : "text-ink/40"} />
@@ -316,7 +359,7 @@ export function CartPanel({
                       value={noteInput}
                       onChange={(e) => setNoteInput(e.target.value)}
                       placeholder="Contoh: Tanpa gula, pedas level 3..."
-                      className="w-full rounded-md border border-ink/20 bg-white px-2 py-1 text-xs text-ink placeholder:text-ink/40 focus:border-ink/50 focus:outline-none focus:ring-1 focus:ring-counterlime"
+                      className="w-full rounded-md border border-ink/20 bg-white px-2 py-1 text-xs text-ink placeholder:text-ink/40 focus:border-ink/50 focus:outline-none focus:ring-1 focus:ring-accent"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleSaveNote(line.itemId);
                         if (e.key === "Escape") setEditingNoteId(null);
@@ -347,7 +390,7 @@ export function CartPanel({
       )}
 
       {/* Order Summary & Financials */}
-      <div className="border-t border-ink/10 bg-white px-4 pt-3 pb-3.5 shrink-0 shadow-lg space-y-2">
+      <div className="border-t border-ink/10 bg-surface px-4 pt-2 pb-2 shrink-0 shadow-lg space-y-1">
         {/* Discount & Promo Trigger */}
         <div className="flex items-center justify-between border-b border-ink/8 pb-1.5">
           <button
@@ -359,9 +402,9 @@ export function CartPanel({
             }}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-ink/70 hover:text-ink transition-colors"
           >
-            <Tag size={12} className="text-counterlime-dark" />
+            <Tag size={12} className="text-accent-dark" />
             {discountValue > 0 ? (
-              <span className="text-counterlime-dark font-extrabold">
+              <span className="text-accent-dark font-extrabold">
                 Diskon: {discountType === "percent" ? `${discountValue}%` : formatIDR(discountValue)} (Ubah)
               </span>
             ) : (
@@ -428,8 +471,8 @@ export function CartPanel({
         <div className="grid grid-cols-2 gap-2 pt-0.5">
           <Button
             variant="outline"
-            onClick={handleSaveToKitchen}
-            disabled={lines.length === 0}
+            onClick={() => void handleSaveToKitchen()}
+            disabled={lines.length === 0 || savingDraft || (orderType === "meja" && !selectedTable)}
             className="font-bold text-xs h-9.5 rounded-xl"
           >
             Kirim ke Dapur
@@ -437,10 +480,10 @@ export function CartPanel({
           <Button
             variant="primary"
             onClick={onPay}
-            disabled={lines.length === 0}
+            disabled={lines.length === 0 || (orderType === "meja" && !selectedTable)}
             className="font-bold text-xs h-9.5 rounded-xl"
           >
-            {t.cart.payPrefix} {formatIDR(totals.total)}
+            Bayar & Kirim ke Dapur {formatIDR(totals.total)}
           </Button>
         </div>
 
@@ -468,84 +511,86 @@ export function CartPanel({
             P
           </kbd>
         </Button>
-      </div>
 
-      {/* Discount Modal */}
-      {showDiscountModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/55 p-4 backdrop-blur-[2px]"
-          onClick={() => setShowDiscountModal(false)}
-        >
+        {/* Discount Modal */}
+        {showDiscountModal && (
           <div
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl border border-ink/10 bg-white p-5 shadow-2xl"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/55 p-4 backdrop-blur-[2px]"
+            onClick={() => setShowDiscountModal(false)}
           >
-            <h3 className="font-display text-base font-bold text-ink">
-              Terapkan Diskon / Potongan
-            </h3>
-            <p className="mt-0.5 text-xs text-ink/50">
-              Pilih diskon persentase atau nominal rupiah langsung.
-            </p>
+            <div
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl border border-ink/10 bg-white p-5 shadow-2xl"
+            >
+              <h3 className="font-display text-base font-bold text-ink">
+                Terapkan Diskon / Potongan
+              </h3>
+              <p className="mt-0.5 text-xs text-ink/50">
+                Pilih diskon persentase atau nominal rupiah langsung.
+              </p>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setInputDiscountType("percent")}
-                className={cn(
-                  "rounded-xl border py-2 text-xs font-bold transition-all",
-                  inputDiscountType === "percent"
-                    ? "border-counterlime-dark bg-counterlime text-ink shadow-xs"
-                    : "border-ink/15 text-ink/60 hover:bg-ink/5",
-                )}
-              >
-                Persen (%)
-              </button>
-              <button
-                type="button"
-                onClick={() => setInputDiscountType("fixed")}
-                className={cn(
-                  "rounded-xl border py-2 text-xs font-bold transition-all",
-                  inputDiscountType === "fixed"
-                    ? "border-counterlime-dark bg-counterlime text-ink shadow-xs"
-                    : "border-ink/15 text-ink/60 hover:bg-ink/5",
-                )}
-              >
-                Nominal (Rp)
-              </button>
-            </div>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setInputDiscountType("percent")}
+                  className={cn(
+                    "rounded-xl border py-2 text-xs font-bold transition-all",
+                    inputDiscountType === "percent"
+                      ? "border-accent-dark bg-accent text-white shadow-xs"
+                      : "border-ink/15 text-ink/60 hover:bg-ink/5",
+                  )}
+                >
+                  Persen (%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputDiscountType("fixed")}
+                  className={cn(
+                    "rounded-xl border py-2 text-xs font-bold transition-all",
+                    inputDiscountType === "fixed"
+                      ? "border-accent-dark bg-accent text-white shadow-xs"
+                      : "border-ink/15 text-ink/60 hover:bg-ink/5",
+                  )}
+                >
+                  Nominal (Rp)
+                </button>
+              </div>
 
-            <div className="mt-3">
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink/60">
-                Nilai Diskon ({inputDiscountType === "percent" ? "%" : "Rp"})
-              </label>
-              <input
-                type="number"
-                min="0"
-                max={inputDiscountType === "percent" ? "100" : undefined}
-                value={inputDiscountValue}
-                onChange={(e) => setInputDiscountValue(e.target.value)}
-                placeholder={inputDiscountType === "percent" ? "Contoh: 10" : "Contoh: 15000"}
-                className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm font-bold text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
-              />
-            </div>
+              <div className="mt-3">
+                <label className="block text-xs font-bold uppercase tracking-wider text-ink/60">
+                  Nilai Diskon ({inputDiscountType === "percent" ? "%" : "Rp"})
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max={inputDiscountType === "percent" ? "100" : undefined}
+                  value={inputDiscountValue}
+                  onChange={(e) => setInputDiscountValue(e.target.value)}
+                  placeholder={
+                    inputDiscountType === "percent" ? "Contoh: 10" : "Contoh: 15000"
+                  }
+                  className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm font-bold text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
+                />
+              </div>
 
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowDiscountModal(false)}
-              >
-                Batal
-              </Button>
-              <Button size="sm" variant="primary" onClick={handleApplyDiscount}>
-                Terapkan Diskon
-              </Button>
+              <div className="mt-4 flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowDiscountModal(false)}
+                >
+                  Batal
+                </Button>
+                <Button size="sm" variant="primary" onClick={handleApplyDiscount}>
+                  Terapkan Diskon
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }
@@ -567,7 +612,7 @@ function TypeToggle({
       className={cn(
         "pressable h-8 rounded-lg text-xs font-semibold transition-all",
         active
-          ? "bg-counterlime text-ink shadow-xs font-bold"
+          ? "bg-accent text-white shadow-xs font-bold"
           : "text-ink/60 hover:text-ink",
       )}
     >

@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import QRCode from "qrcode";
 import {
   Armchair,
   Coffee,
@@ -13,15 +12,18 @@ import {
   Printer,
   Check,
   Wifi,
+  Banknote,
 } from "lucide-react";
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
 import { Header } from "../components/Header";
 import { Button } from "../components/ui/Button";
 import { TableModal } from "../components/TableModal";
-import { usePos, type TableRow } from "../components/PosContext";
-import { getNetworkHostInfo } from "../services/localSyncServer";
+import { PaymentModal } from "../components/PaymentModal";
+import { usePos, type OrderRow, type TableRow } from "../components/PosContext";
 import { cn } from "../lib/cn";
+import { floorsOf, isPaid, KITCHEN_LABEL, kitchenStatusOf, openOrdersForTable } from "../lib/orderStatus";
+import { printTableQrSheets, tableOrderUrl, tableQrDataUrl } from "../lib/tableQr";
 import { toast } from "sonner";
 
 export default function Tables() {
@@ -33,20 +35,22 @@ export default function Tables() {
   const [qrModalTable, setQrModalTable] = useState<TableRow | null>(null);
   const [qrImageDataUrl, setQrImageDataUrl] = useState<string>("");
   const [hasCopied, setHasCopied] = useState(false);
-  const hostInfo = getNetworkHostInfo();
+  const [payingOrder, setPayingOrder] = useState<OrderRow | null>(null);
 
-  const availableAreas = useMemo(() => {
-    const set = new Set<string>();
-    for (const tbl of pos.tables) {
-      if (tbl.area && tbl.area.trim()) set.add(tbl.area.trim());
-    }
-    return Array.from(set);
-  }, [pos.tables]);
+  const availableAreas = useMemo(() => floorsOf(pos.tables), [pos.tables]);
 
   const filteredTables = useMemo(() => {
-    if (activeAreaFilter === "Semua") return pos.tables;
-    return pos.tables.filter((tbl) => (tbl.area || "Utama") === activeAreaFilter);
+    const list = activeAreaFilter === "Semua" ? pos.tables : pos.tables.filter((tbl) => tbl.area === activeAreaFilter);
+    return [...list].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   }, [pos.tables, activeAreaFilter]);
+
+  const occupancy = useMemo(() => {
+    const map = new Map<string, OrderRow[]>();
+    for (const table of pos.tables) map.set(table.id, openOrdersForTable(pos.orders, table));
+    return map;
+  }, [pos.orders, pos.tables]);
+
+  const occupiedCount = filteredTables.filter((tbl) => (occupancy.get(tbl.id)?.length ?? 0) > 0).length;
 
   const handleOpenAdd = () => {
     setSelectedTable(null);
@@ -74,6 +78,9 @@ export default function Tables() {
   };
 
   const handleDelete = async (id: string) => {
+    if ((occupancy.get(id)?.length ?? 0) > 0) {
+      throw new Error("Meja masih memiliki pesanan aktif atau belum dibayar.");
+    }
     await pos.deleteTable(id);
   };
 
@@ -82,39 +89,10 @@ export default function Tables() {
     setLocation("/");
   };
 
-  // Find if table has an active draft or unpaid order
-  const getTableActiveOrder = (table: TableRow) => {
-    const numMatch = table.name.match(/\d+/);
-    const num = numMatch ? Number.parseInt(numMatch[0], 10) : undefined;
-    if (!num) return null;
-
-    // Check currently active draft cart in POS
-    if (pos.orderType === "meja" && pos.tableNumber === num && pos.lines.length > 0) {
-      return {
-        orderNo: pos.orderNo,
-        total: pos.totals.total,
-        label: "Sedang Dipesan",
-      };
-    }
-
-    // Check unpaid stored orders
-    const activeOrder = pos.orders.find(
-      (o) => o.orderType === "meja" && o.tableNumber === num && o.status !== "sudah-dibayar",
+  const handlePrintQr = (tables: TableRow[]) => {
+    printTableQrSheets(tables).catch((err: unknown) =>
+      toast.error(err instanceof Error ? err.message : "QR meja gagal dicetak."),
     );
-    if (activeOrder) {
-      return {
-        orderNo: activeOrder.no,
-        total: activeOrder.total,
-        label: activeOrder.status === "siap" ? "Siap Disajikan" : "Dimasak",
-      };
-    }
-
-    return null;
-  };
-
-  const getTableOrderUrl = (table: TableRow) => {
-    const slug = encodeURIComponent(table.name.toLowerCase().replace(/\s+/g, "-"));
-    return `${hostInfo.baseUrl}/order/${slug}`;
   };
 
   useEffect(() => {
@@ -122,39 +100,48 @@ export default function Tables() {
       setQrImageDataUrl("");
       return;
     }
-    const url = getTableOrderUrl(qrModalTable);
-    QRCode.toDataURL(url, {
-      width: 320,
-      margin: 1,
-      color: { dark: "#14211F", light: "#FFFFFF" },
-    })
-      .then(setQrImageDataUrl)
-      .catch(console.error);
-  }, [qrModalTable, hostInfo.baseUrl]);
+    tableQrDataUrl(qrModalTable).then(setQrImageDataUrl).catch(console.error);
+  }, [qrModalTable]);
 
   const handleCopyLink = () => {
     if (!qrModalTable) return;
-    const url = getTableOrderUrl(qrModalTable);
-    navigator.clipboard.writeText(url).then(() => {
-      setHasCopied(true);
-      toast.success("Tautan QR Meja disalin ke clipboard!");
-      setTimeout(() => setHasCopied(false), 2500);
-    });
+    navigator.clipboard.writeText(tableOrderUrl(qrModalTable)).then(
+      () => {
+        setHasCopied(true);
+        toast.success("Tautan QR Meja disalin ke clipboard!");
+        setTimeout(() => setHasCopied(false), 2500);
+      },
+      () => toast.error("Clipboard tidak tersedia di browser ini."),
+    );
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="service-rail-surface flex min-h-screen flex-col">
       <Header title={t.tablesPage.title} />
       <div className="flex-1 p-5 md:p-8">
         <div className="-mt-1 mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm text-ink/55">{t.tablesPage.subtitle}</p>
-            <p className="text-xs font-semibold text-ink/40">
-              Total: {pos.tables.length} meja makan terdaftar
+            <p className="text-xs font-semibold text-ink/50">
+              <span className="text-emerald-700">{filteredTables.length - occupiedCount} kosong</span>
+              {" · "}
+              <span className="text-amber-700">{occupiedCount} terisi</span>
+              {" · "}
+              {filteredTables.length} meja {activeAreaFilter === "Semua" ? "di semua lantai" : `di ${activeAreaFilter}`}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePrintQr(filteredTables)}
+              disabled={filteredTables.length === 0}
+              className="gap-1.5 font-bold"
+            >
+              <Printer size={15} />
+              Cetak QR {activeAreaFilter === "Semua" ? "Semua Meja" : activeAreaFilter}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -172,8 +159,8 @@ export default function Tables() {
         </div>
 
         {/* Filter Area Tabs */}
-        {availableAreas.length > 1 && (
-          <div className="mb-6 flex flex-wrap gap-2">
+        {availableAreas.length > 0 && (
+          <div className="mb-6 flex flex-wrap gap-2" role="tablist" aria-label="Filter lantai">
             <button
               type="button"
               onClick={() => setActiveAreaFilter("Semua")}
@@ -198,7 +185,7 @@ export default function Tables() {
                     : "border border-ink/10 bg-white text-ink/65 hover:bg-ink/5",
                 )}
               >
-                {area} ({pos.tables.filter((t) => (t.area || "Utama") === area).length})
+                {area} ({pos.tables.filter((tbl) => tbl.area === area).length})
               </button>
             ))}
           </div>
@@ -206,43 +193,43 @@ export default function Tables() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredTables.map((table) => {
-            const activeInfo = getTableActiveOrder(table);
-            const isActive = Boolean(activeInfo);
+            const openOrders = occupancy.get(table.id) ?? [];
+            const drafting = pos.orderType === "meja" && pos.tableId === table.id && pos.lines.length > 0;
+            const isOccupied = openOrders.length > 0;
+            const unpaid = openOrders.filter((o) => !isPaid(o));
+            const unpaidTotal = unpaid.reduce((sum, o) => sum + o.total, 0);
 
             return (
               <article
                 key={table.id}
                 onClick={() => handleSelectTableAndOrder(table)}
                 className={cn(
-                  "card-hover cursor-pointer rounded-2xl border bg-white p-5 transition-all hover:shadow-md",
-                  isActive
-                    ? "border-counterlime ring-2 ring-counterlime/40"
-                    : "border-ink/10 hover:border-ink/25",
+                  "card-hover cursor-pointer rounded-2xl border-2 bg-white p-5 transition-all hover:shadow-md",
+                  isOccupied ? "border-amber-400 bg-amber-50/60" : "border-emerald-400 bg-emerald-50/40",
                 )}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span
                       className={cn(
-                        "flex h-11 w-11 items-center justify-center rounded-xl",
-                        isActive ? "bg-counterlime text-ink" : "bg-ink/5 text-ink/60",
+                        "flex h-11 w-11 items-center justify-center rounded-xl text-white",
+                        isOccupied ? "bg-amber-500" : "bg-emerald-500",
                       )}
                     >
                       <Armchair size={21} aria-hidden="true" />
                     </span>
-                    <div>
-                      <span className="rounded-md bg-ink/6 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink/60">
-                        {table.area || "Utama"}
-                      </span>
-                    </div>
+                    <span className="rounded-md bg-ink/6 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink/60">
+                      {table.area}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       title="Lihat & Cetak QR Meja Pelanggan"
+                      aria-label={`QR ${table.name}`}
                       onClick={(e) => handleOpenQr(table, e)}
-                      className="rounded-lg p-1.5 text-ink/50 hover:bg-counterlime/20 hover:text-ink transition-colors"
+                      className="rounded-lg p-1.5 text-ink/50 hover:bg-accent/20 hover:text-ink transition-colors"
                     >
                       <QrCode size={17} />
                     </button>
@@ -263,32 +250,55 @@ export default function Tables() {
                     {table.name}
                   </h3>
                   <span
-                    className={
-                      isActive
-                        ? "rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800"
-                        : "rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-ink/55"
-                    }
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                      isOccupied ? "bg-amber-200 text-amber-900" : "bg-emerald-200 text-emerald-900",
+                    )}
                   >
-                    {isActive && activeInfo ? activeInfo.label : t.tablesPage.empty}
+                    {isOccupied ? "Terisi" : t.tablesPage.empty}
                   </span>
                 </div>
 
                 <p className="mt-0.5 text-xs text-ink/50">
                   {t.tablesPage.seatsUnit(table.seats)}
+                  {table.active === false ? " · nonaktif" : ""}
                 </p>
 
-                {isActive && activeInfo ? (
-                  <div className="mt-3 border-t border-dashed border-ink/15 pt-3">
-                    <p className="font-display text-sm font-bold text-ink">
-                      {t.tablesPage.activeOrder(activeInfo.orderNo, formatIDR(activeInfo.total))}
-                    </p>
-                    <p className="mt-0.5 text-[11px] font-semibold text-counterlime-dark">
-                      Klik untuk kelola pesanan meja ini
-                    </p>
+                {isOccupied ? (
+                  <div className="mt-3 space-y-1.5 border-t border-dashed border-ink/15 pt-3">
+                    {openOrders.slice(0, 3).map((o) => (
+                      <div key={o.no} className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
+                        <span className="min-w-0 truncate font-semibold text-ink">
+                          #{o.no} · {KITCHEN_LABEL[kitchenStatusOf(o)]}
+                        </span>
+                        {isPaid(o) ? (
+                          <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                            Lunas
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPayingOrder(o);
+                            }}
+                            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-coral px-2 py-0.5 text-[10px] font-bold text-white hover:bg-coral/90"
+                          >
+                            <Banknote size={11} /> Bayar {formatIDR(o.total)}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {openOrders.length > 3 && (
+                      <p className="text-[11px] text-ink/50">+{openOrders.length - 3} pesanan lain</p>
+                    )}
+                    {unpaid.length > 0 && (
+                      <p className="text-[11px] font-bold text-coral">Belum dibayar: {formatIDR(unpaidTotal)}</p>
+                    )}
                   </div>
                 ) : (
-                  <div className="mt-3 border-t border-ink/6 pt-3 flex items-center justify-between text-xs text-ink/40">
-                    <span>Meja Kosong</span>
+                  <div className="mt-3 border-t border-ink/6 pt-3 flex items-center justify-between text-xs text-ink/50">
+                    <span>{drafting ? "Sedang diinput kasir" : "Meja Kosong"}</span>
                     <span className="inline-flex items-center gap-1 font-semibold text-ink/70 hover:underline">
                       <UtensilsCrossed size={12} /> Buka Pesanan
                     </span>
@@ -300,7 +310,7 @@ export default function Tables() {
 
           <article className="card-hover rounded-2xl border border-ink/10 bg-white p-5">
             <div className="flex items-center justify-between">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-counterlime text-ink">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-white">
                 <Coffee size={21} aria-hidden="true" />
               </span>
               <span className="rounded-full bg-ink px-2.5 py-1 text-[11px] font-semibold text-mineral">
@@ -321,12 +331,12 @@ export default function Tables() {
           <div className="w-full max-w-sm rounded-3xl bg-white p-5 text-center shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-counterlime text-ink">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-white">
                   <QrCode size={16} />
                 </span>
                 <div className="text-left">
                   <h3 className="text-sm font-bold text-ink">QR Order · {qrModalTable.name}</h3>
-                  <p className="text-[11px] text-ink/50">Area {qrModalTable.area || "Utama"}</p>
+                  <p className="text-[11px] text-ink/50">{qrModalTable.area}</p>
                 </div>
               </div>
               <button
@@ -356,28 +366,28 @@ export default function Tables() {
                 </div>
               )}
               <span className="mt-1.5 text-xs font-bold text-ink tracking-wide">
-                {qrModalTable.name} ({qrModalTable.area || "Area Restoran"})
+                {qrModalTable.name} · {qrModalTable.area}
               </span>
             </div>
 
             {/* Direct URL display with LAN Wi-Fi badge */}
             <div className="rounded-xl bg-slate-100 p-2.5 text-left text-xs text-ink/80 space-y-1">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-counterlime-dark">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-accent-dark">
                 <Wifi size={13} />
                 <span>URL Akses HP & Wi-Fi:</span>
               </div>
               <div className="font-mono text-[11px] break-all text-ink/70">
-                {getTableOrderUrl(qrModalTable)}
+                {tableOrderUrl(qrModalTable)}
               </div>
             </div>
 
             {/* Buttons */}
             <div className="mt-4 space-y-2">
               <a
-                href={getTableOrderUrl(qrModalTable)}
+                href={tableOrderUrl(qrModalTable)}
                 target="_blank"
                 rel="noreferrer"
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-counterlime font-bold text-ink hover:bg-counterlime/90 text-xs shadow-sm"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent font-bold text-ink hover:bg-accent/90 text-xs shadow-sm"
               >
                 <ExternalLink size={15} />
                 Buka Tampilan Pelanggan
@@ -399,10 +409,7 @@ export default function Tables() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    toast.success("Perintah cetak stiker QR meja dikirim!");
-                    window.print();
-                  }}
+                  onClick={() => handlePrintQr([qrModalTable])}
                   className="flex-1 gap-1.5 rounded-xl font-semibold text-xs"
                 >
                   <Printer size={14} />
@@ -413,6 +420,8 @@ export default function Tables() {
           </div>
         </div>
       )}
+
+      <PaymentModal open={payingOrder !== null} order={payingOrder ?? undefined} onClose={() => setPayingOrder(null)} />
 
       <TableModal
         open={modalOpen}

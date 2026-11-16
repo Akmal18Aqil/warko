@@ -7,16 +7,18 @@ export function KasaMark({ size = 36 }: { size?: number }) {
       height={size}
       viewBox="0 0 32 32"
       role="img"
-      aria-label="Logo KASA"
+      aria-label="Logo WAKRO Digital"
     >
-      <rect width="32" height="32" rx="7" fill="#14211F" />
+      <rect width="32" height="32" rx="7" fill="#2D6CDF" />
       <path
-        d="M9 6h14v20l-2.33-1.7L18.33 26 16 24.3 13.67 26l-2.34-1.7L9 26V6z"
-        fill="#EEF0EB"
+        d="M7.5 12.25a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v2.25H7.5v-2.25Z"
+        fill="#FFFFFF"
       />
-      <rect x="12" y="10" width="8" height="2" rx="1" fill="#14211F" />
-      <rect x="12" y="14" width="5" height="2" rx="1" fill="#C7F36B" />
-      <rect x="12" y="18" width="8" height="2" rx="1" fill="#14211F" opacity="0.55" />
+      <rect x="7.5" y="14.5" width="17" height="10" rx="2" fill="#FFFFFF" />
+      <rect x="10.5" y="12.5" width="5.5" height="1.5" rx="0.75" fill="#172B4D" />
+      <circle cx="20.5" cy="13.25" r="1.1" fill="#2D6CDF" />
+      <rect x="11" y="17.5" width="10" height="2" rx="1" fill="#172B4D" />
+      <rect x="11" y="21" width="6" height="1.5" rx="0.75" fill="#2D6CDF" />
     </svg>
   );
 }
@@ -27,11 +29,11 @@ export function KasaLogoBlock({ compact = false }: { compact?: boolean }) {
       <KasaMark size={compact ? 30 : 38} />
       {!compact && (
         <div className="leading-tight">
-          <p className="font-display text-lg font-bold tracking-tight text-white">
-            KASA
+          <p className="font-display text-lg font-bold tracking-tight text-ink">
+            WAKRO
           </p>
-          <p className="label-caps text-[11px] font-medium text-white/50">
-            SISTEM KASIR
+          <p className="label-caps text-[11px] font-semibold text-ink/55">
+            DIGITAL POS
           </p>
         </div>
       )}

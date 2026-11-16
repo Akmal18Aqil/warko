@@ -1,6 +1,6 @@
 import { Check, Clock } from "lucide-react";
 import type { MenuItem } from "../data/menu";
-import { formatIDR } from "../data/menu";
+import { formatIDR, isLowStock, isSoldOut } from "../data/menu";
 import { t } from "../locales/en";
 import { FoodImage } from "./FoodImage";
 import { Badge } from "./ui/Badge";
@@ -15,20 +15,33 @@ export function ProductCard({
   inOrder: boolean;
   onAdd: (item: MenuItem) => void;
 }) {
+  const soldOut = isSoldOut(item);
   return (
     <button
       type="button"
       onClick={() => onAdd(item)}
-      aria-label={ariaLabel(item, inOrder)}
+      disabled={soldOut}
+      aria-label={soldOut ? `${item.name}, HABIS` : ariaLabel(item, inOrder)}
       className={cn(
-        "card-hover pressable group relative flex flex-col overflow-hidden rounded-xl border bg-white text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink",
-        inOrder ? "border-counterlime ring-1 ring-counterlime" : "border-ink/10",
+        "pressable group relative flex flex-col overflow-hidden rounded-sm border bg-surface text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        inOrder ? "border-accent bg-accent/5 ring-1 ring-accent/30" : "border-border",
+        soldOut && "cursor-not-allowed opacity-55",
       )}
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-ink/5">
+      <div className="relative aspect-[5/3] w-full overflow-hidden border-b border-border bg-surface-muted">
         <FoodImage item={item} className="h-full w-full" />
+        {soldOut && (
+          <span className="absolute inset-0 flex items-center justify-center bg-ink/70 text-sm font-black tracking-[0.3em] text-white">
+            HABIS
+          </span>
+        )}
+        {isLowStock(item) && (
+          <span className="absolute right-2 top-2 rounded-sm bg-warning px-2 py-1 text-[11px] font-bold text-ink shadow-sm">
+            Sisa {item.stock}
+          </span>
+        )}
         {inOrder && (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-counterlime px-2 py-1 text-[11px] font-bold text-ink shadow-sm">
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-sm bg-accent px-2 py-1 text-[11px] font-bold text-white shadow-sm">
             <Check size={12} strokeWidth={3} aria-hidden="true" />
             {t.catalog.inOrder}
           </span>
@@ -40,7 +53,7 @@ export function ProductCard({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 p-3.5">
+      <div className="flex flex-1 flex-col gap-1.5 p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-display text-[15px] font-semibold leading-snug text-ink">
             {item.name}

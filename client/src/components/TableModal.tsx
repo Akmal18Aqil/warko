@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import type { TableRow } from "../lib/db";
+import { DEFAULT_FLOORS, type TableRow } from "../lib/db";
 import { Button } from "./ui/Button";
 import { cn } from "../lib/cn";
 
@@ -14,16 +14,7 @@ interface TableModalProps {
   onDelete?: (id: string) => Promise<void>;
 }
 
-const DEFAULT_AREAS = [
-  "Utama",
-  "Teras",
-  "VIP",
-  "Lantai 2",
-  "Outdoor",
-  "Lesehan",
-  "Rooftop",
-  "Gazebo",
-];
+const DEFAULT_AREAS: string[] = [...DEFAULT_FLOORS];
 
 export function TableModal({
   open,
@@ -35,7 +26,7 @@ export function TableModal({
 }: TableModalProps) {
   const [name, setName] = useState("");
   const [seats, setSeats] = useState("4");
-  const [area, setArea] = useState("Utama");
+  const [area, setArea] = useState("Lantai 1");
   const [submitting, setSubmitting] = useState(false);
 
   const mergedAreas = Array.from(
@@ -46,11 +37,11 @@ export function TableModal({
     if (tableToEdit) {
       setName(tableToEdit.name);
       setSeats(String(tableToEdit.seats));
-      setArea(tableToEdit.area || "Utama");
+      setArea(tableToEdit.area || "Lantai 1");
     } else {
       setName("");
       setSeats("4");
-      setArea("Utama");
+      setArea("Lantai 1");
     }
   }, [tableToEdit, open]);
 
@@ -75,7 +66,7 @@ export function TableModal({
         id,
         name: name.trim(),
         seats: numericSeats,
-        area: area.trim() || "Utama",
+        area: area.trim() || "Lantai 1",
       };
 
       await onSave(tableData);
@@ -102,8 +93,8 @@ export function TableModal({
         await onDelete(tableToEdit.id);
         toast.success(`Meja "${tableToEdit.name}" berhasil dihapus`);
         onClose();
-      } catch {
-        toast.error("Gagal menghapus meja");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal menghapus meja");
       } finally {
         setSubmitting(false);
       }
@@ -131,7 +122,7 @@ export function TableModal({
               {tableToEdit ? "Edit Meja" : "Tambah Meja Baru"}
             </h2>
             <p className="text-xs text-ink/55">
-              Kelola nomor meja, kapasitas kursi, dan custom area makan.
+              Kelola nomor meja, kapasitas kursi, dan lantai.
             </p>
           </div>
           <button
@@ -154,7 +145,7 @@ export function TableModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Contoh: Meja 05 / VIP 01 / Lesehan A"
-              className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+              className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
             />
           </div>
 
@@ -170,17 +161,17 @@ export function TableModal({
               value={seats}
               onChange={(e) => setSeats(e.target.value)}
               placeholder="4"
-              className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+              className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-                Area / Lokasi (Bisa Custom Bebas)
+                Lantai / Area
               </label>
-              <span className="text-[11px] font-medium text-counterlime-dark">
-                Ketik nama area apa saja
+              <span className="text-[11px] font-medium text-accent-dark">
+                Lantai 1, Lantai 2, Rooftop, atau nama lain
               </span>
             </div>
 
@@ -189,8 +180,8 @@ export function TableModal({
               list="area-suggestions"
               value={area}
               onChange={(e) => setArea(e.target.value)}
-              placeholder="Ketik nama area kustom (contoh: Lesehan, Rooftop, VIP, Kolam)"
-              className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2.5 text-sm font-semibold text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+              placeholder="Contoh: Lantai 1, Lantai 2, Rooftop"
+              className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-semibold text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
             />
 
             <datalist id="area-suggestions">
@@ -212,7 +203,7 @@ export function TableModal({
                       className={cn(
                         "rounded-lg border px-2.5 py-1 text-xs transition-all",
                         isSelected
-                          ? "border-counterlime bg-counterlime/25 font-bold text-ink shadow-xs"
+                          ? "border-accent bg-accent/25 font-bold text-ink shadow-xs"
                           : "border-ink/10 bg-mineral/50 text-ink/70 hover:bg-mineral hover:text-ink",
                       )}
                     >
@@ -242,7 +233,7 @@ export function TableModal({
 
             <div className="flex items-center gap-2">
               <Button
-                type="button"
+                      className="rounded-lg p-1.5 text-ink/50 hover:bg-accent/20 hover:text-ink transition-colors"
                 variant="outline"
                 size="sm"
                 onClick={onClose}

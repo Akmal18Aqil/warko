@@ -15,12 +15,13 @@ import {
   KeyRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { KasaMark, StatusDot } from "./KasaLogo";
+import { KasaLogoBlock, StatusDot } from "./KasaLogo";
 import { runningOrdersCount, salesToday, usePos } from "./PosContext";
 import { useAuth } from "./AuthContext";
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
 import { cn } from "../lib/cn";
+import { kitchenStatusOf } from "../lib/orderStatus";
 
 type NavEntry = { href: string; label: string; icon: LucideIcon; badge?: number };
 
@@ -48,7 +49,7 @@ export function Sidebar() {
   const { currentStaff, openSwitchModal } = useAuth();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const running = runningOrdersCount(orders);
-  const kitchenWaiting = orders.filter((o) => o.status === "disimpan" || o.status === "memasak").length;
+  const kitchenWaiting = orders.filter((o) => kitchenStatusOf(o) === "queued" || kitchenStatusOf(o) === "preparing").length;
 
   const toggle = () => {
     setCollapsed((prev) => {
@@ -96,24 +97,12 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 flex-col bg-ink md:flex md:sticky md:top-0 md:h-screen overflow-y-auto scrollbar-none transition-all duration-200",
+        "clay-sidebar hidden shrink-0 flex-col border-r border-ink/10 bg-white md:flex md:sticky md:top-0 md:h-screen overflow-y-auto scrollbar-none transition-all duration-200",
         collapsed ? "w-[72px]" : "w-64",
       )}
     >
       <div className={cn("pt-6", collapsed ? "px-3" : "px-5")}>
-        <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-          <KasaMark size={collapsed ? 32 : 38} />
-          {!collapsed && (
-            <div className="leading-tight">
-              <p className="font-display text-lg font-bold tracking-tight text-white">
-                KASA
-              </p>
-              <p className="label-caps text-[11px] font-medium text-white/50">
-                {t.appTagline}
-              </p>
-            </div>
-          )}
-        </div>
+        {collapsed ? <KasaLogoBlock compact /> : <KasaLogoBlock />}
         {!collapsed && (
           <p className="mt-3 flex items-center gap-2 text-xs text-white/55">
             <StatusDot />
@@ -171,7 +160,7 @@ export function Sidebar() {
           <p className="label-caps text-[11px] font-medium text-white/45">
             {t.metrics.todaySales}
           </p>
-          <p className="mt-1 font-display text-lg font-bold tracking-tight text-counterlime">
+          <p className="mt-1 font-display text-lg font-bold tracking-tight text-accent">
             {formatIDR(salesToday(orders))}
           </p>
         </div>
@@ -199,7 +188,7 @@ export function Sidebar() {
           <div className="min-w-0 flex-1 leading-tight">
             <div className="flex items-center justify-between gap-1">
               <p className="text-sm font-bold text-white truncate">{currentStaff.name}</p>
-              <span className="text-[10px] font-semibold text-counterlime bg-counterlime/15 px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
+              <span className="text-[10px] font-semibold text-accent bg-accent/15 px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
                 <KeyRound size={10} />
                 PIN
               </span>
@@ -214,7 +203,7 @@ export function Sidebar() {
         onClick={toggle}
         aria-label={collapsed ? t.sidebar.expand : t.sidebar.collapse}
         title={collapsed ? t.sidebar.expand : t.sidebar.collapse}
-        className="pressable mb-4 flex h-10 w-10 items-center justify-center self-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-counterlime"
+        className="pressable mb-4 flex h-10 w-10 items-center justify-center self-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
       </button>
@@ -261,7 +250,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Navigasi utama"
-      className="fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-white/10 bg-ink pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="clay-sidebar fixed inset-x-0 bottom-0 z-40 flex max-w-full items-stretch justify-start gap-1 overflow-x-auto scrollbar-none border-t border-ink/10 bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {entries.map((entry) => {
         const Icon = entry.icon;
@@ -274,8 +263,8 @@ export function MobileNav() {
             aria-label={entry.label}
             title={entry.label}
             className={cn(
-              "pressable flex min-h-14 flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px]",
-              active ? "bg-counterlime/15 text-counterlime font-bold" : "text-white/60",
+              "pressable flex min-h-14 min-w-[64px] flex-none flex-col items-center justify-center gap-1 px-1 py-2 text-[11px]",
+              active ? "bg-accent/15 text-accent font-bold" : "text-white/60",
             )}
           >
             <Icon size={21} strokeWidth={active ? 2.4 : 1.8} />
@@ -286,7 +275,7 @@ export function MobileNav() {
       <button
         type="button"
         onClick={openSwitchModal}
-        className="pressable flex min-h-14 flex-col items-center justify-center gap-1 py-2 text-[11px] text-white/60 hover:text-counterlime px-2"
+        className="pressable flex min-h-14 min-w-[64px] flex-none flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] text-white/60 hover:text-accent"
         title="Ganti Peran"
       >
         <span
@@ -323,7 +312,7 @@ function NavItem({
         "pressable relative flex h-11 items-center gap-3 rounded-lg text-sm",
         collapsed ? "justify-center px-0" : "px-3",
         active
-          ? "bg-counterlime font-semibold text-ink shadow-xs"
+          ? "bg-accent text-white shadow-xs"
           : "font-medium text-white/70 hover:bg-white/8 hover:text-white",
       )}
     >

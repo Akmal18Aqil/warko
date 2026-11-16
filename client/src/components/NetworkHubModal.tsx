@@ -84,15 +84,15 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
   useEffect(() => {
     if (!open) return;
 
-    QRCode.toDataURL(waiterFullUrl, { width: 280, margin: 1, color: { dark: "#14211F", light: "#FFFFFF" } })
+    QRCode.toDataURL(waiterFullUrl, { width: 280, margin: 1, color: { dark: "#172B4D", light: "#FFFFFF" } })
       .then(setWaiterQrUrl)
       .catch(console.error);
 
-    QRCode.toDataURL(kitchenFullUrl, { width: 280, margin: 1, color: { dark: "#14211F", light: "#FFFFFF" } })
+    QRCode.toDataURL(kitchenFullUrl, { width: 280, margin: 1, color: { dark: "#172B4D", light: "#FFFFFF" } })
       .then(setKitchenQrUrl)
       .catch(console.error);
 
-    QRCode.toDataURL(tableFullUrl, { width: 280, margin: 1, color: { dark: "#14211F", light: "#FFFFFF" } })
+    QRCode.toDataURL(tableFullUrl, { width: 280, margin: 1, color: { dark: "#172B4D", light: "#FFFFFF" } })
       .then(setTableQrUrl)
       .catch(console.error);
   }, [open, waiterFullUrl, kitchenFullUrl, tableFullUrl]);
@@ -132,7 +132,7 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-ink/10 bg-mineral/30 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-counterlime text-ink shadow-xs">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white shadow-xs">
               <Radio size={20} />
             </div>
             <div>
@@ -173,7 +173,7 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
                   value={customIp}
                   onChange={(e) => setCustomIp(e.target.value)}
                   placeholder="Contoh: 192.168.1.15:5173"
-                  className="h-7 w-48 rounded-md border border-ink/30 bg-white px-2 text-xs font-mono font-bold text-ink focus:outline-none focus:ring-1 focus:ring-counterlime"
+                  className="h-7 w-48 rounded-md border border-ink/30 bg-white px-2 text-xs font-mono font-bold text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                 />
                 <Button size="sm" variant="primary" onClick={handleSaveCustomIp} className="h-7 text-[11px] px-2">
                   Simpan
@@ -430,7 +430,7 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
                           className={cn(
                             "px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shadow-2xs",
                             isSelected
-                              ? "bg-ink text-counterlime border-ink ring-2 ring-counterlime/40"
+                              ? "bg-accent text-white border-ink ring-2 ring-accent/40"
                               : "bg-mineral/40 text-ink/75 border-ink/15 hover:bg-white hover:border-ink/35"
                           )}
                         >
@@ -440,7 +440,7 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
                               className={cn(
                                 "text-[10px] px-1.5 py-0.5 rounded font-medium",
                                 isSelected
-                                  ? "bg-white/15 text-counterlime"
+                                  ? "bg-white/15 text-accent"
                                   : "bg-ink/10 text-ink/60"
                               )}
                             >
@@ -513,7 +513,7 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
                           <div className="flex items-center gap-2">
                             <p className="font-bold text-sm text-ink">{peer.name}</p>
                             {isLocal && (
-                              <span className="text-[10px] bg-counterlime/40 text-ink font-bold px-1.5 py-0.2 rounded">
+                              <span className="text-[10px] bg-accent/40 text-ink font-bold px-1.5 py-0.2 rounded">
                                 Perangkat Ini
                               </span>
                             )}

@@ -53,15 +53,15 @@ export function FocusModeHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-ink/10 bg-ink px-4 py-2.5 text-white md:px-6 shrink-0 shadow-md">
+      <header className="focus-header-light sticky top-0 z-30 flex min-w-0 items-center justify-between gap-2 overflow-hidden border-b border-ink/10 bg-white px-3 py-2.5 text-ink md:px-6 shrink-0 shadow-md">
         {/* Left: Branding & Station Name */}
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="flex items-center gap-2.5">
             <KasaMark size={32} />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-display text-base font-bold tracking-tight text-white">
-                  {title || "KASA"}
+                  {title || "WAKRO"}
                 </span>
                 <span
                   className={cn(
@@ -89,7 +89,7 @@ export function FocusModeHeader({
 
         {/* Center: Live Realtime Clock */}
         <div className="hidden lg:flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs text-white/80">
-          <Clock size={13} className="text-counterlime" />
+          <Clock size={13} className="text-accent" />
           <span className="font-mono font-bold">
             {currentTime.toLocaleTimeString("id-ID", {
               hour: "2-digit",
@@ -134,7 +134,7 @@ export function FocusModeHeader({
           {isFullAdmin && (
             <Link
               href="/"
-              className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-counterlime hover:text-ink transition-all"
+              className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-accent hover:text-ink transition-all"
               title="Kembali ke Layar POS Kasir"
             >
               <LayoutGrid size={14} />
@@ -146,7 +146,7 @@ export function FocusModeHeader({
           <button
             type="button"
             onClick={openSwitchModal}
-            className="group flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
+            className="group flex min-w-0 shrink-0 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
             title="Klik untuk ganti akun staf / PIN"
           >
             <span
@@ -157,10 +157,10 @@ export function FocusModeHeader({
             >
               {currentStaff.initials}
             </span>
-            <span className="truncate max-w-[90px] md:max-w-[120px]">
+            <span className="hidden max-w-[90px] truncate sm:block md:max-w-[120px]">
               {currentStaff.name.split(" ")[0]}
             </span>
-            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-counterlime bg-counterlime/20 px-1.5 py-0.5 rounded">
+            <span className="hidden items-center gap-0.5 text-[10px] font-semibold text-accent bg-accent/20 px-1.5 py-0.5 rounded sm:flex">
               <KeyRound size={10} />
               PIN
             </span>

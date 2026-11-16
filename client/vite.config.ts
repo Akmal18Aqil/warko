@@ -7,6 +7,9 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    proxy: {
+      "/api": "http://127.0.0.1:8000",
+    },
   },
   preview: {
     host: true,
@@ -20,10 +23,10 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg"],
       manifest: {
-        name: "KASA · Sistem Kasir",
-        short_name: "KASA",
+        name: "WAKRO Digital · Warung WakRo Baru",
+        short_name: "WAKRO",
         description:
-          "Aplikasi kasir untuk warung, kedai kopi, dan restoran kecil.",
+          "POS, layar dapur, dan self-order QR Warung WakRo Baru.",
         lang: "id",
         start_url: "/",
         scope: "/",

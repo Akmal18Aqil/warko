@@ -426,7 +426,7 @@ export function ProductImagePicker({
             </div>
           )}
           {isLocalImage && (
-            <span className="absolute bottom-1 right-1 rounded bg-ink/80 px-1 py-0.5 text-[8px] font-bold text-counterlime">
+            <span className="absolute bottom-1 right-1 rounded bg-accent px-1 py-0.5 text-[8px] font-bold text-white">
               Lokal
             </span>
           )}
@@ -458,7 +458,7 @@ export function ProductImagePicker({
                 setTab("search");
                 if (productName && !searchQuery) setSearchQuery(productName);
               }}
-              className="inline-flex items-center gap-1 rounded-lg border border-counterlime-dark/30 bg-counterlime/30 px-2 py-0.5 text-[11px] font-bold text-ink hover:bg-counterlime/50 transition-colors"
+              className="inline-flex items-center gap-1 rounded-lg border border-accent-dark/30 bg-accent/30 px-2 py-0.5 text-[11px] font-bold text-ink hover:bg-accent/50 transition-colors"
             >
               <Search size={11} />
               Cari Online
@@ -515,7 +515,7 @@ export function ProductImagePicker({
             className={cn(
               "flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center cursor-pointer transition-all",
               isDragging
-                ? "border-counterlime bg-counterlime/20 scale-[1.01]"
+                ? "border-accent bg-accent/20 scale-[1.01]"
                 : "border-ink/20 bg-white hover:border-ink/40 hover:bg-mineral/20",
             )}
           >
@@ -554,7 +554,7 @@ export function ProductImagePicker({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Cari foto menu (misal: Nasi Goreng, Ayam Bakar)..."
-                className="h-8.5 w-full rounded-lg border border-ink/15 bg-white pl-8 pr-3 text-xs text-ink placeholder:text-ink/40 focus:border-ink/40 focus:outline-none focus:ring-1 focus:ring-counterlime"
+                className="h-8.5 w-full rounded-lg border border-ink/15 bg-white pl-8 pr-3 text-xs text-ink placeholder:text-ink/40 focus:border-ink/40 focus:outline-none focus:ring-1 focus:ring-accent"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") e.preventDefault();
                 }}
@@ -574,7 +574,7 @@ export function ProductImagePicker({
           </div>
 
           {/* Assistant: Cari Langsung di Google Gambar */}
-          <div className="flex items-center justify-between rounded-xl bg-counterlime/20 border border-counterlime-dark/30 p-2.5">
+          <div className="flex items-center justify-between rounded-xl bg-accent/20 border border-accent-dark/30 p-2.5">
             <div className="min-w-0 pr-2">
               <p className="text-xs font-bold text-ink flex items-center gap-1">
                 <span>🔍 Cari di Google Gambar</span>
@@ -587,7 +587,7 @@ export function ProductImagePicker({
               href={googleImagesUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="pressable shrink-0 inline-flex items-center gap-1 rounded-lg bg-ink px-2.5 py-1 text-xs font-bold text-counterlime hover:bg-[#1c302c] shadow-2xs"
+              className="pressable shrink-0 inline-flex items-center gap-1 rounded-lg bg-accent px-2.5 py-1 text-xs font-bold text-white hover:bg-accent-dark shadow-2xs"
             >
               <span>Buka Google</span>
               <ExternalLink size={11} />
@@ -618,7 +618,7 @@ export function ProductImagePicker({
                     className={cn(
                       "group relative flex flex-col overflow-hidden rounded-lg border text-left transition-all",
                       value === item.url
-                        ? "border-counterlime-dark ring-2 ring-counterlime"
+                        ? "border-accent-dark ring-2 ring-accent"
                         : "border-ink/10 bg-white hover:border-ink/30",
                     )}
                   >
@@ -629,7 +629,7 @@ export function ProductImagePicker({
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform"
                       />
                       {value === item.url && (
-                        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-counterlime text-ink shadow-xs">
+                        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-white shadow-xs">
                           <Check size={10} strokeWidth={3} />
                         </span>
                       )}
@@ -686,7 +686,7 @@ export function ProductImagePicker({
                 className={cn(
                   "group relative flex flex-col overflow-hidden rounded-lg border text-left transition-all",
                   value === item.url
-                    ? "border-counterlime-dark ring-2 ring-counterlime"
+                        ? "border-accent-dark ring-2 ring-accent"
                     : "border-ink/10 bg-white hover:border-ink/30",
                 )}
               >
@@ -697,7 +697,7 @@ export function ProductImagePicker({
                     className="h-full w-full object-cover group-hover:scale-105 transition-transform"
                   />
                   {value === item.url && (
-                    <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-counterlime text-ink shadow-xs">
+                        <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-white shadow-xs">
                       <Check size={10} strokeWidth={3} />
                     </span>
                   )}
@@ -723,7 +723,7 @@ export function ProductImagePicker({
               value={customUrlInput}
               onChange={(e) => setCustomUrlInput(e.target.value)}
               placeholder="https://images.unsplash.com/photo-..."
-              className="h-8.5 flex-1 rounded-lg border border-ink/15 bg-white px-3 text-xs text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-1 focus:ring-counterlime"
+              className="h-8.5 flex-1 rounded-lg border border-ink/15 bg-white px-3 text-xs text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-1 focus:ring-accent"
             />
             <button
               type="button"

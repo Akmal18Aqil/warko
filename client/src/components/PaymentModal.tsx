@@ -1,23 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 import { Banknote, CreditCard, QrCode, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
-import QRCode from "qrcode";
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
+import type { OrderRow } from "../lib/db";
+import { tableLabel } from "../lib/orderStatus";
 import { usePos, type PayMethod } from "./PosContext";
+import { usePrint } from "./PrintContext";
 import { Button } from "./ui/Button";
 import { cn } from "../lib/cn";
 
-export function PaymentModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { orderNo, totals, payOrder } = usePos();
-  const [method, setMethod] = useState<PayMethod>("kartu-qr");
+/**
+ * Takes payment either for the current cart (new order) or, when `order` is given, for an existing
+ * unpaid order (self-order / waiter order settled at the register). Settlement is idempotent server-side.
+ */
+export function PaymentModal({ open, onClose, order }: { open: boolean; onClose: () => void; order?: OrderRow }) {
+  const { orderNo, totals, payOrder, settleOrder } = usePos();
+  const { printOrderReceipt } = usePrint();
+  const [submitting, setSubmitting] = useState(false);
+  const [method, setMethod] = useState<PayMethod>("tunai");
   const [cash, setCash] = useState("");
-  const [qrDataUrl, setQrDataUrl] = useState("");
   const dialogRef = useRef<HTMLDivElement>(null);
+  const amount = order ? order.total : totals.total;
+  const displayNo = order ? order.no : orderNo;
 
   useEffect(() => {
     if (!open) return;
-    setMethod("kartu-qr");
+    setMethod("tunai");
     setCash("");
     dialogRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
@@ -31,36 +40,51 @@ export function PaymentModal({ open, onClose }: { open: boolean; onClose: () => 
     };
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (method !== "qris") return;
-    const payload = `KASA|QRIS-SIMULASI|PESANAN-${orderNo}|${totals.total}`;
-    void QRCode.toDataURL(payload, {
-      width: 240,
-      margin: 1,
-      color: { dark: "#14211f", light: "#ffffff" },
-    }).then(setQrDataUrl);
-  }, [method, orderNo, totals.total]);
-
   if (!open) return null;
 
   const cashNum = Number.parseInt(cash.replace(/\D/g, ""), 10) || 0;
-  const shortage = Math.max(0, totals.total - cashNum);
-  const change = cashNum >= totals.total ? cashNum - totals.total : null;
-  const canPay = method !== "tunai" || cashNum >= totals.total;
+  const shortage = Math.max(0, amount - cashNum);
+  const change = cashNum >= amount ? cashNum - amount : null;
+  const canPay = (method !== "tunai" || cashNum >= amount) && !submitting;
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!canPay) return;
-    const result = payOrder(method, method === "tunai" ? cashNum : undefined);
-    if (method === "tunai" && result.change !== null) {
-      toast.success(t.payment.successTitle, {
-        description: `${t.payment.successDesc(result.orderNo, formatIDR(result.total))} · ${t.payment.successWithChange(formatIDR(result.change))}`,
-      });
-    } else {
-      toast.success(t.payment.successTitle, {
-        description: t.payment.successDesc(result.orderNo, formatIDR(result.total)),
-      });
+    setSubmitting(true);
+    try {
+      const cashReceived = method === "tunai" ? cashNum : undefined;
+      const result = order
+        ? await settleOrder(order.no, method, cashReceived)
+        : { ...(await payOrder(method, cashReceived)), alreadyPaid: false };
+      const paid = result.order;
+      const printAction = {
+        label: "Cetak struk",
+        onClick: () => {
+          printOrderReceipt(paid).catch((err: unknown) =>
+            toast.error(err instanceof Error ? err.message : "Struk gagal dicetak."),
+          );
+        },
+      };
+      if (result.alreadyPaid) {
+        toast.info(`Pesanan #${paid.no} sudah lunas sebelumnya`, {
+          description: "Tidak ada pembayaran ganda yang dicatat.",
+          action: printAction,
+        });
+      } else {
+        toast.success(t.payment.successTitle, {
+          description:
+            result.change !== null
+              ? `${t.payment.successDesc(paid.no, formatIDR(paid.total))} · ${t.payment.successWithChange(formatIDR(result.change))}`
+              : t.payment.successDesc(paid.no, formatIDR(paid.total)),
+          action: printAction,
+          duration: 8000,
+        });
+      }
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Pembayaran gagal disimpan. Pesanan belum tercatat.");
+    } finally {
+      setSubmitting(false);
     }
-    onClose();
   };
 
   return (
@@ -75,12 +99,13 @@ export function PaymentModal({ open, onClose }: { open: boolean; onClose: () => 
         aria-labelledby="payment-title"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl border border-ink/10 bg-white shadow-2xl focus:outline-none"
+        className="flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-2xl focus:outline-none"
       >
         <div className="flex items-start justify-between px-6 pt-5">
           <div>
             <p className="label-caps text-[11px] font-semibold text-ink/50">
-              {t.payment.orderLabel(orderNo)}
+              {t.payment.orderLabel(displayNo)}
+              {order ? ` · ${tableLabel(order)}` : ""}
             </p>
             <h2
               id="payment-title"
@@ -89,17 +114,23 @@ export function PaymentModal({ open, onClose }: { open: boolean; onClose: () => 
               {t.payment.title}
             </h2>
           </div>
-          <Button variant="ghost" size="sm" aria-label={t.payment.cancel} onClick={onClose}>
+          <button
+            type="button"
+            aria-label={t.payment.cancel}
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-ink/60 transition-colors hover:border-accent hover:bg-accent/10 hover:text-ink"
+          >
             <X size={18} />
-          </Button>
+          </button>
         </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
 
         <div className="px-6 pt-3">
           <p className="label-caps text-[11px] font-medium text-ink/45">
             {t.payment.amountLabel}
           </p>
           <p className="font-display text-4xl font-bold tracking-tight text-ink">
-            {formatIDR(totals.total)}
+            {formatIDR(amount)}
           </p>
         </div>
 
@@ -147,7 +178,7 @@ export function PaymentModal({ open, onClose }: { open: boolean; onClose: () => 
                 onChange={(e) => setCash(e.target.value.replace(/[^\d]/g, ""))}
                 placeholder={t.payment.cashPlaceholder}
                 aria-describedby="cash-status"
-                className="h-12 w-full rounded-lg border border-ink/15 bg-white pl-10 pr-3.5 font-display text-lg font-bold tracking-tight text-ink placeholder:text-base placeholder:font-normal placeholder:tracking-normal placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                className="h-12 w-full rounded-lg border border-ink/15 bg-white pl-10 pr-3.5 font-display text-lg font-bold tracking-tight text-ink placeholder:text-base placeholder:font-normal placeholder:tracking-normal placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
               />
             </div>
             <p id="cash-status" aria-live="polite" className="min-h-11 pt-2 text-sm">
@@ -159,7 +190,7 @@ export function PaymentModal({ open, onClose }: { open: boolean; onClose: () => 
                   {cashNum > 0 && (
                     <span className="block text-xs text-ink/55">
                       <span className="font-semibold">{t.payment.shortageErrorTitle}</span>{" "}
-                      · {t.payment.shortageErrorBody(formatIDR(totals.total))}
+                      · {t.payment.shortageErrorBody(formatIDR(amount))}
                     </span>
                   )}
                 </>
@@ -175,22 +206,12 @@ export function PaymentModal({ open, onClose }: { open: boolean; onClose: () => 
 
         {method === "qris" && (
           <div className="px-6 pt-4">
-            <div className="flex flex-col items-center rounded-xl border border-ink/10 bg-white p-4">
-              {qrDataUrl ? (
-                <img
-                  src={qrDataUrl}
-                  alt={t.payment.qrisMethod}
-                  className="h-52 w-52 rounded-lg"
-                />
-              ) : (
-                <div className="flex h-52 w-52 items-center justify-center rounded-lg bg-ink/5">
-                  <QrCode size={44} className="text-ink/25" aria-hidden="true" />
-                </div>
-              )}
+            <div className="flex flex-col items-center rounded-xl border border-ink/10 bg-white p-4 text-center">
+              <QrCode size={44} className="text-ink/40" aria-hidden="true" />
               <p className="mt-3 text-sm font-medium text-ink">
                 {t.payment.qrisScanNote}
               </p>
-              <p className="mt-1 text-center text-xs text-ink/50">
+              <p className="mt-1 text-xs text-ink/55">
                 {t.payment.qrisSimulated}
               </p>
             </div>
@@ -204,11 +225,12 @@ export function PaymentModal({ open, onClose }: { open: boolean; onClose: () => 
           </p>
         )}
 
-        <div className="flex justify-end gap-2 p-6">
+        </div>
+        <div className="flex shrink-0 justify-end gap-2 border-t border-border bg-surface px-6 py-4">
           <Button variant="ghost" onClick={onClose}>
             {t.payment.cancel}
           </Button>
-          <Button size="lg" disabled={!canPay} onClick={handlePay}>
+          <Button size="lg" disabled={!canPay} onClick={() => void handlePay()}>
             {t.payment.complete}
           </Button>
         </div>
@@ -236,10 +258,10 @@ function MethodCard({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        "pressable rounded-xl border p-3.5 text-left",
+        "pressable flex min-h-32 flex-col justify-between rounded-xl border p-4 text-left transition-colors",
         selected
-          ? "border-counterlime bg-counterlime/25 ring-1 ring-counterlime"
-          : "border-ink/12 bg-white hover:border-ink/30",
+          ? "border-accent bg-accent/15 ring-2 ring-accent/50"
+          : "border-border bg-surface hover:border-accent/50 hover:bg-surface-muted/50",
       )}
     >
       <span className="text-ink">{icon}</span>

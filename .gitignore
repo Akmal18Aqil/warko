@@ -52,3 +52,6 @@ Master Prompt*.md
 *.prompt.md
 *.scratchpad.md
 
+
+# Database exports (contain production data)
+backups/

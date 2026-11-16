@@ -49,7 +49,7 @@ export function LocalServerGuideModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-ink/10 bg-mineral/40 px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink text-counterlime shadow-xs">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white shadow-xs">
               <BookOpen size={20} />
             </div>
             <div>
@@ -146,7 +146,7 @@ export function LocalServerGuideModal({
             <div className="space-y-4">
               <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-xs space-y-3">
                 <h3 className="font-bold text-sm text-ink flex items-center gap-2">
-                  <Radio size={16} className="text-counterlime-dark" />
+                  <Radio size={16} className="text-accent-dark" />
                   Topologi Restoran Terintegrasi
                 </h3>
                 <p className="text-ink/70 leading-relaxed">
@@ -156,7 +156,7 @@ export function LocalServerGuideModal({
                 {/* Visual Topology Diagram */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
                   <div className="rounded-xl border border-ink/10 bg-mineral/30 p-3.5 text-center flex flex-col items-center justify-center">
-                    <div className="h-10 w-10 rounded-xl bg-ink text-counterlime flex items-center justify-center mb-2 shadow-xs">
+                    <div className="h-10 w-10 rounded-xl bg-accent text-white flex items-center justify-center mb-2 shadow-xs">
                       <Laptop size={20} />
                     </div>
                     <p className="font-bold text-ink text-xs">Kasir Utama (Server Host)</p>
@@ -169,7 +169,7 @@ export function LocalServerGuideModal({
                   </div>
 
                   <div className="rounded-xl border border-ink/10 bg-mineral/30 p-3.5 text-center flex flex-col items-center justify-center">
-                    <div className="h-10 w-10 rounded-xl bg-counterlime text-ink flex items-center justify-center mb-2 shadow-xs">
+                    <div className="h-10 w-10 rounded-xl bg-accent text-white flex items-center justify-center mb-2 shadow-xs">
                       <Smartphone size={20} />
                     </div>
                     <p className="font-bold text-ink text-xs">HP Pelayan Keliling</p>
@@ -214,13 +214,13 @@ export function LocalServerGuideModal({
             <div className="space-y-4">
               <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-xs space-y-4">
                 <h3 className="font-bold text-sm text-ink flex items-center gap-2">
-                  <Server size={16} className="text-counterlime-dark" />
+                  <Server size={16} className="text-accent-dark" />
                   Langkah Menjalankan Server Utama di Laptop / PC Kasir
                 </h3>
 
                 <div className="space-y-3">
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-mineral/30 border border-ink/10">
-                    <span className="h-6 w-6 rounded-full bg-ink text-counterlime flex items-center justify-center font-bold text-xs shrink-0">
+                    <span className="h-6 w-6 rounded-full bg-accent text-white flex items-center justify-center font-bold text-xs shrink-0">
                       1
                     </span>
                     <div>
@@ -232,7 +232,7 @@ export function LocalServerGuideModal({
                   </div>
 
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-mineral/30 border border-ink/10">
-                    <span className="h-6 w-6 rounded-full bg-ink text-counterlime flex items-center justify-center font-bold text-xs shrink-0">
+                    <span className="h-6 w-6 rounded-full bg-accent text-white flex items-center justify-center font-bold text-xs shrink-0">
                       2
                     </span>
                     <div>
@@ -247,7 +247,7 @@ export function LocalServerGuideModal({
                   </div>
 
                   <div className="flex items-start gap-3 p-3 rounded-xl bg-mineral/30 border border-ink/10">
-                    <span className="h-6 w-6 rounded-full bg-ink text-counterlime flex items-center justify-center font-bold text-xs shrink-0">
+                    <span className="h-6 w-6 rounded-full bg-accent text-white flex items-center justify-center font-bold text-xs shrink-0">
                       3
                     </span>
                     <div>
@@ -276,14 +276,14 @@ export function LocalServerGuideModal({
             <div className="space-y-4">
               <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-xs space-y-4">
                 <h3 className="font-bold text-sm text-ink flex items-center gap-2">
-                  <Smartphone size={16} className="text-counterlime-dark" />
+                  <Smartphone size={16} className="text-accent-dark" />
                   Alur Kerja Pelayan Keliling (Order-Taker)
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="rounded-xl border border-ink/10 p-3.5 bg-mineral/20 space-y-2">
                     <p className="font-bold text-ink flex items-center gap-1.5">
-                      <span className="h-5 w-5 rounded-full bg-counterlime text-ink flex items-center justify-center text-[11px] font-bold">
+                      <span className="h-5 w-5 rounded-full bg-accent text-white flex items-center justify-center text-[11px] font-bold">
                         A
                       </span>
                       Buka & Atur Identitas
@@ -295,7 +295,7 @@ export function LocalServerGuideModal({
 
                   <div className="rounded-xl border border-ink/10 p-3.5 bg-mineral/20 space-y-2">
                     <p className="font-bold text-ink flex items-center gap-1.5">
-                      <span className="h-5 w-5 rounded-full bg-counterlime text-ink flex items-center justify-center text-[11px] font-bold">
+                      <span className="h-5 w-5 rounded-full bg-accent text-white flex items-center justify-center text-[11px] font-bold">
                         B
                       </span>
                       Pilih Meja & Catat Pesanan
@@ -307,7 +307,7 @@ export function LocalServerGuideModal({
 
                   <div className="rounded-xl border border-ink/10 p-3.5 bg-mineral/20 space-y-2">
                     <p className="font-bold text-ink flex items-center gap-1.5">
-                      <span className="h-5 w-5 rounded-full bg-counterlime text-ink flex items-center justify-center text-[11px] font-bold">
+                      <span className="h-5 w-5 rounded-full bg-accent text-white flex items-center justify-center text-[11px] font-bold">
                         C
                       </span>
                       Kirim ke Dapur (KDS)
@@ -319,7 +319,7 @@ export function LocalServerGuideModal({
 
                   <div className="rounded-xl border border-ink/10 p-3.5 bg-mineral/20 space-y-2">
                     <p className="font-bold text-ink flex items-center gap-1.5">
-                      <span className="h-5 w-5 rounded-full bg-counterlime text-ink flex items-center justify-center text-[11px] font-bold">
+                      <span className="h-5 w-5 rounded-full bg-accent text-white flex items-center justify-center text-[11px] font-bold">
                         D
                       </span>
                       Bayar di Tempat (Opsional)
@@ -338,7 +338,7 @@ export function LocalServerGuideModal({
             <div className="space-y-4">
               <div className="rounded-2xl border border-ink/10 bg-white p-5 shadow-xs space-y-3">
                 <h3 className="font-bold text-sm text-ink flex items-center gap-2">
-                  <Zap size={16} className="text-counterlime-dark" />
+                  <Zap size={16} className="text-accent-dark" />
                   Menjalankan Aplikasi Menggunakan Hotspot HP (100% Offline)
                 </h3>
                 <p className="text-ink/70 leading-relaxed">

@@ -26,7 +26,7 @@ interface CategoryManagerModalProps {
 }
 
 const CATEGORY_COLORS = [
-  { id: "counterlime", label: "Lime", bg: "bg-counterlime", border: "border-counterlime-dark" },
+  { id: "accent", label: "Biru", bg: "bg-accent", border: "border-accent-dark" },
   { id: "amber", label: "Amber", bg: "bg-amber-400", border: "border-amber-500" },
   { id: "rose", label: "Rose", bg: "bg-rose-400", border: "border-rose-500" },
   { id: "blue", label: "Blue", bg: "bg-blue-400", border: "border-blue-500" },
@@ -42,7 +42,7 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [catName, setCatName] = useState("");
   const [catKind, setCatKind] = useState<"Makanan" | "Minuman" | "Camilan">("Makanan");
-  const [catColor, setCatColor] = useState("counterlime");
+  const [catColor, setCatColor] = useState("accent");
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Two-Step Verification State for Delete / Critical Edit
@@ -57,7 +57,7 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
     setEditingCatId(null);
     setCatName("");
     setCatKind("Makanan");
-    setCatColor("counterlime");
+    setCatColor("accent");
     setShowAddForm(false);
   };
 
@@ -65,7 +65,7 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
     setEditingCatId(cat.id);
     setCatName(cat.name);
     setCatKind(cat.kind);
-    setCatColor(cat.color || "counterlime");
+    setCatColor(cat.color || "accent");
     setShowAddForm(true);
   };
 
@@ -159,8 +159,8 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
         {/* Modal Header */}
         <div className="flex items-start justify-between border-b border-ink/10 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-counterlime/20 text-ink flex items-center justify-center border border-counterlime/40">
-              <Layers className="w-5 h-5 text-counterlime-dark" />
+            <div className="w-10 h-10 rounded-xl bg-accent/20 text-ink flex items-center justify-center border border-accent/40">
+              <Layers className="w-5 h-5 text-accent-dark" />
             </div>
             <div>
               <h3 className="font-display text-lg font-bold text-ink">
@@ -184,7 +184,7 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
         {showAddForm ? (
           <form
             onSubmit={handleSaveForm}
-            className="mt-4 p-4 rounded-xl border border-counterlime/30 bg-counterlime/5 space-y-3"
+            className="mt-4 p-4 rounded-xl border border-accent/30 bg-accent/5 space-y-3"
           >
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-bold text-ink">
@@ -210,7 +210,7 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
                   value={catName}
                   onChange={(e) => setCatName(e.target.value)}
                   placeholder="Contoh: Paket Combo / Dessert"
-                  className="w-full px-3 py-2 rounded-xl border border-ink/15 bg-white text-sm font-semibold text-ink focus:ring-2 focus:ring-counterlime focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-ink/15 bg-white text-sm font-semibold text-ink focus:ring-2 focus:ring-accent focus:outline-none"
                 />
               </div>
 
@@ -336,7 +336,7 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
                               ? "bg-purple-400"
                               : cat.color === "teal"
                               ? "bg-teal-400"
-                              : "bg-counterlime"
+                              : "bg-accent"
                           )}
                         />
                         <span>{cat.name}</span>
@@ -363,7 +363,7 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
                       <span
                         className={cn(
                           "px-2.5 py-0.5 rounded-full",
-                          count > 0 ? "bg-counterlime/20 text-ink" : "bg-ink/5 text-ink/40"
+                          count > 0 ? "bg-accent/20 text-ink" : "bg-ink/5 text-ink/40"
                         )}
                       >
                         {count} Produk
@@ -481,7 +481,7 @@ export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProp
                     <select
                       value={reassignTargetCategory}
                       onChange={(e) => setReassignTargetCategory(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm font-semibold text-ink focus:ring-2 focus:ring-counterlime focus:outline-none"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm font-semibold text-ink focus:ring-2 focus:ring-accent focus:outline-none"
                     >
                       {categories
                         .filter((c) => c.id !== targetCategory.id)

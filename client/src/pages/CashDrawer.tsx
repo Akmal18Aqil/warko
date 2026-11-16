@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../lib/cn";
+import { isPaid } from "../lib/orderStatus";
 
 const DENOMINATIONS = [
   { value: 100_000, label: "Rp 100.000", color: "bg-red-50 text-red-700 border border-red-200" },
@@ -106,8 +107,8 @@ export default function CashDrawer() {
   const currentShiftOrders = useMemo(() => {
     return orders.filter(
       (o) =>
-        o.status === "sudah-dibayar" &&
-        (o.paidAt ? o.paidAt >= shiftStartTime : o.createdAt >= shiftStartTime)
+        isPaid(o) &&
+        (o.paidAt ?? o.createdAt) >= shiftStartTime
     );
   }, [orders, shiftStartTime]);
 
@@ -165,7 +166,7 @@ export default function CashDrawer() {
     triggerOpenDrawer();
     toast.success("Perintah buka laci kas (Drawer Kick) dikirim!", {
       description: "Sinyal pulsa ESC/POS pin telah dikirim ke printer kasir.",
-      icon: <Vault className="w-5 h-5 text-counterlime-dark" />,
+      icon: <Vault className="w-5 h-5 text-accent-dark" />,
     });
   };
 
@@ -255,15 +256,15 @@ export default function CashDrawer() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-mineral">
+    <div className="service-rail-surface flex min-h-screen flex-col">
       <Header title="Laci Kas & Manajemen Shift" />
 
       <div className="flex-1 p-5 md:p-8 space-y-6 max-w-7xl w-full mx-auto">
         {/* Status Banner */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-ink/10 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-counterlime/20 text-ink flex items-center justify-center border border-counterlime/30">
-              <Vault className="w-6 h-6 text-counterlime-dark" />
+            <div className="w-12 h-12 rounded-xl bg-accent/20 text-ink flex items-center justify-center border border-accent/30">
+              <Vault className="w-6 h-6 text-accent-dark" />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
@@ -271,8 +272,8 @@ export default function CashDrawer() {
                   Status Shift Kasir
                 </h2>
                 {activeShift ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-counterlime/20 text-counterlime-dark border border-counterlime/40">
-                    <span className="w-1.5 h-1.5 rounded-full bg-counterlime-dark animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/20 text-accent-dark border border-accent/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent-dark animate-pulse" />
                     Shift Aktif
                   </span>
                 ) : (
@@ -299,7 +300,7 @@ export default function CashDrawer() {
               onClick={handleOpenDrawer}
               className="gap-2 font-medium"
             >
-              <Vault size={16} className="text-counterlime-dark" />
+              <Vault size={16} className="text-accent-dark" />
               Buka Laci (Drawer Kick)
             </Button>
 
@@ -330,12 +331,12 @@ export default function CashDrawer() {
         {/* 4 Financial Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Expected Drawer Cash */}
-          <article className="rounded-2xl border border-counterlime/40 bg-white p-5 shadow-sm relative overflow-hidden">
+          <article className="rounded-2xl border border-accent/40 bg-white p-5 shadow-sm relative overflow-hidden">
             <div className="flex items-center justify-between">
               <span className="label-caps text-[11px] font-semibold text-ink/60 uppercase">
                 Uang di Laci Saat Ini
               </span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-counterlime text-ink">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white">
                 <DollarSign size={16} aria-hidden="true" />
               </span>
             </div>
@@ -344,7 +345,7 @@ export default function CashDrawer() {
             </p>
             <div className="text-xs text-ink/55 mt-2 flex items-center justify-between">
               <span>Modal Awal: {formatIDR(startingCash)}</span>
-              <span className="font-semibold text-counterlime-dark">Sistem Ekspektasi</span>
+              <span className="font-semibold text-accent-dark">Sistem Ekspektasi</span>
             </div>
           </article>
 
@@ -443,7 +444,7 @@ export default function CashDrawer() {
               className={cn(
                 "pressable h-9 rounded-lg px-3 text-xs font-medium transition-all",
                 activeTab === "mutasi"
-                  ? "bg-counterlime font-semibold text-ink shadow-sm"
+                  ? "bg-accent text-white shadow-sm"
                   : "text-ink/60 hover:text-ink"
               )}
             >
@@ -455,7 +456,7 @@ export default function CashDrawer() {
               className={cn(
                 "pressable h-9 rounded-lg px-3 text-xs font-medium transition-all",
                 activeTab === "histori"
-                  ? "bg-counterlime font-semibold text-ink shadow-sm"
+                  ? "bg-accent text-white shadow-sm"
                   : "text-ink/60 hover:text-ink"
               )}
             >
@@ -691,7 +692,7 @@ export default function CashDrawer() {
                           </td>
                           <td className="px-5 py-3.5 text-center">
                             {shift.status === "OPEN" ? (
-                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-counterlime/20 text-counterlime-dark border border-counterlime/40">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/20 text-accent-dark border border-accent/40">
                                 Shift Aktif
                               </span>
                             ) : diff === 0 ? (
@@ -808,7 +809,7 @@ export default function CashDrawer() {
                 <select
                   value={movementCategory}
                   onChange={(e) => setMovementCategory(e.target.value as CashMovementCategory)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm text-ink focus:ring-2 focus:ring-counterlime focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm text-ink focus:ring-2 focus:ring-accent focus:outline-none"
                 >
                   {movementType === "CASH_IN" ? (
                     <>
@@ -846,7 +847,7 @@ export default function CashDrawer() {
                       setMovementAmount(isNaN(num) ? "" : num.toLocaleString("id-ID"));
                     }}
                     placeholder="Contoh: 25.000"
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm font-bold text-ink focus:ring-2 focus:ring-counterlime focus:outline-none"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm font-bold text-ink focus:ring-2 focus:ring-accent focus:outline-none"
                   />
                 </div>
 
@@ -880,7 +881,7 @@ export default function CashDrawer() {
                       ? "Contoh: Pecahan Rp 2.000 untuk uang kembalian"
                       : "Contoh: Beli Es Batu Kristal 2 Pack di warung sebelah"
                   }
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm text-ink focus:ring-2 focus:ring-counterlime focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm text-ink focus:ring-2 focus:ring-accent focus:outline-none"
                 />
               </div>
 
@@ -952,7 +953,7 @@ export default function CashDrawer() {
                   value={cashierNameInput}
                   onChange={(e) => setCashierNameInput(e.target.value)}
                   placeholder="Nama Kasir"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm font-semibold text-ink focus:ring-2 focus:ring-counterlime focus:outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm font-semibold text-ink focus:ring-2 focus:ring-accent focus:outline-none"
                 />
               </div>
 
@@ -972,7 +973,7 @@ export default function CashDrawer() {
                       const num = Number.parseInt(e.target.value.replace(/\D/g, ""), 10);
                       setStartingCashInput(isNaN(num) ? "0" : String(num));
                     }}
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm font-bold text-ink focus:ring-2 focus:ring-counterlime focus:outline-none"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-sm font-bold text-ink focus:ring-2 focus:ring-accent focus:outline-none"
                   />
                 </div>
               </div>
@@ -989,7 +990,7 @@ export default function CashDrawer() {
                 <Button
                   type="submit"
                   size="sm"
-                  className="bg-counterlime hover:bg-counterlime-dark text-ink font-semibold"
+                  className="bg-accent hover:bg-accent-dark text-white font-semibold"
                 >
                   Buka Shift Sekarang
                 </Button>
@@ -1038,7 +1039,7 @@ export default function CashDrawer() {
               {/* Mode switch: Kalkulator Denominasi vs Input Manual */}
               <div className="flex items-center justify-between p-3 bg-mineral/60 rounded-xl border border-ink/10">
                 <div className="flex items-center gap-2">
-                  <Coins className="w-4 h-4 text-counterlime-dark" />
+                  <Coins className="w-4 h-4 text-accent-dark" />
                   <span className="text-xs font-semibold text-ink">
                     Kalkulator Pecahan Uang (Rekomendasi)
                   </span>
@@ -1046,7 +1047,7 @@ export default function CashDrawer() {
                 <button
                   type="button"
                   onClick={() => setUseDenomCalculator(!useDenomCalculator)}
-                  className="text-xs font-semibold text-counterlime-dark hover:underline"
+                  className="text-xs font-semibold text-accent-dark hover:underline"
                 >
                   {useDenomCalculator ? "Ganti ke Input Manual" : "Ganti ke Hitung Pecahan"}
                 </button>
@@ -1139,7 +1140,7 @@ export default function CashDrawer() {
                         setCustomManualCash(isNaN(num) ? "" : num.toLocaleString("id-ID"));
                       }}
                       placeholder="Contoh: 1.550.000"
-                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-base font-bold text-ink focus:ring-2 focus:ring-counterlime focus:outline-none"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-ink/15 bg-white text-base font-bold text-ink focus:ring-2 focus:ring-accent focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1230,7 +1231,7 @@ export default function CashDrawer() {
           >
             <div className="flex items-start justify-between border-b border-ink/10 pb-3">
               <h3 className="font-display text-lg font-bold text-ink flex items-center gap-2">
-                <Printer className="w-5 h-5 text-counterlime-dark" />
+                <Printer className="w-5 h-5 text-accent-dark" />
                 Laporan Penutupan Shift (Z-Report)
               </h3>
               <button
@@ -1245,7 +1246,7 @@ export default function CashDrawer() {
             {/* Thermal Receipt Box */}
             <div className="mt-4 p-4 rounded-xl bg-mineral/40 border border-ink/15 font-mono text-xs text-ink space-y-2 select-text shadow-inner">
               <div className="text-center font-bold text-sm tracking-wide">
-                KASA SISTEM KASIR
+                WAKRO DIGITAL · WARUNG WAKRO BARU
               </div>
               <div className="text-center text-ink/55 text-[11px]">
                 REKAPITULASI PENUTUPAN SHIFT (Z-REPORT)
@@ -1298,7 +1299,7 @@ export default function CashDrawer() {
                 <span>Ekspektasi Sistem:</span>
                 <span>{formatIDR(selectedShiftForReceipt.expectedCash ?? 0)}</span>
               </div>
-              <div className="flex justify-between font-black text-sm text-counterlime-dark">
+              <div className="flex justify-between font-black text-sm text-accent-dark">
                 <span>Fisik Dihitung:</span>
                 <span>{formatIDR(selectedShiftForReceipt.actualCash ?? 0)}</span>
               </div>

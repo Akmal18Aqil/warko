@@ -83,3 +83,51 @@ export function playScanErrorBeep(): void {
     // Ignore audio playback errors
   }
 }
+
+/** True once the browser allows audio playback (after a user gesture). */
+export function isAudioReady(): boolean {
+  return audioCtx !== null && audioCtx.state === "running";
+}
+
+/** Must be called from a click/tap: browsers block audio until the user interacts with the page. */
+export async function unlockAudio(): Promise<boolean> {
+  const ctx = getAudioContext();
+  if (!ctx) return false;
+  try {
+    await ctx.resume();
+  } catch {
+    return false;
+  }
+  return ctx.state === "running";
+}
+
+/** Kitchen bell for a new incoming order: two bright strikes with a ringing decay. */
+export function playKitchenBell(): void {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const strike = (at: number) => {
+      for (const [freq, level] of [
+        [1318.5, 0.22],
+        [2637, 0.08],
+        [3951, 0.04],
+      ] as const) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, at);
+        gain.gain.setValueAtTime(level, at);
+        gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.1);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(at);
+        osc.stop(at + 1.15);
+      }
+    };
+    const now = ctx.currentTime;
+    strike(now);
+    strike(now + 0.35);
+  } catch {
+    // Ignore audio playback errors
+  }
+}

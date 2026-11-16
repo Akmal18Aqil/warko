@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KASA POS | Handbook Operasional</title>
+  <style>
+    :root {
+      --ink: #172b4d;
+      --muted: #66758c;
+      --blue: #2d6cdf;
+      --blue-soft: #eaf2ff;
+      --line: #d9e1ec;
+      --paper: #f5f8fc;
+      --green: #159a72;
+      --amber: #b87500;
+    }
+    * { box-sizing: border-box; }
+    @page { size: A4; margin: 15mm 15mm 16mm; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Trebuchet MS", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.52;
+    }
+    .page {
+      width: 100%;
+      max-width: 210mm;
+      margin: 0 auto;
+      background: #fff;
+    }
+    .cover {
+      min-height: 265mm;
+      padding: 28mm 20mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: linear-gradient(145deg, #fafdff 0%, #eef6ff 68%, #d9ebff 100%);
+      page-break-after: always;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand img { width: 58px; height: 58px; border-radius: 16px; }
+    .brand-name { font-size: 23pt; font-weight: 800; letter-spacing: .04em; }
+    .brand-sub { color: var(--muted); font-size: 10pt; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { font-size: 32pt; line-height: 1.08; margin: 28mm 0 8mm; letter-spacing: -.04em; }
+    h2 { margin: 0 0 5mm; font-size: 20pt; line-height: 1.15; letter-spacing: -.025em; }
+    h3 { margin: 7mm 0 2mm; font-size: 13pt; }
+    h4 { margin: 4mm 0 1.5mm; font-size: 11pt; }
+    p { margin: 0 0 3.5mm; }
+    ul, ol { margin: 2mm 0 4mm 6mm; padding-left: 5mm; }
+    li { margin: 1.2mm 0; }
+    .lead { max-width: 130mm; color: #3d5473; font-size: 14pt; line-height: 1.45; }
+    .cover-note { color: var(--muted); max-width: 130mm; }
+    .section { padding: 0; page-break-before: always; }
+    .section:first-of-type { page-break-before: auto; }
+    .section-inner { padding: 0; }
+    .kicker { color: var(--blue); font-size: 8.5pt; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 3mm; }
+    .intro { color: var(--muted); max-width: 165mm; margin-bottom: 7mm; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+    .card { border: 1px solid var(--line); border-radius: 13px; padding: 5mm; background: #fff; break-inside: avoid; }
+    .card.blue { background: var(--blue-soft); border-color: #bfd5fb; }
+    .card.green { background: #eefaf5; border-color: #c5eadb; }
+    .card.amber { background: #fff8e8; border-color: #f0dca9; }
+    .card h3 { margin-top: 0; }
+    .metric { font-size: 18pt; font-weight: 800; color: var(--blue); }
+    .small { color: var(--muted); font-size: 9pt; }
+    .callout { border-left: 4px solid var(--blue); background: var(--blue-soft); padding: 4mm 5mm; margin: 5mm 0; break-inside: avoid; }
+    .warning { border-left-color: var(--amber); background: #fff8e8; }
+    .success { border-left-color: var(--green); background: #eefaf5; }
+    table { width: 100%; border-collapse: collapse; margin: 4mm 0 6mm; font-size: 9.2pt; break-inside: avoid; }
+    th { color: #fff; background: var(--ink); text-align: left; font-weight: 700; }
+    th, td { padding: 2.7mm 3mm; border: 1px solid var(--line); vertical-align: top; }
+    tr:nth-child(even) td { background: #f8fbff; }
+    code { font-family: Consolas, monospace; background: #eef2f7; padding: .3mm 1.1mm; border-radius: 4px; font-size: .9em; }
+    .shot { margin: 5mm 0 6mm; break-inside: avoid; }
+    .shot img { display: block; width: 100%; max-height: 105mm; object-fit: contain; border: 1px solid var(--line); border-radius: 12px; background: #f7faff; }
+    .shot figcaption { color: var(--muted); font-size: 8.5pt; margin-top: 2mm; }
+    .shot.half img { max-height: 75mm; }
+    .step { display: grid; grid-template-columns: 9mm 1fr; gap: 3mm; margin: 3mm 0; break-inside: avoid; }
+    .step-num { width: 8mm; height: 8mm; display: grid; place-items: center; border-radius: 50%; background: var(--blue); color: white; font-weight: 800; }
+    .flow { border: 1px solid var(--line); border-radius: 13px; padding: 5mm; margin: 5mm 0; background: #fbfdff; break-inside: avoid; }
+    .flow svg { width: 100%; height: auto; display: block; }
+    .footer-note { margin-top: 7mm; padding-top: 3mm; border-top: 1px solid var(--line); color: var(--muted); font-size: 8.5pt; }
+    .avoid-break { break-inside: avoid; }
+    .page-number { position: fixed; bottom: 7mm; right: 15mm; color: #8794a7; font-size: 8pt; }
+    @media print {
+      body { background: #fff; }
+      .page { max-width: none; }
+      .page-number { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="cover">
+      <div>
+        <div class="brand">
+          <img src="images/kasa-logo.svg" alt="Logo KASA">
+          <div><div class="brand-name">KASA</div><div class="brand-sub">Sistem Kasir</div></div>
+        </div>
+        <h1>Handbook Operasional<br>untuk Restoran</h1>
+        <p class="lead">Panduan penggunaan KASA POS untuk kasir, pelayan, dapur, manajer, dan pemilik usaha kuliner.</p>
+      </div>
+      <div>
+        <div class="callout blue"><strong>Dokumen ini menjelaskan cara kerja aplikasi, bukan janji fitur di luar implementasi saat ini.</strong><br>Gunakan bagian checklist untuk menyiapkan operasional harian.</div>
+        <p class="cover-note">KASA mendukung POS kasir, Kitchen Display System, self-order QR, mode pelayan, laci kas, katalog produk, laporan, pairing jaringan lokal, scanner, dan printer thermal.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="kicker">01 / Ringkasan</div>
+      <h2>KASA untuk operasional restoran</h2>
+      <p class="intro">KASA adalah aplikasi kasir restoran berbasis web dengan penyimpanan lokal di browser. Aplikasi menghubungkan transaksi kasir, pesanan pelayan, pesanan QR meja, dan antrean dapur dalam satu sistem operasional.</p>
+      <div class="grid-3">
+        <div class="card blue"><div class="metric">POS</div><h3>Kasir</h3><p>Mencari menu, mengatur item, menerapkan diskon, menghitung pajak, menerima pembayaran, dan mencetak struk.</p></div>
+        <div class="card green"><div class="metric">KDS</div><h3>Dapur</h3><p>Menampilkan tiket pesanan berdasarkan urutan masuk, timer, asal pesanan, catatan item, dan status masak.</p></div>
+        <div class="card amber"><div class="metric">QR</div><h3>Self-order</h3><p>Pelanggan membuka menu meja dari QR, mengirim pesanan, memilih bayar langsung atau bayar nanti, lalu memantau status masak.</p></div>
+      </div>
+      <h3>Nilai operasional</h3>
+      <table>
+        <tr><th>Kebutuhan restoran</th><th>Respons KASA</th></tr>
+        <tr><td>Kasir perlu bekerja cepat saat ramai.</td><td>Pencarian menu, shortcut <code>Ctrl + K</code>, keranjang, catatan item, diskon, dan kalkulasi otomatis.</td></tr>
+        <tr><td>Dapur perlu melihat pesanan dengan jelas.</td><td>KDS dengan antrean FIFO, timer, asal pesanan, dan tombol perubahan status.</td></tr>
+        <tr><td>Pelayan membutuhkan perangkat bergerak.</td><td>Mode pelayan responsif dengan keranjang terisolasi per staf dan perlindungan table lock.</td></tr>
+        <tr><td>Pemilik perlu kontrol kas dan laporan.</td><td>Laci kas, buka/tutup shift, rekonsiliasi kas, laporan penjualan, dan ekspor data.</td></tr>
+      </table>
+      <div class="callout warning"><strong>Batasan penting:</strong> data utama tersimpan di browser melalui IndexedDB. Siapkan prosedur backup/export dan gunakan perangkat kasir yang stabil. Fitur Bluetooth dan kamera bergantung pada dukungan browser serta izin perangkat.</div>
+    </section>
+
+    <section class="section">
+      <div class="kicker">02 / Setup</div>
+      <h2>Menyiapkan KASA sebelum operasional</h2>
+      <div class="step"><div class="step-num">1</div><div><strong>Siapkan perangkat kasir.</strong><br>Gunakan Chrome, Edge, atau browser Chromium modern. Jalankan aplikasi pada komputer kasir dengan koneksi jaringan lokal yang stabil.</div></div>
+      <div class="step"><div class="step-num">2</div><div><strong>Pasang aplikasi.</strong><br><code>cd client</code>, kemudian <code>npm install</code> dan <code>npm run dev</code>. Untuk deployment, jalankan <code>npm run build</code> dan sajikan folder <code>client/dist</code>.</div></div>
+      <div class="step"><div class="step-num">3</div><div><strong>Atur identitas operasional.</strong><br>Periksa produk, kategori, meja, pajak, service charge, serta staf yang akan menggunakan sistem.</div></div>
+      <div class="step"><div class="step-num">4</div><div><strong>Hubungkan perangkat.</strong><br>Gunakan Pusat Jaringan untuk melihat alamat server lokal dan QR pairing. Buka route pelayan pada HP dan route dapur pada tablet yang berada di WiFi yang sama.</div></div>
+      <figure class="shot"><img src="images/current-settings.png" alt="Halaman pengaturan KASA"><figcaption>Halaman Pengaturan menjadi titik awal untuk identitas toko, printer, pajak, shift, dan koneksi jaringan.</figcaption></figure>
+      <div class="grid-2">
+        <div class="card"><h3>Route utama</h3><ul><li><code>/</code> POS kasir</li><li><code>/pelayan</code> mode pelayan</li><li><code>/dapur</code> KDS</li><li><code>/order/meja-01</code> self-order pelanggan</li></ul></div>
+        <div class="card"><h3>Checklist pembukaan</h3><ul><li>Shift sudah dibuka.</li><li>Printer atau metode cetak sudah diuji.</li><li>Tablet KDS sudah membuka route dapur.</li><li>QR meja masih dapat dipindai.</li><li>Produk dan harga hari ini benar.</li></ul></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="kicker">03 / Akses</div>
+      <h2>Peran staf dan batas akses</h2>
+      <p class="intro">Gunakan Quick Switch untuk berpindah staf. Setiap staf memakai PIN empat digit dan RouteGuard membatasi modul sesuai perannya.</p>
+      <table>
+        <tr><th>Peran</th><th>Penggunaan utama</th><th>Route</th></tr>
+        <tr><td>Jamie Morgan<br><span class="small">Kasir & Admin</span></td><td>POS, produk, meja, laci kas, laporan, pengaturan, pelayan, dan dapur.</td><td>Semua modul</td></tr>
+        <tr><td>Budi, Siti, Agus<br><span class="small">Pelayan</span></td><td>Mencatat pesanan meja, melihat pesanan aktif, dan menggunakan denah meja.</td><td><code>/pelayan</code></td></tr>
+        <tr><td>Chef Junaedi<br><span class="small">Kepala Dapur</span></td><td>Melihat dan memperbarui status tiket masak.</td><td><code>/dapur</code></td></tr>
+        <tr><td>Hendra Wijaya<br><span class="small">Manajer</span></td><td>Laporan, ringkasan pesanan, laci kas, pengaturan, dan meja.</td><td>Modul manajerial</td></tr>
+      </table>
+      <figure class="shot half"><img src="images/current-role-modal.png" alt="Modal ganti peran staf KASA"><figcaption>Quick Switch menampilkan staf aktif, peran, dan input PIN pada tampilan terbaru.</figcaption></figure>
+      <div class="callout"><strong>Praktik yang disarankan:</strong> jangan memakai PIN bersama. Setiap staf sebaiknya berpindah ke profilnya sendiri supaya asal pesanan, histori, dan tanggung jawab operasional tetap jelas.</div>
+    </section>
+
+    <section class="section">
+      <div class="kicker">04 / POS</div>
+      <h2>Alur kasir dari menu hingga pembayaran</h2>
+      <figure class="shot"><img src="images/current-pos.png" alt="Halaman POS kasir KASA versi terbaru"><figcaption>POS versi terbaru menempatkan katalog menu, pencarian, kategori, dan service ticket dalam satu layar.</figcaption></figure>
+      <div class="grid-2">
+        <div class="card"><h3>Membuat pesanan</h3><ol><li>Pilih kategori atau cari menu.</li><li>Klik produk untuk memasukkan item.</li><li>Atur jumlah dan catatan item.</li><li>Pilih bawa pulang atau makan di tempat.</li><li>Pilih meja dan jumlah tamu bila diperlukan.</li></ol></div>
+        <div class="card"><h3>Memeriksa total</h3><ol><li>Periksa subtotal produk.</li><li>Tambahkan diskon atau promo.</li><li>Pastikan pajak dan service charge sesuai kebijakan restoran.</li><li>Periksa total bayar sebelum pembayaran.</li></ol></div>
+      </div>
+      <h3>Keputusan pembayaran</h3>
+      <table>
+        <tr><th>Aksi</th><th>Kapan digunakan</th><th>Hasil</th></tr>
+        <tr><td>Bayar & Kirim ke Dapur</td><td>Pesanan dibayar sekarang.</td><td>Pembayaran dicatat sebagai paid dan tiket otomatis masuk KDS.</td></tr>
+        <tr><td>Kirim ke Dapur</td><td>Pesanan perlu dimasak sebelum pembayaran, atau pelanggan membayar nanti.</td><td>Tiket masuk KDS dengan status pembayaran unpaid.</td></tr>
+        <tr><td>Selesaikan pembayaran</td><td>Memilih tunai, kartu/QR, atau QRIS di modal pembayaran.</td><td>Modal ditutup, kembalian dihitung jika tunai, dan transaksi dicatat.</td></tr>
+      </table>
+      <div class="callout success"><strong>Kontrol kasir:</strong> sebelum menyelesaikan pembayaran tunai, masukkan nominal uang yang diterima. KASA menghitung kembalian dan menampilkannya pada notifikasi transaksi.</div>
+    </section>
+
+    <section class="section">
+      <div class="kicker">05 / Status order</div>
+      <h2>Pembayaran dan dapur memakai status terpisah</h2>
+      <p class="intro">Pemisahan ini mencegah kesalahan umum: pesanan sudah dibayar tetapi tiketnya masih harus diproses dapur.</p>
+      <div class="flow">
+        <svg viewBox="0 0 900 310" role="img" aria-label="Diagram alur order KASA">
+          <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2d6cdf"/></marker></defs>
+          <style>text{font-family:Arial,sans-serif;fill:#172b4d} .box{fill:#fff;stroke:#b9cbe3;stroke-width:2} .blue{fill:#eaf2ff;stroke:#2d6cdf} .green{fill:#eefaf5;stroke:#159a72} .muted{fill:#66758c;font-size:15px}</style>
+          <rect class="box" x="20" y="115" width="150" height="70" rx="14"/><text x="95" y="145" text-anchor="middle" font-size="18" font-weight="700">POS / QR</text><text class="muted" x="95" y="167" text-anchor="middle">Order dibuat</text>
+          <path d="M170 150 H245" stroke="#2d6cdf" stroke-width="3" marker-end="url(#arrow)"/>
+          <rect class="blue" x="250" y="45" width="185" height="70" rx="14"/><text x="342" y="75" text-anchor="middle" font-size="17" font-weight="700">paid</text><text class="muted" x="342" y="97" text-anchor="middle">Bayar sekarang</text>
+          <rect class="box" x="250" y="195" width="185" height="70" rx="14"/><text x="342" y="225" text-anchor="middle" font-size="17" font-weight="700">unpaid</text><text class="muted" x="342" y="247" text-anchor="middle">Bayar nanti</text>
+          <path d="M435 80 H510 M435 230 H510" stroke="#2d6cdf" stroke-width="3" marker-end="url(#arrow)"/>
+          <rect class="green" x="515" y="115" width="170" height="70" rx="14"/><text x="600" y="145" text-anchor="middle" font-size="17" font-weight="700">queued</text><text class="muted" x="600" y="167" text-anchor="middle">Masuk antrean KDS</text>
+          <path d="M685 150 H760" stroke="#2d6cdf" stroke-width="3" marker-end="url(#arrow)"/>
+          <rect class="box" x="765" y="115" width="115" height="70" rx="14"/><text x="822" y="143" text-anchor="middle" font-size="16" font-weight="700">KDS</text><text class="muted" x="822" y="165" text-anchor="middle">Masak → siap</text>
+        </svg>
+      </div>
+      <table>
+        <tr><th>Lifecycle</th><th>Urutan</th><th>Makna</th></tr>
+        <tr><td>Pembayaran</td><td><code>unpaid</code> → <code>paid</code> → <code>refunded</code></td><td>Apakah transaksi sudah dibayar.</td></tr>
+        <tr><td>Dapur</td><td><code>draft</code> → <code>queued</code> → <code>preparing</code> → <code>ready</code> → <code>served</code></td><td>Sejauh mana pesanan diproses dan diserahkan.</td></tr>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="kicker">06 / KDS</div>
+      <h2>Menjalankan antrean dapur</h2>
+      <figure class="shot"><img src="images/current-kds.png" alt="Layar KDS KASA versi terbaru"><figcaption>KDS versi terbaru menampilkan antrean tiket, asal pesanan, waktu tunggu, item, catatan, dan aksi berikutnya.</figcaption></figure>
+      <div class="grid-2">
+        <div class="card"><h3>Urutan kerja</h3><ol><li>Pastikan tiket baru terlihat pada filter Antre.</li><li>Tekan Mulai Masak ketika dapur mulai mengerjakan tiket.</li><li>Periksa catatan item sebelum penyajian.</li><li>Tekan Siap Disajikan ketika semua item selesai.</li><li>Selesaikan antar ke tamu setelah pesanan diserahkan.</li></ol></div>
+        <div class="card"><h3>Kontrol antrean</h3><ul><li>KDS mengurutkan tiket berdasarkan waktu masuk.</li><li>Tiket lama dapat memiliki penanda prioritas.</li><li>Filter memisahkan semua, antre, dimasak, dan siap saji.</li><li>Asal tiket membantu dapur membedakan kasir, pelayan, dan self-order.</li></ul></div>
+      </div>
+      <figure class="shot half"><img src="images/current-kds.png" alt="Tiket dapur KASA versi terbaru"><figcaption>Tiket dari kasir, pelayan, dan self-order tampil dalam antrean KDS yang sama.</figcaption></figure>
+    </section>
+
+    <section class="section">
+      <div class="kicker">07 / Pelayan dan self-order</div>
+      <h2>Pesanan meja dari perangkat bergerak</h2>
+      <div class="grid-2">
+        <div>
+          <figure class="shot half"><img src="images/current-waiter.png" alt="Mode pelayan KASA versi terbaru"><figcaption>Mode pelayan versi terbaru untuk mencatat pesanan di area restoran.</figcaption></figure>
+          <h3>Alur pelayan</h3>
+          <ol><li>Masuk dengan profil pelayan.</li><li>Pilih meja dari denah atau daftar.</li><li>Tambahkan menu dan catatan.</li><li>Kirim pesanan ke dapur.</li><li>Pantau pesanan aktif pada tab Pesanan Saya.</li></ol>
+        </div>
+        <div>
+          <figure class="shot half"><img src="images/current-self-order.png" alt="Menu self-order KASA versi terbaru"><figcaption>Menu pelanggan versi terbaru dari QR meja.</figcaption></figure>
+          <h3>Alur pelanggan</h3>
+          <ol><li>Pindai QR meja.</li><li>Pilih menu dan catatan.</li><li>Pilih bayar langsung atau bayar nanti.</li><li>Kirim pesanan.</li><li>Pantau status diterima, dimasak, dan siap diantar.</li></ol>
+        </div>
+      </div>
+      <div class="callout"><strong>Table lock:</strong> ketika meja sedang aktif ditangani pelayan lain, sistem memberi peringatan untuk mengurangi risiko dua staf mengubah pesanan yang sama.</div>
+    </section>
+
+    <section class="section">
+      <div class="kicker">08 / Kas dan katalog</div>
+      <h2>Kontrol operasional pemilik dan manajer</h2>
+      <div class="grid-2">
+        <div class="card"><h3>Laci kas</h3><ul><li>Buka shift dengan nama kasir dan modal awal.</li><li>Catat cash in dan cash out bila diperlukan.</li><li>Periksa penerimaan tunai sistem.</li><li>Hitung fisik uang kertas dan koin.</li><li>Tutup shift dan simpan selisih kas.</li></ul></div>
+        <div class="card"><h3>Produk dan kategori</h3><ul><li>Kelola nama, harga, kategori, barcode, dan gambar produk.</li><li>Gunakan pencarian menu pada POS.</li><li>Atur kategori agar kasir tidak perlu menelusuri katalog panjang.</li><li>Uji perubahan harga pada satu transaksi sebelum jam ramai.</li></ul></div>
+      </div>
+      <figure class="shot"><img src="images/current-cash-drawer.png" alt="Laci kas KASA versi terbaru"><figcaption>Laci kas versi terbaru menyatukan buka shift, penerimaan tunai, dan rekonsiliasi.</figcaption></figure>
+      <h3>Praktik penutupan shift</h3>
+      <ol><li>Pastikan tiket yang masih berjalan sudah ditindaklanjuti.</li><li>Bandingkan total tunai sistem dengan uang fisik.</li><li>Catat selisih dan penyebabnya pada catatan shift.</li><li>Simpan atau ekspor data sesuai prosedur pembukuan restoran.</li></ol>
+    </section>
+
+    <section class="section">
+      <div class="kicker">09 / Perangkat</div>
+      <h2>Scanner, printer, jaringan, dan QR meja</h2>
+      <div class="grid-2">
+        <div class="card"><h3>Scanner</h3><p>KASA menyediakan scanner kamera berbasis ZXing, input manual, unggah foto, demo cepat, serta dukungan scanner HID USB atau Bluetooth.</p><p class="small">Browser memerlukan izin kamera. Scanner HID harus dipasangkan ke sistem operasi sebelum digunakan.</p></div>
+        <div class="card"><h3>Printer thermal</h3><p>Driver ESC/POS mendukung printer thermal 58 mm dan 80 mm melalui Web Bluetooth. Dialog cetak browser menjadi fallback untuk printer USB atau LAN.</p><p class="small">Uji koneksi dan cetak struk sebelum operasional.</p></div>
+        <div class="card"><h3>Jaringan lokal</h3><p>POS, HP pelayan, dan tablet dapur dapat menggunakan alamat IP lokal yang sama. Pusat Jaringan menampilkan alamat dan QR pairing.</p><p class="small">Perangkat harus berada di jaringan WiFi yang sama dengan komputer kasir.</p></div>
+        <div class="card"><h3>QR meja</h3><p>Setiap meja dapat memiliki QR menu sendiri. Cetak QR setelah meja dibuat dan uji dengan kamera pelanggan sebelum ditempel.</p><p class="small">Pastikan URL QR mengarah ke meja yang benar.</p></div>
+      </div>
+      <div class="grid-2">
+        <figure class="shot half"><img src="images/current-network-modal.png" alt="Pusat jaringan KASA versi terbaru"><figcaption>Pusat jaringan versi terbaru untuk pairing HP pelayan dan tablet dapur.</figcaption></figure>
+        <figure class="shot half"><img src="images/current-scanner.png" alt="Scanner barcode KASA versi terbaru"><figcaption>Scanner barcode versi terbaru dengan mode kamera, unggah foto, input manual, dan demo.</figcaption></figure>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="kicker">10 / Troubleshooting</div>
+      <h2>Masalah umum dan tindakan cepat</h2>
+      <table>
+        <tr><th>Masalah</th><th>Pemeriksaan pertama</th><th>Tindakan</th></tr>
+        <tr><td>Tiket tidak terlihat di KDS.</td><td>Periksa apakah pesanan sudah dikirim ke dapur dan tablet membuka <code>/dapur</code>.</td><td>Refresh halaman KDS, cek WiFi lokal, lalu kirim ulang hanya jika tiket memang belum ada.</td></tr>
+        <tr><td>Pembayaran tunai tidak dapat diselesaikan.</td><td>Periksa nominal uang diterima.</td><td>Masukkan nominal sama atau lebih besar dari total. KASA menghitung kembalian otomatis.</td></tr>
+        <tr><td>Kamera scanner tidak aktif.</td><td>Periksa izin kamera browser dan kamera yang dipakai aplikasi lain.</td><td>Izinkan kamera, tutup aplikasi kamera lain, lalu buka modal scanner lagi.</td></tr>
+        <tr><td>Printer tidak mencetak.</td><td>Periksa Bluetooth, pairing, kertas, dan ukuran printer.</td><td>Uji dialog print browser sebagai fallback. Jangan menandai transaksi selesai hanya berdasarkan status printer.</td></tr>
+        <tr><td>HP pelayan tidak tersambung.</td><td>Periksa IP lokal dan jaringan WiFi.</td><td>Buka URL pairing dari Pusat Jaringan dan pastikan firewall jaringan tidak memblokir port aplikasi.</td></tr>
+        <tr><td>Data terlihat berbeda antar perangkat.</td><td>Periksa koneksi LAN dan waktu sinkronisasi.</td><td>Refresh kedua perangkat. Pastikan keduanya memakai server lokal yang sama.</td></tr>
+      </table>
+      <div class="callout warning"><strong>Jangan menghapus data browser saat shift berjalan.</strong> IndexedDB menyimpan data lokal aplikasi. Lakukan backup atau export sesuai prosedur sebelum membersihkan browser atau mengganti perangkat.</div>
+    </section>
+
+    <section class="section">
+      <div class="kicker">11 / Checklist pemilik</div>
+      <h2>Checklist sebelum serah terima</h2>
+      <div class="grid-2">
+        <div class="card"><h3>Operasional</h3><ul><li>Produk, harga, kategori, pajak, dan service charge sudah diperiksa.</li><li>Meja dan QR meja sudah diuji.</li><li>Profil staf dan PIN sudah dibagikan secara aman.</li><li>Alur bayar sekarang dan bayar nanti sudah dipahami.</li><li>Tablet KDS sudah terpasang di area dapur.</li></ul></div>
+        <div class="card"><h3>Perangkat</h3><ul><li>Komputer kasir terhubung ke jaringan lokal.</li><li>Printer thermal sudah mencetak struk uji.</li><li>Scanner sudah membaca barcode uji.</li><li>HP pelayan dapat membuka route pelayan.</li><li>Browser sudah mengizinkan kamera dan Bluetooth bila diperlukan.</li></ul></div>
+        <div class="card"><h3>Kontrol keuangan</h3><ul><li>Modal awal shift sudah ditentukan.</li><li>Kasir tahu prosedur cash in dan cash out.</li><li>Manajer tahu cara membuka laporan dan laci kas.</li><li>Prosedur backup/export sudah ditentukan.</li></ul></div>
+        <div class="card"><h3>Uji penerimaan</h3><ul><li>Buat satu order POS dan bayar tunai.</li><li>Pastikan tiket muncul di KDS.</li><li>Uji self-order dari QR meja.</li><li>Uji order pelayan dan catatan item.</li><li>Tutup shift demo dan periksa rekonsiliasi.</li></ul></div>
+      </div>
+      <div class="footer-note">Dokumen ini dibuat berdasarkan struktur fitur dan tampilan KASA yang tersedia pada proyek. Sesuaikan SOP internal restoran untuk kebijakan refund, backup, pembukuan, dan perangkat.</div>
+    </section>
+  </div>
+</body>
+</html>

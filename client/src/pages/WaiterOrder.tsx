@@ -27,6 +27,8 @@ import { cn } from "../lib/cn";
 import { toast } from "sonner";
 import { FocusModeHeader } from "../components/FocusModeHeader";
 import { useAuth } from "../components/AuthContext";
+import { RemoteDataError } from "../lib/remote";
+import { isPaid, KITCHEN_LABEL, kitchenStatusOf, newClientRef, openOrdersForTable, tableLabel } from "../lib/orderStatus";
 
 type WaiterTab = "order" | "my-orders" | "floor-map";
 
@@ -38,7 +40,7 @@ export default function WaiterOrder() {
     tables,
     orders,
     createWaiterOrder,
-    updateOrderStatus,
+    updateKitchenStatus,
     taxEnabled,
     taxRate,
     serviceChargeEnabled,
@@ -63,7 +65,7 @@ export default function WaiterOrder() {
   });
 
   const [selectedTableId, setSelectedTableId] = useState<string>(() => {
-    return localStorage.getItem(staffDraftTableKey) || tables[0]?.id || "t1";
+    return localStorage.getItem(staffDraftTableKey) || tables[0]?.id || "";
   });
 
   const [customerName, setCustomerName] = useState("");
@@ -74,6 +76,9 @@ export default function WaiterOrder() {
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [payMethod, setPayMethod] = useState<"tunai" | "qris">("tunai");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cashInput, setCashInput] = useState("");
+  /** Idempotency key for the current cart; reset once the order is stored. */
+  const [submitRef, setSubmitRef] = useState(newClientRef);
   const [, setTick] = useState(0);
 
   // Auto-tick for live timers every 10s
@@ -113,23 +118,12 @@ export default function WaiterOrder() {
     return tables.find((t) => t.id === selectedTableId) || tables[0];
   }, [selectedTableId, tables]);
 
-  const tableNumber = selectedTable ? parseInt(selectedTable.name.match(/\d+/)?.[0] || "1", 10) : 1;
-
-  // Active orders map by table
+  // Latest open order per table (stable table id).
   const activeOrdersByTable = useMemo(() => {
     const map = new Map<string, OrderRow>();
-    const active = orders.filter((o) => o.status !== "sudah-dibayar");
-    for (const ord of active) {
-      if (ord.tableName) {
-        const found = tables.find((t) => t.name.toLowerCase() === ord.tableName?.toLowerCase());
-        if (found) map.set(found.id, ord);
-      } else if (ord.tableNumber) {
-        const found = tables.find((t) => {
-          const num = parseInt(t.name.match(/\d+/)?.[0] || "0", 10);
-          return num === ord.tableNumber;
-        });
-        if (found) map.set(found.id, ord);
-      }
+    for (const table of tables) {
+      const open = openOrdersForTable(orders, table);
+      if (open.length > 0) map.set(table.id, open.reduce((a, b) => (b.createdAt > a.createdAt ? b : a)));
     }
     return map;
   }, [orders, tables]);
@@ -148,16 +142,22 @@ export default function WaiterOrder() {
         (o.waiterId === currentStaff.id ||
           o.waiterName === currentStaff.name ||
           (o.source === "waiter" && o.customerName?.includes(currentStaff.name))) &&
-        o.status !== "sudah-dibayar",
+        kitchenStatusOf(o) !== "served",
     );
   }, [orders, currentStaff]);
 
   const myReadyOrdersCount = useMemo(() => {
-    return myActiveOrders.filter((o) => o.status === "siap").length;
+    return myActiveOrders.filter((o) => kitchenStatusOf(o) === "ready").length;
   }, [myActiveOrders]);
 
   // Cart operations
   const handleAddItem = (itemId: string) => {
+    const product = products.find((p) => p.id === itemId);
+    const inCart = cartLines.find((l) => l.itemId === itemId)?.qty ?? 0;
+    if (product && product.stock !== undefined && product.stock !== null && inCart >= product.stock) {
+      toast.error(product.stock <= 0 ? `${product.name} HABIS` : `Stok ${product.name} tinggal ${product.stock}`);
+      return;
+    }
     setCartLines((prev) => {
       const idx = prev.findIndex((l) => l.itemId === itemId);
       if (idx >= 0) {
@@ -198,10 +198,10 @@ export default function WaiterOrder() {
         count += line.qty;
       }
     }
-    const tax = taxEnabled ? Math.round((rawSubtotal * taxRate) / 100) : 0;
     const serviceCharge = serviceChargeEnabled
       ? Math.round((rawSubtotal * serviceChargeRate) / 100)
       : 0;
+    const tax = taxEnabled ? Math.round(((rawSubtotal + serviceCharge) * taxRate) / 100) : 0;
     const total = rawSubtotal + tax + serviceCharge;
 
     return { rawSubtotal, tax, serviceCharge, total, count };
@@ -225,32 +225,37 @@ export default function WaiterOrder() {
       toast.error("Pilih menu terlebih dahulu");
       return;
     }
+    if (!selectedTable) {
+      toast.error("Pilih meja terlebih dahulu");
+      return;
+    }
+    if (isSubmitting) return;
     try {
       setIsSubmitting(true);
       const finalCustomerName = customerName.trim()
         ? customerName.trim()
-        : `Tamu ${selectedTable?.name}`;
+        : `Tamu ${selectedTable.name}`;
 
       const created = await createWaiterOrder({
-        tableId: selectedTable?.id,
-        tableName: selectedTable?.name,
-        tableNumber,
+        tableId: selectedTable.id,
         customerName: finalCustomerName,
         waiterId: currentStaff.id,
         waiterName: currentStaff.name,
         guests: guestsCount,
         lines: cartLines,
-        status: "memasak",
+        clientRef: submitRef,
       });
 
       toast.success("Pesanan dikirim ke Dapur (KDS)!", {
-        description: `Order #${created.no} · ${selectedTable?.name} · Pelayan: ${currentStaff.name}`,
+        description: `Order #${created.no} · ${tableLabel(created)} · Pelayan: ${currentStaff.name}`,
       });
       setCartLines([]);
       localStorage.removeItem(staffDraftCartKey);
       setCustomerName("");
+      setSubmitRef(newClientRef());
     } catch (err) {
-      toast.error("Gagal mengirim pesanan ke dapur.");
+      if (!(err instanceof RemoteDataError && err.status === undefined)) setSubmitRef(newClientRef());
+      toast.error(err instanceof Error ? err.message : "Gagal mengirim pesanan ke dapur.");
     } finally {
       setIsSubmitting(false);
     }
@@ -262,48 +267,61 @@ export default function WaiterOrder() {
       toast.error("Pilih menu terlebih dahulu");
       return;
     }
+    if (!selectedTable) {
+      toast.error("Pilih meja terlebih dahulu");
+      return;
+    }
+    const cashReceived = Number.parseInt(cashInput.replace(/\D/g, ""), 10) || 0;
+    if (payMethod === "tunai" && cashReceived < totals.total) {
+      toast.error("Uang diterima kurang dari total.");
+      return;
+    }
+    if (isSubmitting) return;
     try {
       setIsSubmitting(true);
       const finalCustomerName = customerName.trim()
         ? customerName.trim()
-        : `Tamu ${selectedTable?.name}`;
+        : `Tamu ${selectedTable.name}`;
 
       const created = await createWaiterOrder({
-        tableId: selectedTable?.id,
-        tableName: selectedTable?.name,
-        tableNumber,
+        tableId: selectedTable.id,
         customerName: finalCustomerName,
         waiterId: currentStaff.id,
         waiterName: currentStaff.name,
         guests: guestsCount,
         lines: cartLines,
-        status: "sudah-dibayar",
         method: payMethod,
+        cashReceived: payMethod === "tunai" ? cashReceived : undefined,
+        clientRef: submitRef,
       });
 
+      const change = payMethod === "tunai" ? ` · Kembalian ${formatIDR(Math.max(0, cashReceived - created.total))}` : "";
       toast.success("Pembayaran Meja Berhasil!", {
-        description: `Order #${created.no} · ${formatIDR(created.total)} (${payMethod.toUpperCase()}) · Pelayan: ${currentStaff.name}`,
+        description: `Order #${created.no} · ${formatIDR(created.total)} (${payMethod.toUpperCase()})${change} · Pelayan: ${currentStaff.name}`,
       });
       setCartLines([]);
       localStorage.removeItem(staffDraftCartKey);
       setCustomerName("");
+      setCashInput("");
       setIsPayModalOpen(false);
+      setSubmitRef(newClientRef());
     } catch (err) {
-      toast.error("Gagal memproses pembayaran meja.");
+      if (!(err instanceof RemoteDataError && err.status === undefined)) setSubmitRef(newClientRef());
+      toast.error(err instanceof Error ? err.message : "Gagal memproses pembayaran meja.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-mineral">
+    <div className="service-rail-surface flex min-h-screen min-w-0 flex-col overflow-x-hidden">
       <FocusModeHeader
         title="Mode Pelayan"
         subtitle={`Petugas: ${currentStaff.name} · Sesi Terisolasi & Tanpa Overlap Meja`}
         roleType="pelayan"
       />
 
-      <div className="flex-1 p-4 md:p-6 pb-28">
+      <div className="min-w-0 max-w-full flex-1 overflow-x-hidden p-4 md:p-6 pb-28">
         {/* Top Control Bar: Multi-Waiter Identity & Navigation Tabs */}
         <div className="mb-4 rounded-2xl bg-white border border-ink/10 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
           {/* Active Waiter Profile Badge */}
@@ -319,7 +337,7 @@ export default function WaiterOrder() {
             <div>
               <div className="flex items-center gap-2">
                 <p className="text-sm font-bold text-ink">{currentStaff.name}</p>
-                <span className="text-[10px] bg-counterlime/40 text-ink font-bold px-2 py-0.5 rounded-full border border-counterlime">
+                <span className="text-[10px] bg-accent/40 text-ink font-bold px-2 py-0.5 rounded-full border border-accent">
                   {currentStaff.title}
                 </span>
                 <button
@@ -352,7 +370,7 @@ export default function WaiterOrder() {
               <UtensilsCrossed size={14} />
               <span>1. Catat Pesanan</span>
               {cartLines.length > 0 && (
-                <span className="h-4 min-w-4 px-1 rounded-full bg-counterlime text-ink text-[10px] font-bold flex items-center justify-center">
+                <span className="h-4 min-w-4 px-1 rounded-full bg-accent text-white text-[10px] font-bold flex items-center justify-center">
                   {totals.count}
                 </span>
               )}
@@ -409,7 +427,7 @@ export default function WaiterOrder() {
               <div className="rounded-2xl border border-ink/10 bg-white p-4 shadow-sm space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-counterlime text-ink">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent text-white">
                       <Users size={16} />
                     </span>
                     <div>
@@ -436,7 +454,7 @@ export default function WaiterOrder() {
                           className={cn(
                             "h-7 w-7 rounded-lg text-xs font-bold transition-all",
                             guestsCount === g
-                              ? "bg-ink text-counterlime shadow-xs"
+                              ? "bg-accent text-white shadow-xs"
                               : "bg-slate-100 text-ink/60 hover:bg-slate-200",
                           )}
                         >
@@ -466,7 +484,7 @@ export default function WaiterOrder() {
                         className={cn(
                           "flex flex-col items-start justify-between rounded-xl p-2.5 text-xs font-bold transition-all text-left min-h-[58px] border relative",
                           isSelected
-                            ? "bg-ink text-counterlime shadow-md ring-2 ring-counterlime border-ink"
+                            ? "bg-accent text-white shadow-md ring-2 ring-accent border-ink"
                             : isMine
                             ? "bg-emerald-50 text-emerald-950 border-emerald-300 hover:bg-emerald-100"
                             : isOccupied
@@ -485,7 +503,7 @@ export default function WaiterOrder() {
                               className={cn(
                                 "rounded px-1.5 py-0.2 text-[9px] font-bold line-clamp-1",
                                 isSelected
-                                  ? "bg-counterlime text-ink"
+                                  ? "bg-accent text-white"
                                   : isMine
                                   ? "bg-emerald-200 text-emerald-900"
                                   : "bg-amber-200 text-amber-900",
@@ -538,11 +556,8 @@ export default function WaiterOrder() {
                         <p className="text-[11px] opacity-80 mt-0.5">
                           Status Dapur:{" "}
                           <strong>
-                            {activeOrderOnSelectedTable.status === "siap"
-                              ? "✨ SIAP DISAJIKAN"
-                              : activeOrderOnSelectedTable.status === "memasak"
-                              ? "🍳 Sedang Dimasak di Dapur"
-                              : "⏳ Menunggu Antrean"}
+                            {KITCHEN_LABEL[kitchenStatusOf(activeOrderOnSelectedTable)]}
+                            {isPaid(activeOrderOnSelectedTable) ? " · Lunas" : " · Belum bayar"}
                           </strong>{" "}
                           · {activeOrderOnSelectedTable.itemCount} menu ({formatIDR(activeOrderOnSelectedTable.total)})
                         </p>
@@ -562,14 +577,14 @@ export default function WaiterOrder() {
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Nama Pelanggan (opsional, contoh: Bpk. Gunawan)"
-                    className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-ink focus:border-counterlime focus:bg-white focus:outline-none"
+                    className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-medium text-ink focus:border-accent focus:bg-white focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Menu Filters & Search */}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-1">
+                <div className="flex min-w-0 max-w-full flex-wrap gap-1.5 pb-1">
                   {["Semua", ...categories.map((c) => c.name)].map((cat) => (
                     <button
                       key={cat}
@@ -578,7 +593,7 @@ export default function WaiterOrder() {
                       className={cn(
                         "rounded-xl px-3.5 py-2 text-xs font-bold transition-all min-h-[40px]",
                         selectedCategory === cat
-                          ? "bg-ink text-counterlime shadow-sm"
+                          ? "bg-accent text-white shadow-sm"
                           : "bg-white text-ink/70 border border-slate-200 hover:border-ink/20",
                       )}
                     >
@@ -595,7 +610,7 @@ export default function WaiterOrder() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Cari nama menu..."
-                      className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs font-medium text-ink focus:border-counterlime focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs font-medium text-ink focus:border-accent focus:outline-none"
                     />
                   </div>
                   <button
@@ -603,7 +618,7 @@ export default function WaiterOrder() {
                     onClick={() => setScannerOpen(true)}
                     title="Pindai Barcode Menu atau QR Meja"
                     aria-label="Pindai Barcode Menu atau QR Meja"
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-ink/70 hover:bg-counterlime hover:text-ink hover:border-counterlime-dark transition-all shadow-xs"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-ink/70 hover:bg-accent hover:text-white hover:border-accent-dark transition-all shadow-xs"
                   >
                     <ScanLine size={16} />
                   </button>
@@ -652,7 +667,7 @@ export default function WaiterOrder() {
                             <button
                               type="button"
                               onClick={() => handleAddItem(p.id)}
-                              className="flex h-7 w-7 items-center justify-center rounded bg-counterlime text-ink shadow-sm"
+                              className="flex h-7 w-7 items-center justify-center rounded bg-accent text-white shadow-sm"
                             >
                               <Plus size={13} />
                             </button>
@@ -661,7 +676,7 @@ export default function WaiterOrder() {
                           <button
                             type="button"
                             onClick={() => handleAddItem(p.id)}
-                            className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-counterlime text-xs font-bold text-ink hover:bg-counterlime/90 active:scale-95 shadow-sm"
+                            className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-accent text-xs font-bold text-white hover:bg-accent/90 active:scale-95 shadow-sm"
                           >
                             <Plus size={14} />
                             Pilih
@@ -737,7 +752,7 @@ export default function WaiterOrder() {
                               <button
                                 type="button"
                                 onClick={() => handleAddItem(line.itemId)}
-                                className="h-6 w-6 rounded bg-counterlime text-ink flex items-center justify-center font-bold"
+                                className="h-6 w-6 rounded bg-accent text-white flex items-center justify-center font-bold"
                               >
                                 <Plus size={11} />
                               </button>
@@ -749,7 +764,7 @@ export default function WaiterOrder() {
                             value={line.note || ""}
                             onChange={(e) => handleSetNote(line.itemId, e.target.value)}
                             placeholder="Catatan (contoh: pedas, es sedikit)"
-                            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] text-ink placeholder:text-ink/30 focus:border-counterlime focus:outline-none"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] text-ink placeholder:text-ink/30 focus:border-accent focus:outline-none"
                           />
                         </div>
                       );
@@ -846,7 +861,8 @@ export default function WaiterOrder() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {myActiveOrders.map((ord) => {
                   const minutesAgo = Math.max(0, Math.floor((Date.now() - ord.createdAt) / 60000));
-                  const isReady = ord.status === "siap";
+                  const stage = kitchenStatusOf(ord);
+                  const isReady = stage === "ready";
 
                   return (
                     <div
@@ -862,11 +878,11 @@ export default function WaiterOrder() {
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-xs font-bold bg-ink text-counterlime px-1.5 py-0.5 rounded">
+                              <span className="font-mono text-xs font-bold bg-accent text-white px-1.5 py-0.5 rounded">
                                 #{ord.no}
                               </span>
                               <span className="font-display font-bold text-sm text-ink">
-                                {ord.tableName || `Meja ${ord.tableNumber}`}
+                                {tableLabel(ord)}
                               </span>
                             </div>
                             <p className="text-xs text-ink/60 mt-0.5">
@@ -880,7 +896,7 @@ export default function WaiterOrder() {
                               "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold shadow-2xs",
                               isReady
                                 ? "bg-emerald-600 text-white animate-pulse"
-                                : ord.status === "memasak"
+                                : stage === "preparing"
                                 ? "bg-blue-600 text-white"
                                 : "bg-slate-200 text-ink/70",
                             )}
@@ -890,7 +906,7 @@ export default function WaiterOrder() {
                                 <Sparkles size={13} />
                                 SIAP SAJI!
                               </>
-                            ) : ord.status === "memasak" ? (
+                            ) : stage === "preparing" ? (
                               <>
                                 <Flame size={13} />
                                 Dimasak
@@ -938,8 +954,10 @@ export default function WaiterOrder() {
                             size="sm"
                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                             onClick={() => {
-                              updateOrderStatus(ord.no, "sudah-dibayar");
-                              toast.success(`Pesanan #${ord.no} diantar & selesai!`);
+                              updateKitchenStatus(ord.no, "served").then(
+                                () => toast.success(`Pesanan #${ord.no} sudah diantar!`),
+                                (err: unknown) => toast.error(err instanceof Error ? err.message : "Status gagal diperbarui."),
+                              );
                             }}
                           >
                             <Check size={14} className="mr-1" />
@@ -1122,9 +1140,28 @@ export default function WaiterOrder() {
                 )}
               >
                 <QrCode size={16} />
-                QRIS Dinamis
+                QRIS
               </button>
             </div>
+
+            {payMethod === "tunai" && (
+              <label className="block text-xs font-bold text-ink/70">
+                Uang diterima (Rp)
+                <input
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={cashInput}
+                  onChange={(e) => setCashInput(e.target.value.replace(/[^\d]/g, ""))}
+                  placeholder={String(totals.total)}
+                  className="mt-1 h-11 w-full rounded-xl border border-ink/15 px-3 text-base font-bold text-ink focus:outline-none focus:ring-2 focus:ring-accent/60"
+                />
+              </label>
+            )}
+            {payMethod === "qris" && (
+              <p className="rounded-xl bg-amber-50 p-2.5 text-[11px] font-semibold text-amber-900">
+                Konfirmasi hanya setelah notifikasi dana masuk muncul di aplikasi merchant QRIS.
+              </p>
+            )}
 
             {/* Action Buttons */}
             <div className="flex gap-2 pt-2">
@@ -1160,19 +1197,24 @@ export default function WaiterOrder() {
           setScannerOpen(false);
         }}
         onScanCode={(code) => {
-          const tableMatch = code.match(/order\/([a-zA-Z0-9_-]+)/) || code.match(/^meja[ -]?(\d+)$/i);
+          const tableMatch = code.match(/order\/([A-Za-z0-9_.:%-]+)/);
           if (tableMatch) {
-            const slugOrNum = tableMatch[1].toLowerCase();
-            const matched = tables.find(
-              (t) =>
-                t.name.toLowerCase().replace(/\s+/g, "-") === slugOrNum ||
-                t.name.toLowerCase().includes(slugOrNum)
-            );
+            let key = tableMatch[1].toLowerCase();
+            try {
+              key = decodeURIComponent(tableMatch[1]).toLowerCase();
+            } catch {
+              // Malformed escape: match the raw text.
+            }
+            const matched =
+              tables.find((t) => t.id.toLowerCase() === key) ??
+              tables.find((t) => t.name.toLowerCase().replace(/\s+/g, "-") === key);
             if (matched) {
               setSelectedTableId(matched.id);
               toast.success(`Beralih ke ${matched.name}`, {
-                description: `Area ${matched.area || "Utama"} aktif.`,
+                description: `${matched.area} aktif.`,
               });
+            } else {
+              toast.error("QR meja tidak dikenali.");
             }
           }
           setScannerOpen(false);

@@ -1,6 +1,8 @@
 import * as XLSX from "xlsx";
 import { db, tablesTable, DEFAULT_TABLES, type OrderRow, type TableRow } from "./db";
 import { MENU_SEED, type MenuItem } from "../data/menu";
+import { isPaid, tableLabel } from "./orderStatus";
+import { PAY_METHOD_LABEL } from "./receipt";
 
 function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
@@ -37,7 +39,7 @@ export async function exportBackupJson(): Promise<void> {
   ]);
 
   const payload = {
-    app: "KASA Sistem Kasir",
+    app: "WAKRO Digital",
     version: 3,
     exportedAt: new Date().toISOString(),
     products,
@@ -48,13 +50,13 @@ export async function exportBackupJson(): Promise<void> {
 
   download(
     new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
-    `kasa-cadangan-lengkap-${dateStamp()}.json`,
+    `wakro-cadangan-lengkap-${dateStamp()}.json`,
   );
 }
 
 export async function exportProductsCsv(products: MenuItem[]): Promise<void> {
   const csv = toCsv(
-    ["id", "barcode", "nama", "deskripsi", "harga", "kategori", "jenis", "menit"],
+    ["id", "barcode", "nama", "deskripsi", "harga", "kategori", "jenis", "menit", "stok"],
     products.map((p) => [
       p.id,
       p.barcode,
@@ -64,36 +66,12 @@ export async function exportProductsCsv(products: MenuItem[]): Promise<void> {
       p.category,
       p.kind,
       p.prepMinutes,
+      p.stock ?? "",
     ]),
   );
   download(
     new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }),
-    `kasa-produk-${dateStamp()}.csv`,
-  );
-}
-
-export type DailyRow = { key: string; date: string; orders: number; items: number; sales: number };
-export type MonthlyRow = { key: string; month: string; orders: number; items: number; sales: number };
-
-export async function exportReportExcel(
-  daily: DailyRow[],
-  monthly: MonthlyRow[],
-): Promise<void> {
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.json_to_sheet(daily.map(({ key: _k, ...rest }) => rest)),
-    "Harian",
-  );
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.json_to_sheet(monthly.map(({ key: _k, ...rest }) => rest)),
-    "Bulanan",
-  );
-  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-  download(
-    new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-    `kasa-laporan-${dateStamp()}.xlsx`,
+    `wakro-produk-${dateStamp()}.csv`,
   );
 }
 
@@ -125,7 +103,7 @@ export async function importBackupFile(file: File): Promise<ImportResult> {
     let ordersToInsert: OrderRow[] = [];
     let tablesToInsert: TableRow[] = [];
 
-    // Case 1: Full KASA backup object
+    // Case 1: Full backup object
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       if (Array.isArray(parsed.products)) {
         productsToInsert = parsed.products;
@@ -231,30 +209,176 @@ export async function resetToDemoSeed(): Promise<{ products: number; tables: num
   };
 }
 
-export function groupDaily(orders: OrderRow[]): DailyRow[] {
-  const map = new Map<string, DailyRow>();
-  for (const o of orders) {
-    if (o.status !== "sudah-dibayar" || !o.paidAt) continue;
-    const date = new Date(o.paidAt).toISOString().slice(0, 10);
-    const row = map.get(date) ?? { key: date, date, orders: 0, items: 0, sales: 0 };
-    row.orders += 1;
-    row.items += o.itemCount;
-    row.sales += o.total;
-    map.set(date, row);
-  }
-  return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
+// ---- owner reports ----------------------------------------------------------
+
+/** Local calendar day key (YYYY-MM-DD) in the device's time zone, not UTC. */
+function localDayKey(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function groupMonthly(orders: OrderRow[]): MonthlyRow[] {
-  const map = new Map<string, MonthlyRow>();
-  for (const o of orders) {
-    if (o.status !== "sudah-dibayar" || !o.paidAt) continue;
-    const month = new Date(o.paidAt).toISOString().slice(0, 7);
-    const row = map.get(month) ?? { key: month, month, orders: 0, items: 0, sales: 0 };
-    row.orders += 1;
-    row.items += o.itemCount;
-    row.sales += o.total;
-    map.set(month, row);
+export type SalesBucket = { key: string; label: string; orders: number; items: number; sales: number };
+export type TopProduct = { name: string; qty: number; sales: number };
+
+export type SalesSummary = {
+  /** Paid orders whose payment falls in the range, newest first. */
+  paid: OrderRow[];
+  revenue: number;
+  transactions: number;
+  average: number;
+  items: number;
+  topProducts: TopProduct[];
+  byMethod: Array<{ method: string; orders: number; sales: number }>;
+  buckets: SalesBucket[];
+};
+
+/**
+ * Revenue = total of orders paid inside [from, to). Hourly buckets for a single day, daily otherwise.
+ * Unpaid and refunded orders never count as revenue.
+ */
+export function summarizeSales(orders: OrderRow[], from: number, to: number): SalesSummary {
+  const paid = orders
+    .filter((o) => isPaid(o) && o.paidAt !== undefined && o.paidAt >= from && o.paidAt < to)
+    .sort((a, b) => (b.paidAt ?? 0) - (a.paidAt ?? 0));
+  const revenue = paid.reduce((sum, o) => sum + o.total, 0);
+  const items = paid.reduce((sum, o) => sum + o.itemCount, 0);
+
+  const products = new Map<string, TopProduct>();
+  for (const o of paid) {
+    for (const line of o.items ?? []) {
+      const entry = products.get(line.name) ?? { name: line.name, qty: 0, sales: 0 };
+      entry.qty += line.qty;
+      entry.sales += line.price * line.qty;
+      products.set(line.name, entry);
+    }
   }
-  return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
+
+  const methods = new Map<string, { method: string; orders: number; sales: number }>();
+  for (const o of paid) {
+    const method = o.method ? PAY_METHOD_LABEL[o.method] : "Lainnya";
+    const entry = methods.get(method) ?? { method, orders: 0, sales: 0 };
+    entry.orders += 1;
+    entry.sales += o.total;
+    methods.set(method, entry);
+  }
+
+  const hourly = to - from <= 24 * 60 * 60 * 1000;
+  const buckets = new Map<string, SalesBucket>();
+  if (hourly) {
+    for (let h = 0; h < 24; h++) {
+      const key = String(h).padStart(2, "0");
+      buckets.set(key, { key, label: `${key}:00`, orders: 0, items: 0, sales: 0 });
+    }
+  } else {
+    for (let day = new Date(from); day.getTime() < to; day.setDate(day.getDate() + 1)) {
+      const key = localDayKey(day.getTime());
+      const label = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" }).format(day);
+      buckets.set(key, { key, label, orders: 0, items: 0, sales: 0 });
+    }
+  }
+  for (const o of paid) {
+    const key = hourly ? String(new Date(o.paidAt!).getHours()).padStart(2, "0") : localDayKey(o.paidAt!);
+    const bucket = buckets.get(key);
+    if (!bucket) continue;
+    bucket.orders += 1;
+    bucket.items += o.itemCount;
+    bucket.sales += o.total;
+  }
+
+  return {
+    paid,
+    revenue,
+    transactions: paid.length,
+    average: paid.length > 0 ? Math.round(revenue / paid.length) : 0,
+    items,
+    topProducts: [...products.values()].sort((a, b) => b.qty - a.qty || b.sales - a.sales),
+    byMethod: [...methods.values()].sort((a, b) => b.sales - a.sales),
+    buckets: [...buckets.values()],
+  };
+}
+
+function formatDateTime(ts?: number): string {
+  return ts ? new Date(ts).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" }) : "";
+}
+
+function transactionRows(orders: OrderRow[]): Array<Array<string | number>> {
+  return orders.map((o) => [
+    o.no,
+    formatDateTime(o.createdAt),
+    formatDateTime(o.paidAt),
+    tableLabel(o),
+    o.customerName ?? "",
+    o.source ?? "",
+    o.method ? PAY_METHOD_LABEL[o.method] : "",
+    o.paidBy ?? "",
+    o.itemCount,
+    o.subtotal ?? "",
+    o.discount ?? 0,
+    o.serviceCharge ?? 0,
+    o.tax ?? 0,
+    o.total,
+    (o.items ?? []).map((i) => `${i.qty}x ${i.name}${i.note ? ` (${i.note})` : ""}`).join(" | "),
+  ]);
+}
+
+const TRANSACTION_HEADERS = [
+  "No",
+  "Dibuat",
+  "Dibayar",
+  "Meja",
+  "Pelanggan",
+  "Sumber",
+  "Metode",
+  "Kasir",
+  "Jumlah item",
+  "Subtotal",
+  "Diskon",
+  "Service",
+  "Pajak",
+  "Total",
+  "Rincian",
+];
+
+export function exportTransactionsCsv(summary: SalesSummary, periodSlug: string): void {
+  const csv = toCsv(TRANSACTION_HEADERS, transactionRows(summary.paid));
+  download(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `wakro-transaksi-${periodSlug}.csv`);
+}
+
+export function exportReportExcel(summary: SalesSummary, periodLabel: string, periodSlug: string): void {
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([
+      ["Laporan Penjualan WAKRO Digital"],
+      ["Periode", periodLabel],
+      ["Total omset", summary.revenue],
+      ["Jumlah transaksi", summary.transactions],
+      ["Rata-rata transaksi", summary.average],
+      ["Item terjual", summary.items],
+      [],
+      ["Metode", "Transaksi", "Omset"],
+      ...summary.byMethod.map((m) => [m.method, m.orders, m.sales]),
+    ]),
+    "Ringkasan",
+  );
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([TRANSACTION_HEADERS, ...transactionRows(summary.paid)]),
+    "Transaksi",
+  );
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([["Produk", "Qty", "Penjualan"], ...summary.topProducts.map((p) => [p.name, p.qty, p.sales])]),
+    "Produk Terlaris",
+  );
+  XLSX.utils.book_append_sheet(
+    wb,
+    XLSX.utils.aoa_to_sheet([["Periode", "Transaksi", "Item", "Omset"], ...summary.buckets.map((b) => [b.label, b.orders, b.items, b.sales])]),
+    "Grafik",
+  );
+  const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  download(
+    new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+    `wakro-laporan-${periodSlug}.xlsx`,
+  );
 }

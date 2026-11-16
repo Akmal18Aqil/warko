@@ -122,20 +122,23 @@ export default function Home() {
   });
 
   return (
-    <div className="flex flex-col min-h-screen lg:h-screen lg:overflow-hidden bg-mineral">
+    <div className="service-rail-surface flex min-h-screen flex-col min-[1200px]:h-screen min-[1200px]:overflow-hidden">
       <Header title={t.header.readyTitle} showSavedStatus />
-      <div className="px-5 pt-3 md:px-8 shrink-0">
+      <div className="shrink-0 px-5 pt-5 md:px-10 md:pt-6">
         <MetricStrip />
       </div>
 
-      <div className="flex flex-1 min-h-0 flex-col gap-4 p-4 md:px-8 md:pb-4 lg:flex-row overflow-hidden">
-        <section aria-label={t.catalog.title} className="min-w-0 flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="shrink-0 space-y-2.5 pb-2">
+      <div className="flex flex-1 min-h-0 flex-col gap-8 p-5 md:px-10 md:pb-6 min-[1200px]:flex-row min-[1200px]:gap-8 min-[1200px]:overflow-hidden">
+        <section aria-label={t.catalog.title} className="min-w-0 flex-1 flex flex-col min-h-0 min-[1200px]:overflow-hidden">
+          <div className="shrink-0 space-y-4 pb-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-display text-lg font-bold tracking-tight text-ink">
-                {t.catalog.title}
-              </h2>
-              <div className="flex w-full max-w-sm items-center gap-2">
+              <div>
+                <p className="label-caps text-[10px] font-bold text-ink/45">Menu Pass</p>
+                <h2 className="font-display text-lg font-bold tracking-tight text-ink">
+                  {t.catalog.title}
+                </h2>
+              </div>
+              <div className="flex w-full max-w-md items-center gap-2">
                 <div className="relative min-w-0 flex-1">
                   <Search
                     size={16}
@@ -149,7 +152,7 @@ export default function Home() {
                     type="search"
                     aria-label={t.catalog.searchLabel}
                     placeholder={t.catalog.searchPlaceholder}
-                    className="h-9.5 w-full rounded-lg border border-ink/15 bg-white pl-9 pr-3.5 text-xs text-ink placeholder:text-ink/40 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-counterlime/60"
+                    className="h-9.5 w-full rounded-lg border border-ink/15 bg-white pl-9 pr-3.5 text-xs text-ink placeholder:text-ink/40 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
                   />
                 </div>
                 <button
@@ -157,7 +160,7 @@ export default function Home() {
                   aria-label={t.scanner.open}
                   title={t.scanner.open}
                   onClick={() => setScanOpen(true)}
-                  className="pressable flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-lg bg-ink text-counterlime hover:bg-[#1f332f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                  className="pressable flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-lg bg-accent text-white hover:bg-accent-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <ScanLine size={17} />
                 </button>
@@ -179,10 +182,10 @@ export default function Home() {
                   aria-selected={category === cat}
                   onClick={() => setCategory(cat)}
                   className={cn(
-                    "pressable h-8 rounded-full px-3 text-xs font-semibold",
+                    "pressable h-8 rounded-md px-3 text-xs font-semibold",
                     category === cat
-                      ? "bg-ink font-semibold text-mineral"
-                      : "border border-ink/12 bg-white text-ink/65 hover:border-ink/35 hover:text-ink",
+                      ? "bg-accent font-bold text-white shadow-sm"
+                      : "border border-ink/12 bg-surface text-ink/65 hover:border-ink/35 hover:text-ink",
                   )}
                 >
                   {cat}
@@ -191,7 +194,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+          <div className="min-h-0 overflow-visible pr-1 min-[1200px]:flex-1 min-[1200px]:overflow-y-auto">
             {filteredItems.length === 0 ? (
               <div className="mt-6 rounded-xl border border-dashed border-ink/20 p-8 text-center">
                 <p className="font-display font-semibold text-ink/70">
@@ -200,7 +203,7 @@ export default function Home() {
                 <p className="mt-1 text-sm text-ink/50">{t.catalog.emptyResultBody}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 pb-2">
+              <div className="grid grid-cols-1 gap-5 pb-3 sm:grid-cols-2 min-[1500px]:grid-cols-3">
                 {filteredItems.map((item) => (
                   <ProductCard
                     key={item.id}
@@ -214,7 +217,7 @@ export default function Home() {
           </div>
         </section>
 
-        <aside className="w-full shrink-0 lg:w-[390px] xl:w-[410px] h-full min-h-0 flex flex-col pb-16 md:pb-0">
+        <aside className="h-auto w-full shrink-0 pb-16 md:pb-0 min-[1200px]:h-full min-[1200px]:w-[390px] min-[1536px]:w-[410px]">
           <CartPanel onPay={() => setPayOpen(true)} />
         </aside>
       </div>
