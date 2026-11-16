@@ -174,4 +174,28 @@ describe("self-order QRIS", () => {
     expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(503);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
+
+  it("records a notification received before the charge request returns", async () => {
+    await seedTable("table-early", "Meja Early");
+    const key = randomRef();
+    const placed = await api("/api/public/orders", {
+      body: { tableId: "table-early", clientRef: key, items: [{ itemId: "A1", qty: 1 }], expectedTotal: 11_100 },
+    });
+    const { data } = await readJson(placed);
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      if (init?.method === "POST") {
+        const payload = JSON.parse(String(init.body)) as { transaction_details: { order_id: string } };
+        const response = await notify({ order_id: payload.transaction_details.order_id });
+        expect(response.status).toBe(200);
+        return Response.json({ status_code: "201", qr_string: "qr", transaction_id: "tx-early" }, { status: 201 });
+      }
+      const gatewayId = await env.DB.prepare("SELECT gateway_order_id FROM payment_charges WHERE order_no = ?")
+        .bind(data.no).first<{ gateway_order_id: string }>();
+      return Response.json({ order_id: gatewayId!.gateway_order_id, transaction_status: "settlement", transaction_id: "tx-early", gross_amount: "11100.00", fraud_status: "accept" });
+    });
+    expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(201);
+    expect(await order(data.no)).toMatchObject({ payment_status: "paid", method: "qris", payment_ref: "tx-early" });
+    const stored = await env.DB.prepare("SELECT status, transaction_id FROM payment_charges WHERE order_no = ?").bind(data.no).first();
+    expect(stored).toEqual({ status: "paid", transaction_id: "tx-early" });
+  });
 });
