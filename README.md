@@ -287,7 +287,7 @@ pnpm dev                                              # web :5173 + API wrangler
 
 Web memakai mode `local` secara default. Untuk mencoba alur server, buat `apps/web/.env.local` berisi `VITE_DATA_SOURCE=remote`; Vite meneruskan `/api` ke `wrangler dev` di port 8787.
 
-Perangkat lain di WiFi yang sama: buka `http://<IP-laptop>:5173/pelayan`, `/dapur`, atau `/order/<id-meja>`.
+Untuk menghubungkan perangkat lain di WiFi yang sama, **wajib gunakan mode `remote` dan jalankan Worker + D1** terlebih dahulu. Lalu buka `http://<IP-laptop>:5173/pelayan`, `/dapur`, atau `/order/<id-meja>`. Mode `local` menyimpan data terpisah di setiap browser: pesanan pelanggan tidak muncul otomatis di kasir atau dapur.
 
 ### Pemeriksaan
 

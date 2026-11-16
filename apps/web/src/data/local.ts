@@ -35,14 +35,19 @@ function readStoredPricing(): PricingSettings {
   }
 }
 
+db.on("populate", (transaction) => {
+  const now = Date.now();
+  return Promise.all([
+    transaction.table("products").bulkPut(MENU_SEED),
+    transaction.table("orders").bulkAdd(demoOrders(now)),
+    transaction.table("tables").bulkPut(DEFAULT_TABLES),
+    transaction.table("cash_movements").bulkPut(demoMovements(now)),
+    transaction.table("categories").bulkPut(DEFAULT_CATEGORIES),
+  ]).then(() => undefined);
+});
+
 async function ensureSeeded(): Promise<void> {
   await db.open();
-  const now = Date.now();
-  if ((await db.products.count()) === 0) await db.products.bulkPut(MENU_SEED);
-  if ((await db.orders.count()) === 0) await db.orders.bulkAdd(demoOrders(now));
-  if ((await restaurantTables.count()) === 0) await restaurantTables.bulkPut(DEFAULT_TABLES);
-  if ((await db.cash_movements.count()) === 0) await db.cash_movements.bulkPut(demoMovements(now));
-  if ((await db.categories.count()) === 0) await db.categories.bulkPut(DEFAULT_CATEGORIES);
 }
 
 export const localSource: DataSource = {
