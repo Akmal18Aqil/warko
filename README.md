@@ -299,6 +299,8 @@ pnpm build     # build web mode remote
 
 ### Deploy Cloudflare
 
+**Jangan deploy untuk transaksi produksi sebelum risiko berikut diselesaikan:** pembuatan charge Midtrans belum atomik dengan pencatatan lokal; penutupan shift dapat bersaing dengan pembayaran tunai; perubahan pelacakan stok dapat bersaing dengan penjualan; dan retry self-order setelah respons gagal ambigu dapat menggandakan atau salah mengonfirmasi pesanan.
+
 ```bash
 cd apps/api
 pnpm exec wrangler secret put SESSION_SECRET
