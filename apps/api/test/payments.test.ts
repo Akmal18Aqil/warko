@@ -164,16 +164,81 @@ describe("self-order QRIS", () => {
       body: { tableId: "table-timeout", clientRef: key, items: [{ itemId: "A1", qty: 1 }], expectedTotal: 11_100 },
     });
     const { data } = await readJson(placed);
+    let gatewayId = "";
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      if (init?.method !== "POST") return Response.json({ order_id: gatewayId, gross_amount: "11100.00", transaction_status: "pending" });
       const request = JSON.parse(String(init?.body)) as { transaction_details: { order_id: string } };
+      gatewayId = request.transaction_details.order_id;
       const row = await env.DB.prepare("SELECT status, qr_string FROM payment_charges WHERE gateway_order_id = ?")
         .bind(request.transaction_details.order_id).first<{ status: string; qr_string: string }>();
       expect(row).toEqual({ status: "pending", qr_string: "" });
       throw new Error("timeout");
     });
     expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(500);
+    await env.DB.prepare("UPDATE payment_charges SET expires_at = 1, created_at = ? WHERE order_no = ?").bind(Date.now() - 600_000, data.no).run();
     expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(503);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("reconciles a settled charge when the original QRIS response was lost", async () => {
+    await seedTable("table-recover", "Meja Recovery");
+    const key = randomRef();
+    const placed = await api("/api/public/orders", {
+      body: { tableId: "table-recover", clientRef: key, items: [{ itemId: "A1", qty: 1 }], expectedTotal: 11_100 },
+    });
+    const { data } = await readJson(placed);
+    let gatewayId = "";
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      if (init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as { transaction_details: { order_id: string } };
+        gatewayId = body.transaction_details.order_id;
+        throw new Error("response lost");
+      }
+      return Response.json({ order_id: gatewayId, gross_amount: "11100.00", transaction_status: "settlement", transaction_id: "tx-recovered", fraud_status: "accept" });
+    });
+    expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(500);
+    await env.DB.prepare("UPDATE payment_charges SET created_at = ? WHERE order_no = ?").bind(Date.now() - 600_000, data.no).run();
+    expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(409);
+    expect(await order(data.no)).toMatchObject({ payment_status: "paid", method: "qris", payment_ref: "tx-recovered" });
+    expect(await env.DB.prepare("SELECT status FROM payment_charges WHERE gateway_order_id = ?").bind(gatewayId).first()).toEqual({ status: "paid" });
+  });
+
+  it("recovers a lost QRIS response using the same Midtrans idempotency key and request", async () => {
+    await seedTable("table-idem", "Meja Idempotensi");
+    const key = randomRef();
+    const placed = await api("/api/public/orders", {
+      body: { tableId: "table-idem", clientRef: key, items: [{ itemId: "A1", qty: 1 }], expectedTotal: 11_100 },
+    });
+    const { data } = await readJson(placed);
+    const requests: { key: string | null; body: string }[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+      requests.push({ key: new Headers(init?.headers).get("Idempotency-Key"), body: String(init?.body) });
+      if (requests.length === 1) throw new Error("response lost");
+      return Response.json({ status_code: "201", qr_string: "recovered-qr", transaction_id: "tx-idem" }, { status: 201 });
+    });
+    expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(500);
+    const retry = await api(`/api/public/orders/${data.no}/qris`, { body: { key } });
+    expect(retry.status).toBe(200);
+    expect((await readJson(retry)).data.qrString).toBe("recovered-qr");
+    expect(requests).toHaveLength(2);
+    expect(requests[0]).toEqual(requests[1]);
+    expect(requests[0].key).toHaveLength(40);
+    const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM payment_charges WHERE order_no = ?").bind(data.no).first<{ n: number }>();
+    expect(count?.n).toBe(1);
+  });
+
+  it("keeps the charge pending when Midtrans reports the request is still processing", async () => {
+    await seedTable("table-processing", "Meja Processing");
+    const key = randomRef();
+    const placed = await api("/api/public/orders", {
+      body: { tableId: "table-processing", clientRef: key, items: [{ itemId: "A1", qty: 1 }], expectedTotal: 11_100 },
+    });
+    const { data } = await readJson(placed);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 202 }));
+    const response = await api(`/api/public/orders/${data.no}/qris`, { body: { key } });
+    expect(response.status).toBe(503);
+    expect(await env.DB.prepare("SELECT status, qr_string FROM payment_charges WHERE order_no = ?").bind(data.no).first())
+      .toEqual({ status: "pending", qr_string: "" });
   });
 
   it("records a notification received before the charge request returns", async () => {

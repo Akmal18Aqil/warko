@@ -299,9 +299,9 @@ pnpm build     # build web mode remote
 
 ### Deploy Cloudflare
 
-**Jangan deploy untuk transaksi produksi sebelum verifikasi integrasi selesai:** retry self-order belum diuji end-to-end dan pemulihan otomatis QR setelah gangguan gateway belum tersedia. Pembayaran tunai baru ditolak bila tidak ada shift terbuka; buka shift terlebih dahulu.
+Pembayaran tunai baru ditolak bila tidak ada shift terbuka; buka shift terlebih dahulu.
 
-Midtrans Get Transaction Status dapat dipanggil memakai `order_id`, tetapi dokumentasinya tidak menjanjikan `qr_string` untuk QRIS. Jangan mengasumsikan QR yang hilang dapat dipulihkan dari respons status; rekonsiliasi status transaksi sebelum membuat charge pengganti. Referensi: https://docs.midtrans.com/reference/get-transaction-status
+Jika respons pembuatan QRIS hilang, sistem mengulang permintaan dengan `Idempotency-Key` yang sama selama empat menit pertama. Setelah itu sistem memeriksa status transaksi; bila QR masih aktif tetapi kode QR tidak tersedia, pelanggan harus menunggu status akhir atau membayar di kasir. Pastikan tidak ada pembayaran QRIS yang sedang diproses sebelum menerima pembayaran lain untuk pesanan tersebut. Referensi: https://docs.midtrans.com/reference/api-headers dan https://docs.midtrans.com/reference/get-transaction-status
 
 ```bash
 cd apps/api
