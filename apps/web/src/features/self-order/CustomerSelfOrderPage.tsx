@@ -45,6 +45,13 @@ export default function CustomerSelfOrderPage() {
       <main className="mx-auto max-w-lg space-y-3.5 px-4 pt-4">
         <CustomerNameCard name={s.customerName} onNameChange={s.setCustomerName} onChangeTable={table.openPicker} />
 
+        {s.pendingOrder && (
+          <section className="rounded-xl border border-warning p-4" role="status">
+            <p>Pesanan sebelumnya belum dapat dipastikan. Coba kirim ulang sebelum membuat pesanan baru.</p>
+            <Button disabled={s.submitting} onClick={() => void s.payAtCashier()}>Periksa pesanan sebelumnya</Button>
+          </section>
+        )}
+
         {s.liveOrders.length > 0 && (
           <section id={LIVE_ORDERS_ID} className="space-y-3">
             {s.liveOrders.map((order) => (

@@ -55,6 +55,7 @@ type SelfOrderInput = {
   clientRef: string;
   /** Local demo only: "paid-now" simulates a QRIS payment. Remote self-orders are always pay-later. */
   paymentChoice: "paid-now" | "pay-later";
+  expectedTotal?: number;
 };
 
 export async function createSelfOrder(input: SelfOrderInput): Promise<OrderRow> {
@@ -71,7 +72,7 @@ export async function createSelfOrder(input: SelfOrderInput): Promise<OrderRow> 
         tableId: input.tableId,
         customerName: input.customerName,
         items: input.lines.map((line) => ({ itemId: line.itemId, qty: line.qty, note: line.note })),
-        expectedTotal: totals.total,
+        expectedTotal: input.expectedTotal ?? totals.total,
         clientRef: input.clientRef,
       });
       upsertOrder(created);

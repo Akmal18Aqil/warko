@@ -17,6 +17,7 @@ import type { PricingSettings } from "@wakro/shared";
 import { useLiveOrders } from "./useLiveOrders";
 import { useQrisPayment, type QrisPayment } from "./useQrisPayment";
 import { useSelfTable, type SelfTable } from "./useSelfTable";
+import { PENDING_ORDER_KEY, readPendingOrder, type PendingOrder } from "./pendingOrder";
 
 type PaymentChoice = "paid-now" | "pay-later";
 
@@ -40,6 +41,7 @@ interface SelfOrderSession {
   cartOpen: boolean;
   setCartOpen: (open: boolean) => void;
   submitting: boolean;
+  pendingOrder: PendingOrder | null;
   liveOrders: OrderRow[];
   qris: QrisPayment;
   payAtCashier: () => Promise<void>;
@@ -76,8 +78,9 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
   const cart = useCartLines({ products, pricing });
   const [cartOpen, setCartOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  /** Kept across a failed network attempt so a retry cannot create a second order. */
-  const pendingRef = useRef<string | null>(null);
+  const submittingRef = useRef(false);
+  const [pendingOrder, setPendingOrder] = useState<PendingOrder | null>(() => readPendingOrder(localStorage));
+  const pendingRef = useRef<PendingOrder | null>(pendingOrder);
 
   const [receiptOrder, setReceiptOrder] = useState<OrderRow | null>(null);
   const { live, track, keyOf } = useLiveOrders(isPublicCustomer, currentTable);
@@ -95,38 +98,57 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
   }, [products, cart.lines, cart.setLines]);
 
   const submitOrder = async (paymentChoice: PaymentChoice): Promise<{ order: OrderRow; key: string } | null> => {
-    if (submitting) return null;
-    if (!currentTable) {
+    if (submittingRef.current) return null;
+    if (!pendingRef.current && !currentTable) {
       table.openPicker();
       toast.error(t.selfOrder.table.required);
       return null;
     }
-    if (cart.lines.length === 0) {
+    if (!pendingRef.current && cart.lines.length === 0) {
       toast.error(t.selfOrder.order.emptyCart);
       return null;
     }
-    const key = pendingRef.current ?? newClientRef();
-    pendingRef.current = key;
+    const key = pendingRef.current?.clientRef ?? newClientRef();
+    const pending: PendingOrder | null = isPublicCustomer ? pendingRef.current ?? {
+      tableId: currentTable!.id,
+      customerName: customerName.trim() || t.selfOrder.guestAt(currentTable!.name),
+      lines: cart.lines.map((line) => ({ ...line })),
+      clientRef: key,
+      paymentChoice: "pay-later",
+      expectedTotal: cart.totals.total,
+    } : null;
+    if (pending) {
+      localStorage.setItem(PENDING_ORDER_KEY, JSON.stringify(pending));
+      pendingRef.current = pending;
+      setPendingOrder(pending);
+    }
+    submittingRef.current = true;
     setSubmitting(true);
     try {
-      const created = await createSelfOrder({
-        tableId: currentTable.id,
-        customerName: customerName.trim() || t.selfOrder.guestAt(currentTable.name),
+      const created = await createSelfOrder(pending ?? {
+        tableId: currentTable!.id,
+        customerName: customerName.trim() || t.selfOrder.guestAt(currentTable!.name),
         lines: cart.lines,
         clientRef: key,
         paymentChoice,
       });
+      track({ no: created.no, key, tableId: pending?.tableId ?? currentTable!.id, createdAt: Date.now() }, created);
       pendingRef.current = null;
-      track({ no: created.no, key, tableId: currentTable.id, createdAt: Date.now() }, created);
-      cart.clear();
+      setPendingOrder(null);
+      localStorage.removeItem(PENDING_ORDER_KEY);
+      if (!pending || (currentTable?.id === pending.tableId && JSON.stringify(cart.lines) === JSON.stringify(pending.lines))) cart.clear();
       setCartOpen(false);
       return { order: created, key };
     } catch (err) {
-      // Any server answer is final; only an unanswered request keeps the key for a safe retry.
-      if (!(err instanceof RemoteDataError && err.status === undefined)) pendingRef.current = null;
+      if (err instanceof RemoteDataError && err.status !== undefined && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429) {
+        pendingRef.current = null;
+        setPendingOrder(null);
+        localStorage.removeItem(PENDING_ORDER_KEY);
+      }
       toast.error(err instanceof Error ? err.message : t.selfOrder.order.sendFailed);
       return null;
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -191,6 +213,7 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
     cartOpen,
     setCartOpen,
     submitting,
+    pendingOrder,
     liveOrders: live,
     qris,
     payAtCashier,
