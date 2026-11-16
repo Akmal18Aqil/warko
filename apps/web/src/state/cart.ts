@@ -5,13 +5,14 @@ import { addLine, decreaseLine, increaseLine, removeLine, setLineNote, stockLimi
 import { newClientRef } from "../lib/orderStatus";
 import { buildOrderRow } from "../lib/orderBuilder";
 import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
-import { RemoteDataError } from "../data";
+import { RemoteDataError } from "../data/index";
 import type { CartDiscount, CartLine, OrderRow, TableRow } from "../types/domain";
 import { useProducts, useTables } from "./catalog";
 import { persistNewOrder } from "./orders";
 import { usePricing } from "./pricing";
 import { useStore } from "./store";
 import { cartStore, catalogStore, pricingStore, type CartEntry } from "./stores";
+import { t } from "../locales/id";
 
 const EMPTY_CART: CartEntry = { lines: [], discount: NO_DISCOUNT };
 
@@ -117,14 +118,14 @@ async function withClientRef<T>(key: string, run: (clientRef: string) => Promise
 }
 
 async function recordOrder(payment: { method: PayMethod; cashReceived?: number } | null): Promise<OrderRow> {
-  if (submitting) throw new Error("Pesanan sebelumnya masih diproses.");
+  if (submitting) throw new Error(t.state.orderStillProcessing);
   const state = cartStore.get();
   const cartKey = cartKeyOf(state);
   const { lines, discount } = activeEntry();
   const { products, tables } = catalogStore.get();
   const table = tables.find((t) => t.id === state.tableId);
-  if (lines.length === 0) throw new Error("Keranjang masih kosong.");
-  if (state.orderType === "meja" && !table) throw new Error("Pilih meja terlebih dahulu.");
+  if (lines.length === 0) throw new Error(t.state.cartEmpty);
+  if (state.orderType === "meja" && !table) throw new Error(t.state.pickTableFirst);
 
   submitting = true;
   try {
@@ -152,7 +153,7 @@ export async function saveDraft(): Promise<number> {
   return (await recordOrder(null)).no;
 }
 
-export type PayResult = { order: OrderRow; change: number | null };
+type PayResult = { order: OrderRow; change: number | null };
 
 export async function payOrder(method: PayMethod, cashReceived?: number): Promise<PayResult> {
   const order = await recordOrder({ method, cashReceived });

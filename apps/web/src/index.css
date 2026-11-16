@@ -3,12 +3,10 @@
 @theme {
   /* Claymorphism white canvas: blue remains an action color, not a page background. */
   --color-mineral: #f3f6fa;
-  --color-paper: #f3f6fa;
   --color-ink: #172b4d;
   --color-ink-soft: #284a73;
   --color-accent: #2d6cdf;
   --color-accent-dark: #1749a5;
-  --color-coral: #e78383;
   --color-success: #8fcdb6;
   --color-success-dark: #34745f;
   --color-warning: #f2c866;
@@ -19,15 +17,60 @@
   --color-surface-muted: #e7f2fc;
   --color-border: #c6dced;
   --color-border-hover: #7fa9cf;
-  --color-text: #172b4d;
   --color-text-muted: #526b89;
   --color-text-light: #7890aa;
+
+  /* Category colour swatches (the category stores the id: amber, rose, blue, ...). */
+  --color-tag-amber: #fbbf24;
+  --color-tag-amber-dark: #f59e0b;
+  --color-tag-rose: #fb7185;
+  --color-tag-rose-dark: #f43f5e;
+  --color-tag-blue: #60a5fa;
+  --color-tag-blue-dark: #3b82f6;
+  --color-tag-emerald: #34d399;
+  --color-tag-emerald-dark: #10b981;
+  --color-tag-purple: #c084fc;
+  --color-tag-purple-dark: #a855f7;
+  --color-tag-teal: #2dd4bf;
+  --color-tag-teal-dark: #14b8a6;
+
+  --radius-clay: 0.875rem;
+
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs2: 0.6875rem;
+  --text-xs2--line-height: 1rem;
+
+  --shadow-clay: 10px 10px 22px rgb(23 43 77 / 0.12), -8px -8px 18px rgb(255 255 255 / 0.72);
+
   --touch-min: 44px;
   --font-display: "Trebuchet MS", "Arial Rounded MT Bold", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Trebuchet MS", ui-sans-serif, system-ui, sans-serif;
-  /* Legacy persisted class compatibility. */
-  --color-counterlime: #2d6cdf;
-  --color-counterlime-dark: #1749a5;
+
+  --animate-modal-in: modal-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-shake: shake 0.4s ease-in-out;
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-6px);
+    }
+    75% {
+      transform: translateX(6px);
+    }
+  }
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -105,7 +148,7 @@ body {
 .receipt-paper,
 .service-rail-surface {
   background-color: var(--color-mineral);
-  color: var(--color-text);
+  color: var(--color-ink);
 }
 
 .service-rail-surface {
@@ -150,21 +193,24 @@ body {
 .service-ticket::before { left: -2px; }
 .service-ticket::after { right: -2px; }
 
-button,
-input,
-select,
-textarea {
-  border-radius: 0.875rem;
-}
+/* Base layer: component utilities (rounded-*, bg-*) must be able to override these defaults. */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    border-radius: 0.875rem;
+  }
 
-input,
-select,
-textarea {
-  background-color: var(--color-surface);
-  border-color: var(--color-border);
-  box-shadow:
-    inset 2px 2px 5px rgb(23 43 77 / 0.1),
-    inset -2px -2px 5px rgb(255 255 255 / 0.75);
+  input,
+  select,
+  textarea {
+    background-color: var(--color-surface);
+    border-color: var(--color-border);
+    box-shadow:
+      inset 2px 2px 5px rgb(23 43 77 / 0.1),
+      inset -2px -2px 5px rgb(255 255 255 / 0.75);
+  }
 }
 
 button:not(:disabled) {
@@ -183,65 +229,12 @@ button:not(:disabled) {
     inset -3px -3px 6px rgb(255 255 255 / 0.7);
 }
 
-.clay-surface {
-  background: var(--color-surface);
-  border: 1px solid rgb(198 220 237 / 0.9);
-  border-radius: 1.25rem;
-  box-shadow:
-    10px 10px 22px rgb(23 43 77 / 0.14),
-    -8px -8px 18px rgb(255 255 255 / 0.8);
-}
-.bg-white {
-  background-color: var(--color-surface);
-}
-
-.bg-white.rounded-xl,
-.bg-white.rounded-2xl,
-.bg-surface.rounded-xl,
-.bg-surface.rounded-2xl {
-  border-color: rgb(198 220 237 / 0.9);
-  box-shadow:
-    10px 10px 22px rgb(23 43 77 / 0.12),
-    -8px -8px 18px rgb(255 255 255 / 0.72);
-}
-
-.bg-ink .clay-control {
-  color: rgb(255 255 255 / 0.82);
-  background-color: rgb(255 255 255 / 0.1);
-  box-shadow:
-    4px 4px 9px rgb(10 22 44 / 0.35),
-    -3px -3px 8px rgb(255 255 255 / 0.08);
-}
-
 .label-caps {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-family: var(--font-display);
 }
 
-.app-header-light [class*="text-white"],
-.focus-header-light [class*="text-white"] {
-  color: var(--color-ink-soft) !important;
-}
-
-.app-header-light [class*="bg-white/"],
-.focus-header-light [class*="bg-white/"] {
-  background-color: var(--color-mineral) !important;
-  border-color: var(--color-border) !important;
-}
-
-.clay-sidebar [class*="text-white"] {
-  color: var(--color-ink-soft) !important;
-}
-
-.clay-sidebar .bg-accent.text-white {
-  color: #fff !important;
-}
-.clay-sidebar [class*="border-white"],
-.clay-sidebar [class*="bg-white/"] {
-  border-color: var(--color-border) !important;
-  background-color: var(--color-mineral) !important;
-}
 .order-chip {
   display: inline-flex;
   align-items: center;

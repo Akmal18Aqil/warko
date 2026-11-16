@@ -1,57 +1,20 @@
-import type { SVGProps } from "react";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
+import { t } from "../locales/id";
 
-interface SpinnerProps extends SVGProps<SVGSVGElement> {
-  size?: number;
-}
-
-export function Spinner({ size = 24, className, ...rest }: SpinnerProps) {
+function Spinner({ size }: { size: number }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={cn("animate-spin", className)}
-      {...rest}
-    >
-      <circle
-        cx="12"
-        cy="12"
-        r="9.5"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        className="text-accent"
-      />
-      <path
-        d="M12 16V6"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        className="text-accent/30"
-      />
-      <path
-        d="M12 8H4"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        className="text-accent/30"
-      />
-    </svg>
+    <span
+      aria-hidden="true"
+      style={{ width: size, height: size }}
+      className="inline-block shrink-0 animate-spin rounded-full border-2 border-accent/30 border-t-accent"
+    />
   );
 }
 
-export function LoadingText({
-  label = "Memuat…",
-  className,
-}: {
-  label?: string;
-  className?: string;
-}) {
+/** Inline "loading" indicator with a visible label. */
+export function LoadingText({ label = t.common.loading, className }: { label?: string; className?: string }) {
   return (
-    <div className={cn("flex items-center gap-2 text-xs text-text-muted", className)}>
+    <div role="status" className={cn("flex items-center gap-2 text-xs text-text-muted", className)}>
       <Spinner size={14} />
       <span>{label}</span>
     </div>

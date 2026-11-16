@@ -9,15 +9,15 @@ export function FoodImage({
   item: Pick<MenuItem, "name" | "image">;
   className?: string;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  if (failed) {
+  if (!item.image || failedSrc === item.image) {
     return (
       <div
         role="img"
         aria-label={item.name}
         className={cn(
-          "flex items-center justify-center bg-gradient-to-br from-[#f3e7c9] via-[#e9d9b8] to-[#dccb9e]",
+          "flex items-center justify-center bg-gradient-to-br from-surface-muted to-border",
           className,
         )}
       >
@@ -37,7 +37,7 @@ export function FoodImage({
       src={item.image}
       alt={item.name}
       loading="lazy"
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(item.image)}
       className={cn("object-cover", className)}
     />
   );

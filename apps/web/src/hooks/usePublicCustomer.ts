@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { isRemoteDataSource } from "../data";
+import { isRemoteDataSource } from "../data/index";
 
 const PUBLIC_ORDER_PATH = /^\/order(?:\/|$)/;
 

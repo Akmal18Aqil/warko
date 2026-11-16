@@ -1,0 +1,66 @@
+import type { StaffUser } from "./auth";
+import { STAFF_AVATAR } from "./staffAvatar";
+
+/** Demo staff of the local (browser-only) mode. Remote mode takes staff from the server session instead. */
+export const DEMO_STAFF: StaffUser[] = [
+  {
+    id: "staff-1",
+    name: "Jamie Morgan",
+    role: "kasir",
+    pin: "1234",
+    avatarColor: STAFF_AVATAR.accent,
+    initials: "JM",
+    title: "Kasir & Admin",
+    description: "Akses lengkap: POS kasir, produk, laporan, meja, laci kas & sistem",
+  },
+  {
+    id: "staff-2",
+    name: "Budi Santoso",
+    role: "pelayan",
+    pin: "2222",
+    avatarColor: STAFF_AVATAR.success,
+    initials: "BS",
+    title: "Pelayan 1 (Waitstaff)",
+    description: "Input pesanan keliling, status meja, & notifikasi siap saji",
+  },
+  {
+    id: "staff-3",
+    name: "Siti Rahma",
+    role: "pelayan",
+    pin: "2223",
+    avatarColor: STAFF_AVATAR.ink,
+    initials: "SR",
+    title: "Pelayan 2 (Waitstaff)",
+    description: "Input pesanan keliling, status meja, & notifikasi siap saji",
+  },
+  {
+    id: "staff-4",
+    name: "Agus Pratama",
+    role: "pelayan",
+    pin: "2224",
+    avatarColor: STAFF_AVATAR.accentDark,
+    initials: "AP",
+    title: "Pelayan 3 (Waitstaff)",
+    description: "Input pesanan keliling, status meja, & notifikasi siap saji",
+  },
+  {
+    id: "staff-5",
+    name: "Chef Junaedi",
+    role: "dapur",
+    pin: "3333",
+    avatarColor: STAFF_AVATAR.warning,
+    initials: "CJ",
+    title: "Kepala Dapur (KDS)",
+    description: "Layar antrean memasak, timer pesanan, & tombol siap saji",
+  },
+  {
+    id: "staff-6",
+    name: "Hendra Wijaya",
+    role: "manajer",
+    pin: "8888",
+    avatarColor: STAFF_AVATAR.accent,
+    initials: "HW",
+    title: "Manajer Restoran",
+    description: "Analisis laporan keuangan, ringkasan pesanan, laci kas & shift",
+  },
+];

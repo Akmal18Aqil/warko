@@ -3,6 +3,7 @@ import type { MenuItem, MenuKind } from "../data/menu";
 import type { CashMovementRow, CategoryRow, OrderRow, TableRow } from "../types/domain";
 import { isPaid, tableLabel } from "./orderStatus";
 import { PAY_METHOD_LABEL } from "./receipt";
+import { STORE_PROFILE } from "./storeProfile";
 
 function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
@@ -292,7 +293,7 @@ export async function exportReportExcel(summary: SalesSummary, periodLabel: stri
   XLSX.utils.book_append_sheet(
     wb,
     XLSX.utils.aoa_to_sheet([
-      ["Laporan Penjualan WAKRO Digital"],
+      [`Laporan Penjualan ${STORE_PROFILE.brand}`],
       ["Periode", periodLabel],
       ["Total omset", summary.revenue],
       ["Jumlah transaksi", summary.transactions],

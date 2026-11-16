@@ -1,36 +1,39 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { ScanLine, Search } from "lucide-react";
 import { toast } from "sonner";
-import type { MenuItem } from "../data/menu";
-import { t } from "../locales/en";
-import { Header } from "../components/Header";
-import { MetricStrip } from "../components/MetricStrip";
-import { ProductCard } from "../components/ProductCard";
-import { CartPanel } from "../components/CartPanel";
-import { PaymentModal } from "../components/PaymentModal";
-import { BarcodeScanner } from "../components/BarcodeScanner";
-import { useBarcodeGunScanner } from "../hooks/useBarcodeGunScanner";
-import { addItem, selectTable, useCart } from "../state/cart";
-import { useCategories, useProducts, useTables } from "../state/catalog";
-import { parseTableQr, resolveTable } from "../lib/tableQr";
-import { cn } from "../lib/cn";
+import type { MenuItem } from "../../data/menu";
+import { t } from "../../locales/id";
+import { Header } from "../../app/Header";
+import { PosMetricStrip } from "./PosMetricStrip";
+import { ProductCard } from "./ProductCard";
+import { CartPanel } from "./CartPanel";
+import { PaymentModal } from "./PaymentModal";
+import { BarcodeScanner } from "../scanner/BarcodeScanner";
+import { useBarcodeGunScanner } from "../../hooks/useBarcodeGunScanner";
+import { addItem, selectTable, useCart } from "../../state/cart";
+import { useCategories, useProducts, useTables } from "../../state/catalog";
+import { parseTableQr, resolveTable } from "../../lib/tableQr";
+import { Empty } from "../../ui/Empty";
+import { IconButton } from "../../ui/Button";
+import { Input } from "../../ui/Input";
+import { SegmentedTabs } from "../../ui/SegmentedTabs";
 
-export default function Home() {
+export default function PosPage() {
   const products = useProducts();
   const categories = useCategories();
   const tables = useTables();
   const { lines } = useCart();
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<string>("Semua");
+  const [category, setCategory] = useState<string>(ALL_CATEGORIES);
   const [payOpen, setPayOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const searchId = useId();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        searchRef.current?.focus();
+        document.getElementById(searchId)?.focus();
         return;
       }
       const el = document.activeElement;
@@ -53,15 +56,13 @@ export default function Home() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [payOpen, scanOpen]);
+  }, [payOpen, scanOpen, searchId]);
 
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((item) => {
       const inCategory =
-        category === "Semua" ||
-        item.category === category ||
-        (category === "Favorit" && item.badge !== undefined);
+        category === ALL_CATEGORIES || item.category === category;
       const matchesQuery =
         q.length === 0 ||
         item.name.toLowerCase().includes(q) ||
@@ -92,18 +93,12 @@ export default function Home() {
     if (tableKey === null) return;
     const table = resolveTable(tables, tableKey);
     if (!table) {
-      toast.error("QR meja tidak dikenali.");
+      toast.error(t.pos.scan.tableNotFound);
       return;
     }
     selectTable(table);
-    toast.success(`Meja Berhasil Dipilih: ${table.name}`, {
-      description: `Area ${table.area || "Utama"} diaktifkan untuk pesanan ini.`,
-    });
-  };
-
-  const handleScanError = (code: string) => {
-    toast.warning(t.scanner.notFound(code), {
-      description: t.scanner.notFoundBody,
+    toast.success(t.pos.scan.tableSelected(table.name), {
+      description: t.pos.scan.tableSelectedBody(table.area),
     });
   };
 
@@ -113,7 +108,7 @@ export default function Home() {
     onProductFound: (product) => {
       addItem(product.id);
       toast.success(t.scanner.added(product.name), {
-        description: `Barcode: ${product.barcode} (Scanner Gun)`,
+        description: t.pos.scan.gunBody(product.barcode),
       });
     },
     onProductNotFound: (code) => {
@@ -123,19 +118,19 @@ export default function Home() {
 
   return (
     <div className="service-rail-surface flex min-h-screen flex-col min-[1200px]:h-screen min-[1200px]:overflow-hidden">
-      <Header title={t.header.readyTitle} showSavedStatus />
+      <Header title={t.app.header.readyTitle} showSavedStatus />
       <div className="shrink-0 px-5 pt-5 md:px-10 md:pt-6">
-        <MetricStrip />
+        <PosMetricStrip />
       </div>
 
       <div className="flex flex-1 min-h-0 flex-col gap-8 p-5 md:px-10 md:pb-6 min-[1200px]:flex-row min-[1200px]:gap-8 min-[1200px]:overflow-hidden">
-        <section aria-label={t.catalog.title} className="min-w-0 flex-1 flex flex-col min-h-0 min-[1200px]:overflow-hidden">
+        <section aria-label={t.pos.catalog.title} className="min-w-0 flex-1 flex flex-col min-h-0 min-[1200px]:overflow-hidden">
           <div className="shrink-0 space-y-4 pb-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="label-caps text-[10px] font-bold text-ink/45">Menu Pass</p>
+                <p className="label-caps text-2xs font-bold text-text-muted">{t.pos.catalog.eyebrow}</p>
                 <h2 className="font-display text-lg font-bold tracking-tight text-ink">
-                  {t.catalog.title}
+                  {t.pos.catalog.title}
                 </h2>
               </div>
               <div className="flex w-full max-w-md items-center gap-2">
@@ -143,65 +138,51 @@ export default function Home() {
                   <Search
                     size={16}
                     aria-hidden="true"
-                    className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-ink/40"
+                    className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-text-light"
                   />
-                  <input
-                    ref={searchRef}
+                  <Input
+                    id={searchId}
+                    size="sm"
+                    type="search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    type="search"
-                    aria-label={t.catalog.searchLabel}
-                    placeholder={t.catalog.searchPlaceholder}
-                    className="h-9.5 w-full rounded-lg border border-ink/15 bg-white pl-9 pr-3.5 text-xs text-ink placeholder:text-ink/40 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
+                    aria-label={t.pos.catalog.searchLabel}
+                    placeholder={t.pos.catalog.searchPlaceholder}
+                    className="h-9.5 pl-9"
                   />
                 </div>
-                <button
-                  type="button"
-                  aria-label={t.scanner.open}
-                  title={t.scanner.open}
+                <IconButton
+                  label={t.scanner.open}
                   onClick={() => setScanOpen(true)}
-                  className="pressable flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-lg bg-accent text-white hover:bg-accent-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="h-9.5 min-h-9.5 w-9.5 min-w-9.5 shrink-0 rounded-lg bg-accent text-white hover:bg-accent-dark hover:text-white"
                 >
-                  <ScanLine size={17} />
-                </button>
+                  <ScanLine size={17} aria-hidden="true" />
+                </IconButton>
                 <kbd
                   aria-hidden="true"
-                  className="kbd-hint shrink-0 rounded border border-ink/15 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-ink/50"
+                  className="kbd-hint shrink-0 rounded border border-border bg-surface px-1.5 py-0.5 text-2xs font-semibold text-text-muted"
                 >
-                  {t.catalog.shortcutK}
+                  {t.pos.catalog.shortcutK}
                 </kbd>
               </div>
             </div>
 
-            <div role="tablist" aria-label="Kategori menu" className="flex flex-wrap gap-1.5">
-              {["Semua", ...categories.map((c) => c.name)].map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  role="tab"
-                  aria-selected={category === cat}
-                  onClick={() => setCategory(cat)}
-                  className={cn(
-                    "pressable h-8 rounded-md px-3 text-xs font-semibold",
-                    category === cat
-                      ? "bg-accent font-bold text-white shadow-sm"
-                      : "border border-ink/12 bg-surface text-ink/65 hover:border-ink/35 hover:text-ink",
-                  )}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            <SegmentedTabs
+              label={t.pos.catalog.categoriesLabel}
+              tabs={[ALL_CATEGORIES, ...categories.map((c) => c.name)].map((name) => ({ id: name, label: name }))}
+              value={category}
+              onChange={setCategory}
+              className="flex-wrap"
+            />
           </div>
 
           <div className="min-h-0 overflow-visible pr-1 min-[1200px]:flex-1 min-[1200px]:overflow-y-auto">
             {filteredItems.length === 0 ? (
-              <div className="mt-6 rounded-xl border border-dashed border-ink/20 p-8 text-center">
-                <p className="font-display font-semibold text-ink/70">
-                  {t.catalog.emptyResult}
-                </p>
-                <p className="mt-1 text-sm text-ink/50">{t.catalog.emptyResultBody}</p>
-              </div>
+              <Empty
+                className="mt-6 rounded-xl border border-dashed border-border"
+                title={t.pos.catalog.emptyResult}
+                subtitle={t.pos.catalog.emptyResultBody}
+              />
             ) : (
               <div className="grid grid-cols-1 gap-5 pb-3 sm:grid-cols-2 min-[1500px]:grid-cols-3">
                 {filteredItems.map((item) => (
@@ -228,12 +209,13 @@ export default function Home() {
         onClose={() => setScanOpen(false)}
         onProduct={handleScanProduct}
         onScanCode={handleScanCode}
-        onError={handleScanError}
       />
     </div>
   );
 }
 
+const ALL_CATEGORIES = t.pos.catalog.allCategories;
+
 function toastAdd(name: string) {
-  toast.success(t.toasts.addedTitle(name), { description: t.toasts.addedBody });
+  toast.success(t.pos.toasts.addedTitle(name), { description: t.pos.toasts.addedBody });
 }

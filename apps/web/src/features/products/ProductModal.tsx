@@ -1,412 +1,275 @@
-import { useEffect, useState } from "react";
-import { Sparkles, Trash2, X, Plus, Check, ScanLine } from "lucide-react";
+import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { Plus, ScanLine, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import type { MenuItem, MenuKind } from "../data/menu";
-import { Button } from "./ui/Button";
-import { addCategory, useCategories } from "../state/catalog";
-import { cn } from "../lib/cn";
-import { ProductImagePicker, CULINARY_GALLERY } from "./ProductImagePicker";
-import { BarcodeScanner } from "./BarcodeScanner";
+import type { MenuItem, MenuKind } from "../../data/menu";
+import { deleteProduct, saveProduct, useCategories } from "../../state/catalog";
+import { Button } from "../../ui/Button";
+import { Input, Select } from "../../ui/Input";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
+import { t } from "../../locales/id";
+import { BarcodeScanner } from "../scanner/BarcodeScanner";
+import { InlineCategoryForm } from "./InlineCategoryForm";
+import { DEFAULT_PRODUCT_KIND } from "./productKinds";
+import { ProductImagePicker } from "./ProductImagePicker";
 
-interface ProductModalProps {
-  open: boolean;
-  itemToEdit?: MenuItem | null;
-  onClose: () => void;
-  onSave: (item: MenuItem) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
+const FORM_ID = "product-form";
+const DEFAULT_PREP_MINUTES = 5;
+const MIN_PRICE = 1000;
+const PRICE_STEP = 500;
+const BARCODE_PREFIX = "899";
+
+function generateRandomBarcode(): string {
+  const randomPart = Math.floor(1_000_000_000 + Math.random() * 9_000_000_000);
+  return `${BARCODE_PREFIX}${randomPart}`;
 }
 
-export function ProductModal({
-  open,
-  itemToEdit,
-  onClose,
-  onSave,
-  onDelete,
-}: ProductModalProps) {
+const required = (label: string): ReactNode => (
+  <>
+    {label} <span aria-hidden="true" className="text-error-dark">*</span>
+  </>
+);
+
+interface ProductModalProps {
+  /** The product being edited; `null` creates a new one. */
+  itemToEdit: MenuItem | null;
+  onClose: () => void;
+}
+
+export function ProductModal({ itemToEdit, onClose }: ProductModalProps) {
   const categories = useCategories();
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState<string>("Makanan");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-  const [barcode, setBarcode] = useState("");
-  const [image, setImage] = useState(CULINARY_GALLERY[0].url);
-  const [badge, setBadge] = useState("");
+  const text = t.products.form;
+  const photoCaptionId = useId();
+
+  const [name, setName] = useState(itemToEdit?.name ?? "");
+  const [category, setCategory] = useState(itemToEdit?.category ?? categories[0]?.name ?? "");
+  const [price, setPrice] = useState(itemToEdit ? String(itemToEdit.price) : "");
+  const [description, setDescription] = useState(itemToEdit?.description ?? "");
+  const [barcode, setBarcode] = useState(() => itemToEdit?.barcode ?? generateRandomBarcode());
+  // New products start without a photo; the list falls back to the name's initials.
+  const [image, setImage] = useState(itemToEdit?.image ?? "");
+  const [badge, setBadge] = useState(itemToEdit?.badge ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [newCategoryOpen, setNewCategoryOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  // Inline Quick Add Category
-  const [inlineNewCatOpen, setInlineNewCatOpen] = useState(false);
-  const [inlineNewCatName, setInlineNewCatName] = useState("");
-  const [inlineNewCatKind, setInlineNewCatKind] = useState<MenuKind>("Makanan");
-
-  useEffect(() => {
-    if (itemToEdit) {
-      setName(itemToEdit.name);
-      setCategory(itemToEdit.category);
-      setPrice(String(itemToEdit.price));
-      setDescription(itemToEdit.description);
-      setBarcode(itemToEdit.barcode);
-      setImage(itemToEdit.image);
-      setBadge(itemToEdit.badge ?? "");
-    } else {
-      setName("");
-      setCategory(categories[0]?.name || "Makanan");
-      setPrice("");
-      setDescription("");
-      setBarcode(generateRandomBarcode());
-      setImage(CULINARY_GALLERY[0].url);
-      setBadge("");
-    }
-  }, [itemToEdit, open, categories]);
-
-  if (!open) return null;
-
-  const handleCreateInlineCategory = async () => {
-    if (!inlineNewCatName.trim()) {
-      toast.warning("Nama kategori tidak boleh kosong");
-      return;
-    }
-    const created = await addCategory({
-      name: inlineNewCatName.trim(),
-      kind: inlineNewCatKind,
-    });
-    setCategory(created.name);
-    setInlineNewCatName("");
-    setInlineNewCatOpen(false);
-    toast.success(`Kategori "${created.name}" berhasil dibuat dan dipilih!`);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      toast.warning("Nama produk wajib diisi");
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.warning(text.nameRequired);
       return;
     }
     const numericPrice = Number.parseInt(price.replace(/\D/g, ""), 10);
-    if (isNaN(numericPrice) || numericPrice <= 0) {
-      toast.warning("Harga produk harus lebih besar dari 0");
+    if (Number.isNaN(numericPrice) || numericPrice <= 0) {
+      toast.warning(text.priceInvalid);
       return;
     }
+    if (!category) {
+      toast.warning(text.categoryRequired);
+      return;
+    }
+    const kind: MenuKind = categories.find((c) => c.name === category)?.kind ?? itemToEdit?.kind ?? DEFAULT_PRODUCT_KIND;
 
+    setSubmitting(true);
     try {
-      setSubmitting(true);
-      const id = itemToEdit?.id ?? `prod-${Date.now()}`;
-      const matchedCategory = categories.find((c) => c.name === category);
-      const kind: MenuKind = matchedCategory ? matchedCategory.kind : "Makanan";
-
-      const itemData: MenuItem = {
-        id,
-        name: name.trim(),
+      const item: MenuItem = {
+        id: itemToEdit?.id ?? `prod-${Date.now()}`,
+        name: trimmedName,
         category,
         kind,
-        prepMinutes: itemToEdit?.prepMinutes ?? 5,
+        prepMinutes: itemToEdit?.prepMinutes ?? DEFAULT_PREP_MINUTES,
         price: numericPrice,
-        description: description.trim() || name.trim(),
+        description: description.trim() || trimmedName,
         barcode: barcode.trim() || generateRandomBarcode(),
         image,
         badge: badge.trim() ? badge.trim() : undefined,
         // Stock is managed from the "Stok" dialog; editing details must not reset it.
         stock: itemToEdit?.stock ?? null,
       };
-
-      await onSave(itemData);
-      toast.success(
-        itemToEdit
-          ? `Produk "${name}" berhasil diperbarui`
-          : `Produk "${name}" berhasil ditambahkan`,
-      );
+      await saveProduct(item);
+      toast.success(itemToEdit ? text.updated(trimmedName) : text.added(trimmedName));
       onClose();
     } catch (err) {
-      toast.error("Gagal menyimpan produk", {
-        description: err instanceof Error ? err.message : "Terjadi kesalahan",
-      });
+      toast.error(text.saveFailed, { description: err instanceof Error ? err.message : t.common.unknownError });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!itemToEdit || !onDelete) return;
-    if (window.confirm(`Yakin ingin menghapus produk "${itemToEdit.name}"?`)) {
-      try {
-        setSubmitting(true);
-        await onDelete(itemToEdit.id);
-        toast.success(`Produk "${itemToEdit.name}" berhasil dihapus`);
-        onClose();
-      } catch {
-        toast.error("Gagal menghapus produk");
-      } finally {
-        setSubmitting(false);
-      }
+    if (!itemToEdit) return;
+    setSubmitting(true);
+    try {
+      await deleteProduct(itemToEdit.id);
+      toast.success(text.deleted(itemToEdit.name));
+      onClose();
+    } catch (err) {
+      toast.error(text.deleteFailed, { description: err instanceof Error ? err.message : t.common.unknownError });
+      setConfirmDeleteOpen(false);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/55 p-3 sm:p-4 backdrop-blur-[2px]"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="product-modal-title"
-        onClick={(e) => e.stopPropagation()}
-        className="flex flex-col max-h-[90vh] w-full max-w-2xl rounded-2xl border border-ink/10 bg-white shadow-2xl overflow-hidden focus:outline-none"
-      >
-        {/* Sticky Header */}
-        <div className="shrink-0 flex items-start justify-between border-b border-ink/10 px-6 py-4 bg-white">
-          <div>
-            <h2
-              id="product-modal-title"
-              className="font-display text-lg sm:text-xl font-bold tracking-tight text-ink"
-            >
-              {itemToEdit ? "Edit Produk" : "Tambah Produk Baru"}
-            </h2>
-            <p className="text-xs text-ink/55 mt-0.5">
-              Kelola informasi menu, harga, kategori, dan foto produk (lokal / online).
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-ink/50 hover:bg-ink/5 hover:text-ink transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Scrollable Form Body */}
-        <form id="product-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-                Nama Produk <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
+    <>
+      <Modal size="lg" onClose={onClose} closeOnBackdrop={false}>
+        <ModalHeader title={itemToEdit ? text.editTitle : text.newTitle} subtitle={text.subtitle} />
+        <ModalBody>
+          <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Input
+                label={required(text.name)}
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Contoh: Nasi Goreng Spesial"
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
+                onChange={(event) => setName(event.target.value)}
+                placeholder={text.namePlaceholder}
               />
-            </div>
 
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-                  Kategori <span className="text-red-500">*</span>
-                </label>
+              <div>
+                {newCategoryOpen ? (
+                  <div className="space-y-1.5">
+                    <p className="text-xs2 font-semibold uppercase tracking-wider text-text-muted">{required(text.category)}</p>
+                    <InlineCategoryForm
+                      onCreated={(createdName) => {
+                        setCategory(createdName);
+                        setNewCategoryOpen(false);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <Select label={required(text.category)} required value={category} onChange={(event) => setCategory(event.target.value)}>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.name} ({cat.kind})
+                      </option>
+                    ))}
+                  </Select>
+                )}
                 <button
                   type="button"
-                  onClick={() => setInlineNewCatOpen(!inlineNewCatOpen)}
-                  className="text-[11px] font-semibold text-accent-dark hover:underline flex items-center gap-0.5"
+                  onClick={() => setNewCategoryOpen(!newCategoryOpen)}
+                  className="mt-1 inline-flex items-center gap-0.5 text-xs2 font-semibold text-accent-dark hover:underline"
                 >
-                  <Plus size={12} />
-                  {inlineNewCatOpen ? "Tutup" : "+ Kategori Baru"}
+                  {newCategoryOpen ? (
+                    t.common.close
+                  ) : (
+                    <>
+                      <Plus size={12} aria-hidden="true" />
+                      {text.newCategory}
+                    </>
+                  )}
                 </button>
               </div>
-
-              {inlineNewCatOpen ? (
-                <div className="mt-1 p-2.5 rounded-lg border border-accent/40 bg-accent/10 space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={inlineNewCatName}
-                      onChange={(e) => setInlineNewCatName(e.target.value)}
-                      placeholder="Nama kategori..."
-                      className="flex-1 px-2.5 py-1.5 rounded-md border border-ink/15 bg-white text-xs font-semibold text-ink focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCreateInlineCategory}
-                      className="px-2.5 py-1.5 rounded-md bg-accent text-white text-xs font-bold hover:bg-accent-dark flex items-center gap-1"
-                    >
-                      <Check size={13} />
-                      Simpan
-                    </button>
-                  </div>
-                  <div className="flex gap-1">
-                    {(["Makanan", "Minuman", "Camilan"] as const).map((k) => (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={() => setInlineNewCatKind(k)}
-                        className={cn(
-                          "px-2 py-0.5 rounded text-[10px] font-semibold border",
-                          inlineNewCatKind === k
-                            ? "bg-ink text-white border-ink"
-                            : "bg-white text-ink/60 border-ink/15"
-                        )}
-                      >
-                        {k}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
-                >
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.name}>
-                      {cat.name} ({cat.kind})
-                    </option>
-                  ))}
-                </select>
-              )}
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-                Harga Jual (Rp) <span className="text-red-500">*</span>
-              </label>
-              <input
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Input
                 type="number"
+                label={required(text.price)}
                 required
-                min="1000"
-                step="500"
+                min={MIN_PRICE}
+                step={PRICE_STEP}
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="Contoh: 25000"
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
+                onChange={(event) => setPrice(event.target.value)}
+                placeholder={text.pricePlaceholder}
               />
-            </div>
 
-            <div>
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-                  Barcode (EAN-13 / SKU)
-                </label>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setScannerOpen(true)}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-accent/30 hover:bg-accent/60 px-2 py-0.5 rounded-md transition-colors"
-                  >
-                    <ScanLine size={12} /> Pindai
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBarcode(generateRandomBarcode())}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink/60 hover:text-ink"
-                  >
-                    <Sparkles size={12} /> Auto
-                  </button>
+              <div>
+                <Input
+                  label={text.barcode}
+                  value={barcode}
+                  onChange={(event) => setBarcode(event.target.value)}
+                  placeholder={text.barcodePlaceholder}
+                  className="font-mono"
+                />
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <Button variant="secondary" size="sm" onClick={() => setScannerOpen(true)}>
+                    <ScanLine size={12} aria-hidden="true" />
+                    {text.scan}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setBarcode(generateRandomBarcode())}>
+                    <Sparkles size={12} aria-hidden="true" />
+                    {text.autoBarcode}
+                  </Button>
                 </div>
               </div>
-              <input
-                type="text"
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                placeholder="899..."
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-mono text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
-              />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-                Badge / Label Khusus (Opsional)
-              </label>
-              <input
-                type="text"
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Input
+                label={text.badge}
                 value={badge}
-                onChange={(e) => setBadge(e.target.value)}
-                placeholder="Contoh: Terlaris / Populer / Rekomendasi"
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
+                onChange={(event) => setBadge(event.target.value)}
+                placeholder={text.badgePlaceholder}
               />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-                Deskripsi Singkat Menu
-              </label>
-              <input
-                type="text"
+              <Input
+                label={text.description}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Deskripsi bahan atau catatan rasa..."
-                className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder={text.descriptionPlaceholder}
               />
             </div>
-          </div>
 
-          {/* Image Picker */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-ink/70 mb-1.5">
-              Pilihan Foto Produk (Lokal / Web / Galeri Nusantara)
-            </label>
-            <ProductImagePicker
-              value={image}
-              onChange={setImage}
-              productName={name}
-              categoryName={category}
-            />
-          </div>
-        </form>
-
-        {/* Sticky Pinned Footer */}
-        <div className="shrink-0 flex items-center justify-between border-t border-ink/10 px-6 py-3 bg-mineral/30">
-          {itemToEdit && onDelete ? (
-            <Button
-              type="button"
-              variant="danger-ghost"
-              size="sm"
-              onClick={handleDelete}
-              disabled={submitting}
-            >
-              <Trash2 size={15} className="mr-1" />
-              Hapus Produk
+            <div className="space-y-1.5">
+              <p id={photoCaptionId} className="text-xs2 font-semibold uppercase tracking-wider text-text-muted">
+                {text.photo}
+              </p>
+              <div role="group" aria-labelledby={photoCaptionId}>
+                <ProductImagePicker value={image} onChange={setImage} productName={name} />
+              </div>
+            </div>
+          </form>
+        </ModalBody>
+        <ModalFooter className="justify-between">
+          {itemToEdit ? (
+            <Button variant="danger-ghost" size="sm" onClick={() => setConfirmDeleteOpen(true)} disabled={submitting}>
+              <Trash2 size={15} aria-hidden="true" />
+              {text.deleteProduct}
             </Button>
           ) : (
-            <div />
+            <span />
           )}
-
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onClose}
-              disabled={submitting}
-            >
-              Batal
+            <Button variant="outline" size="sm" onClick={onClose} disabled={submitting}>
+              {t.common.cancel}
             </Button>
-            <Button
-              type="submit"
-              form="product-form"
-              size="sm"
-              disabled={submitting}
-            >
-              {submitting ? "Menyimpan..." : "Simpan Produk"}
+            <Button type="submit" form={FORM_ID} size="sm" loading={submitting}>
+              {text.saveProduct}
             </Button>
           </div>
-        </div>
-      </div>
+        </ModalFooter>
+      </Modal>
+
+      {confirmDeleteOpen && itemToEdit && (
+        <Modal size="sm" onClose={() => setConfirmDeleteOpen(false)}>
+          <ModalHeader title={text.deleteTitle} />
+          <ModalBody>
+            <p className="text-sm text-ink">{text.deleteConfirm(itemToEdit.name)}</p>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" size="sm" onClick={() => setConfirmDeleteOpen(false)} disabled={submitting}>
+              {t.common.cancel}
+            </Button>
+            <Button variant="danger" size="sm" loading={submitting} onClick={() => void handleDelete()}>
+              {t.common.delete}
+            </Button>
+          </ModalFooter>
+        </Modal>
+      )}
 
       <BarcodeScanner
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}
-        title="Pindai Barcode Fisik Produk"
-        subtitle="Arahkan barcode kemasan produk ke kamera atau ketik/unggah foto"
+        title={text.scannerTitle}
+        subtitle={text.scannerSubtitle}
         onScanCode={(code) => {
           setBarcode(code);
-          toast.success(`Barcode Berhasil Diisi: ${code}`);
+          toast.success(text.barcodeFilled(code));
           setScannerOpen(false);
         }}
       />
-    </div>
+    </>
   );
-}
-
-function generateRandomBarcode(): string {
-  const prefix = "899";
-  const randomPart = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-  return `${prefix}${randomPart}`;
 }

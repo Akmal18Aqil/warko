@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 
 interface EmptyProps {
   icon?: React.ReactNode;
@@ -29,12 +29,12 @@ export function Empty({
         </div>
       )}
       {title && (
-        <h3 className="font-display text-base font-bold text-text">
+        <h3 className="font-display text-base font-bold text-ink">
           {title}
         </h3>
       )}
       {subtitle && (
-        <p className="text-[11px] text-text-muted max-w-xs leading-relaxed">
+        <p className="text-xs2 text-text-muted max-w-xs leading-relaxed">
           {subtitle}
         </p>
       )}

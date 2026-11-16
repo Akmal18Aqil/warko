@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { DEFAULT_FLOORS } from "../data/seed";
-import type { TableRow } from "../types/domain";
-import { Button } from "./ui/Button";
-import { cn } from "../lib/cn";
+import { DEFAULT_FLOORS } from "../../data/seed";
+import { t } from "../../locales/id";
+import type { TableRow } from "../../types/domain";
+import { Button } from "../../ui/Button";
+import { Input } from "../../ui/Input";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
+import { cn } from "../../lib/cn";
 
 interface TableModalProps {
   open: boolean;
@@ -16,34 +19,24 @@ interface TableModalProps {
 }
 
 const DEFAULT_AREAS: string[] = [...DEFAULT_FLOORS];
+const DEFAULT_AREA = DEFAULT_AREAS[0] ?? "Lantai 1";
+const DEFAULT_SEATS = "4";
+const MAX_SEATS = 50;
+const FORM_ID = "table-form";
+const AREA_LIST_ID = "table-area-suggestions";
 
-export function TableModal({
-  open,
-  tableToEdit,
-  availableAreas = DEFAULT_AREAS,
-  onClose,
-  onSave,
-  onDelete,
-}: TableModalProps) {
+export function TableModal({ open, tableToEdit, availableAreas = DEFAULT_AREAS, onClose, onSave, onDelete }: TableModalProps) {
   const [name, setName] = useState("");
-  const [seats, setSeats] = useState("4");
-  const [area, setArea] = useState("Lantai 1");
+  const [seats, setSeats] = useState(DEFAULT_SEATS);
+  const [area, setArea] = useState(DEFAULT_AREA);
   const [submitting, setSubmitting] = useState(false);
 
-  const mergedAreas = Array.from(
-    new Set([...availableAreas, ...DEFAULT_AREAS]),
-  );
+  const mergedAreas = Array.from(new Set([...availableAreas, ...DEFAULT_AREAS]));
 
   useEffect(() => {
-    if (tableToEdit) {
-      setName(tableToEdit.name);
-      setSeats(String(tableToEdit.seats));
-      setArea(tableToEdit.area || "Lantai 1");
-    } else {
-      setName("");
-      setSeats("4");
-      setArea("Lantai 1");
-    }
+    setName(tableToEdit?.name ?? "");
+    setSeats(tableToEdit ? String(tableToEdit.seats) : DEFAULT_SEATS);
+    setArea(tableToEdit?.area || DEFAULT_AREA);
   }, [tableToEdit, open]);
 
   if (!open) return null;
@@ -51,35 +44,31 @@ export function TableModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.warning("Nama meja wajib diisi");
+      toast.warning(t.tables.form.nameRequired);
       return;
     }
     const numericSeats = Number.parseInt(seats, 10);
-    if (isNaN(numericSeats) || numericSeats <= 0) {
-      toast.warning("Kapasitas kursi harus lebih besar dari 0");
+    if (Number.isNaN(numericSeats) || numericSeats <= 0) {
+      toast.warning(t.tables.form.seatsInvalid);
       return;
     }
 
     try {
       setSubmitting(true);
-      const id = tableToEdit?.id ?? `meja-${Date.now()}`;
       const tableData: TableRow = {
-        id,
+        id: tableToEdit?.id ?? `meja-${Date.now()}`,
         name: name.trim(),
         seats: numericSeats,
-        area: area.trim() || "Lantai 1",
+        area: area.trim() || DEFAULT_AREA,
       };
-
       await onSave(tableData);
       toast.success(
-        tableToEdit
-          ? `Meja "${name}" berhasil diperbarui`
-          : `Meja "${name}" berhasil ditambahkan ke area "${tableData.area}"`,
+        tableToEdit ? t.tables.form.updated(tableData.name) : t.tables.form.added(tableData.name, tableData.area),
       );
       onClose();
     } catch (err) {
-      toast.error("Gagal menyimpan meja", {
-        description: err instanceof Error ? err.message : "Terjadi kesalahan",
+      toast.error(t.tables.form.saveFailed, {
+        description: err instanceof Error ? err.message : t.common.unknownError,
       });
     } finally {
       setSubmitting(false);
@@ -88,167 +77,100 @@ export function TableModal({
 
   const handleDelete = async () => {
     if (!tableToEdit || !onDelete) return;
-    if (window.confirm(`Yakin ingin menghapus "${tableToEdit.name}"?`)) {
-      try {
-        setSubmitting(true);
-        await onDelete(tableToEdit.id);
-        toast.success(`Meja "${tableToEdit.name}" berhasil dihapus`);
-        onClose();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Gagal menghapus meja");
-      } finally {
-        setSubmitting(false);
-      }
+    if (!window.confirm(t.tables.form.confirmDelete(tableToEdit.name))) return;
+    try {
+      setSubmitting(true);
+      await onDelete(tableToEdit.id);
+      toast.success(t.tables.form.deleted(tableToEdit.name));
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.tables.form.deleteFailed);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/55 p-4 backdrop-blur-[2px]"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="table-modal-title"
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl border border-ink/10 bg-white p-6 shadow-2xl focus:outline-none"
-      >
-        <div className="flex items-start justify-between border-b border-ink/10 pb-4">
+    <Modal onClose={onClose} size="sm">
+      <ModalHeader
+        title={tableToEdit ? t.tables.form.titleEdit : t.tables.form.titleAdd}
+        subtitle={t.tables.form.subtitle}
+      />
+      <ModalBody>
+        <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label={t.tables.form.name}
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t.tables.form.namePlaceholder}
+          />
+          <Input
+            label={t.tables.form.seats}
+            type="number"
+            required
+            min={1}
+            max={MAX_SEATS}
+            value={seats}
+            onChange={(e) => setSeats(e.target.value)}
+          />
           <div>
-            <h2
-              id="table-modal-title"
-              className="font-display text-xl font-bold tracking-tight text-ink"
-            >
-              {tableToEdit ? "Edit Meja" : "Tambah Meja Baru"}
-            </h2>
-            <p className="text-xs text-ink/55">
-              Kelola nomor meja, kapasitas kursi, dan lantai.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-ink/50 hover:bg-ink/5 hover:text-ink"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-              Nama / Nomor Meja <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Meja 05 / VIP 01 / Lesehan A"
-              className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-              Kapasitas Kursi <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              required
-              min="1"
-              max="50"
-              value={seats}
-              onChange={(e) => setSeats(e.target.value)}
-              placeholder="4"
-              className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-                Lantai / Area
-              </label>
-              <span className="text-[11px] font-medium text-accent-dark">
-                Lantai 1, Lantai 2, Rooftop, atau nama lain
-              </span>
-            </div>
-
-            <input
-              type="text"
-              list="area-suggestions"
+            <Input
+              label={t.tables.form.area}
+              hint={t.tables.form.areaHint}
+              list={AREA_LIST_ID}
               value={area}
               onChange={(e) => setArea(e.target.value)}
-              placeholder="Contoh: Lantai 1, Lantai 2, Rooftop"
-              className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-semibold text-ink placeholder:text-ink/35 focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
+              placeholder={t.tables.form.areaPlaceholder}
             />
-
-            <datalist id="area-suggestions">
+            <datalist id={AREA_LIST_ID}>
               {mergedAreas.map((a) => (
                 <option key={a} value={a} />
               ))}
             </datalist>
-
-            <div className="mt-2.5">
-              <p className="text-[11px] font-semibold text-ink/50 mb-1.5">Pilihan Cepat / Preset:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {mergedAreas.map((a) => {
-                  const isSelected = area.trim().toLowerCase() === a.trim().toLowerCase();
-                  return (
-                    <button
-                      key={a}
-                      type="button"
-                      onClick={() => setArea(a)}
-                      className={cn(
-                        "rounded-lg border px-2.5 py-1 text-xs transition-all",
-                        isSelected
-                          ? "border-accent bg-accent/25 font-bold text-ink shadow-xs"
-                          : "border-ink/10 bg-mineral/50 text-ink/70 hover:bg-mineral hover:text-ink",
-                      )}
-                    >
-                      {a}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between border-t border-ink/10 pt-4">
-            {tableToEdit && onDelete ? (
-              <Button
-                type="button"
-                variant="danger-ghost"
-                size="sm"
-                onClick={handleDelete}
-                disabled={submitting}
-              >
-                <Trash2 size={15} className="mr-1 text-red-500" />
-                Hapus Meja
-              </Button>
-            ) : (
-              <div />
-            )}
-
-            <div className="flex items-center gap-2">
-              <Button
-                      className="rounded-lg p-1.5 text-ink/50 hover:bg-accent/20 hover:text-ink transition-colors"
-                variant="outline"
-                size="sm"
-                onClick={onClose}
-                disabled={submitting}
-              >
-                Batal
-              </Button>
-              <Button type="submit" size="sm" disabled={submitting}>
-                {submitting ? "Menyimpan..." : "Simpan Meja"}
-              </Button>
+            <p className="mb-1.5 mt-2.5 text-xs2 font-semibold text-text-muted">{t.tables.form.presets}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {mergedAreas.map((a) => {
+                const isSelected = area.trim().toLowerCase() === a.trim().toLowerCase();
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setArea(a)}
+                    className={cn(
+                      "rounded-lg border px-2.5 py-1 text-xs transition-all",
+                      isSelected
+                        ? "border-accent bg-accent/25 font-bold text-ink shadow-xs"
+                        : "border-border bg-mineral/50 text-text-muted hover:bg-mineral hover:text-ink",
+                    )}
+                  >
+                    {a}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </form>
-      </div>
-    </div>
+      </ModalBody>
+      <ModalFooter className="justify-between">
+        {tableToEdit && onDelete ? (
+          <Button type="button" variant="danger-ghost" size="sm" onClick={handleDelete} disabled={submitting}>
+            <Trash2 size={15} className="mr-1 text-error-dark" aria-hidden="true" />
+            {t.tables.form.deleteTable}
+          </Button>
+        ) : (
+          <span />
+        )}
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={submitting}>
+            {t.common.cancel}
+          </Button>
+          <Button type="submit" form={FORM_ID} size="sm" loading={submitting}>
+            {t.tables.form.saveTable}
+          </Button>
+        </div>
+      </ModalFooter>
+    </Modal>
   );
 }

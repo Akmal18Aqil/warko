@@ -32,7 +32,7 @@ export function KasaLogoBlock({ compact = false }: { compact?: boolean }) {
           <p className="font-display text-lg font-bold tracking-tight text-ink">
             WAKRO
           </p>
-          <p className="label-caps text-[11px] font-semibold text-ink/55">
+          <p className="label-caps text-xs2 font-semibold text-ink/55">
             DIGITAL POS
           </p>
         </div>
@@ -45,7 +45,7 @@ export function StatusDot({ className }: { className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={cn("inline-block h-2 w-2 rounded-full bg-emerald-400", className)}
+      className={cn("inline-block h-2 w-2 rounded-full bg-success", className)}
     />
   );
 }

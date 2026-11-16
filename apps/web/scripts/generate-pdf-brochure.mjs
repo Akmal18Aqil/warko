@@ -1,12 +1,13 @@
 import puppeteer from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-const projectRoot = 'E:\\CLAUDE CODE\\Kuliner apps';
+// Repository root (this file lives in apps/web/scripts); docs/ sits at the root.
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const imagesDir = path.join(projectRoot, 'docs', 'images');
 const outputPdfPath = path.join(projectRoot, 'docs', 'KASA-POS-Brosur-Profil-Produk.pdf');
 const outputHtmlPath = path.join(projectRoot, 'docs', 'brochure', 'brochure-preview.html');
-const artifactDir = 'C:\\Users\\One Above All\\.gemini\\antigravity-ide\\brain\\dda98174-020c-4654-830d-2545ffe5f6aa';
 
 function getBase64Image(filename) {
   const fullPath = path.join(imagesDir, filename);
@@ -1037,12 +1038,12 @@ const htmlContent = `<!DOCTYPE html>
 
 async function generatePdf() {
   console.log('Writing preview HTML...');
+  fs.mkdirSync(path.dirname(outputHtmlPath), { recursive: true });
   fs.writeFileSync(outputHtmlPath, htmlContent);
 
   console.log('Launching Puppeteer for high-res PDF generation...');
   const browser = await puppeteer.launch({
     headless: true,
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
@@ -1060,18 +1061,8 @@ async function generatePdf() {
 
   console.log(`PDF successfully generated at: ${outputPdfPath}`);
 
-  // Also take screenshots of individual pages for visual artifact review
-  const pages = await page.$$('.page');
-  console.log(`Found ${pages.length} pages. Capturing page preview screenshots...`);
-  for (let i = 0; i < pages.length; i++) {
-    const pageNum = String(i + 1).padStart(2, '0');
-    const screenshotPath = path.join(artifactDir, `brochure-page-${pageNum}.png`);
-    await pages[i].screenshot({ path: screenshotPath });
-    console.log(`Captured brochure-page-${pageNum}.png`);
-  }
-
   await browser.close();
-  console.log('Done! All brochure pages generated and captured.');
+  console.log('Done.');
 }
 
 generatePdf().catch(console.error);

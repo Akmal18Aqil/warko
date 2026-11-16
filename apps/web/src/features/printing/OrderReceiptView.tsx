@@ -1,18 +1,20 @@
-import type { OrderRow } from "../types/domain";
-import { receiptFromOrder } from "../lib/receipt";
-import { cn } from "../lib/cn";
+import type { OrderRow } from "../../types/domain";
+import { receiptFromOrder } from "../../lib/receipt";
+import { cn } from "../../lib/cn";
+import { STORE_PROFILE } from "../../lib/storeProfile";
+import { t } from "../../locales/id";
 
 /** On-screen e-receipt (customer digital receipt and cashier preview). */
 export function OrderReceiptView({ order, className }: { order: OrderRow; className?: string }) {
   const r = receiptFromOrder(order);
   return (
-    <div className={cn("rounded-2xl border border-dashed border-ink/25 bg-white p-4 font-mono text-xs text-ink", className)}>
+    <div className={cn("rounded-2xl border border-dashed border-ink/25 bg-surface p-4 font-mono text-xs text-ink shadow-clay", className)}>
       <div className="text-center">
-        <p className="font-display text-base font-bold tracking-tight">WAKRO Digital</p>
-        <p className="text-[10px] uppercase tracking-widest text-ink/55">Warung WakRo Baru</p>
+        <p className="font-display text-base font-bold tracking-tight">{STORE_PROFILE.brand}</p>
+        <p className="text-2xs uppercase tracking-widest text-ink/55">{STORE_PROFILE.outlet}</p>
       </div>
       <div className="my-2 border-t border-dashed border-ink/25" />
-      <p className="font-bold">Pesanan #{r.orderNo}</p>
+      <p className="font-bold">{t.printing.receipt.orderNo(r.orderNo)}</p>
       {r.details.map((line) => (
         <p key={line} className="text-ink/65">
           {line}
@@ -24,7 +26,7 @@ export function OrderReceiptView({ order, className }: { order: OrderRow; classN
           <li key={i} className="flex justify-between gap-3">
             <span className="min-w-0">
               {line.qty}× {line.name}
-              {line.note ? <span className="block text-[10px] text-ink/50">({line.note})</span> : null}
+              {line.note ? <span className="block text-2xs text-ink/50">({line.note})</span> : null}
             </span>
             <span className="shrink-0">{line.amount}</span>
           </li>
@@ -38,18 +40,18 @@ export function OrderReceiptView({ order, className }: { order: OrderRow; classN
         </p>
       ))}
       <p className="mt-1 flex justify-between text-sm font-bold">
-        <span>TOTAL</span>
+        <span>{t.printing.receipt.totalLabel}</span>
         <span>{r.total}</span>
       </p>
       {r.payment.map((row) => (
-        <p key={row.label} className={cn("flex justify-between", r.paid ? "text-emerald-700" : "font-bold text-coral")}>
+        <p key={row.label} className={cn("flex justify-between", r.paid ? "text-success-dark" : "font-bold text-error")}>
           <span>{row.label}</span>
           <span>{row.amount}</span>
         </p>
       ))}
       <div className="my-2 border-t border-dashed border-ink/25" />
-      <p className="text-center text-[10px] text-ink/55">
-        {r.paid ? "Simpan struk ini sebagai bukti pembayaran." : "Silakan bayar di kasir dengan menyebutkan nomor pesanan."}
+      <p className="text-center text-2xs text-ink/55">
+        {r.paid ? t.printing.receipt.keepReceipt : t.printing.receipt.payAtCashier}
       </p>
     </div>
   );

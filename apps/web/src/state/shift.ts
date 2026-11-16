@@ -1,9 +1,10 @@
 import type { CashMovementCategory, CashMovementType } from "@wakro/shared";
-import { dataSource } from "../data";
+import { dataSource } from "../data/index";
 import { broadcastSync } from "../lib/syncBus";
 import type { CashMovementRow, ShiftRecord } from "../types/domain";
 import { useStore } from "./store";
 import { shiftStore } from "./stores";
+import { t } from "../locales/id";
 
 export const useActiveShift = () => useStore(shiftStore, (s) => s.activeShift);
 export const useCashMovements = () => useStore(shiftStore, (s) => s.cashMovements);
@@ -21,7 +22,8 @@ export function loadShiftHistory(): Promise<ShiftRecord[]> {
   return dataSource.loadShiftHistory();
 }
 
-export async function openShift(cashierName: string, startingCash: number): Promise<void> {
+/** Opens a shift and returns the stored record (remote: the server sets `cashierName` from the session). */
+export async function openShift(cashierName: string, startingCash: number): Promise<ShiftRecord> {
   const saved = await dataSource.saveShift({
     id: `shift-${Date.now()}`,
     openedAt: Date.now(),
@@ -31,6 +33,7 @@ export async function openShift(cashierName: string, startingCash: number): Prom
   });
   shiftStore.set({ activeShift: saved });
   broadcastSync({ type: "SHIFT_CHANGED", payload: { shift: saved } });
+  return saved;
 }
 
 /** Closes the open shift. The data source computes expected cash and the difference; the stored record is returned. */
@@ -40,7 +43,7 @@ export async function closeShift(
   denominations?: Record<string, number>,
 ): Promise<ShiftRecord> {
   const { activeShift } = shiftStore.get();
-  if (!activeShift) throw new Error("Tidak ada shift yang sedang aktif.");
+  if (!activeShift) throw new Error(t.state.noActiveShift);
   const closed = await dataSource.saveShift({
     id: activeShift.id,
     openedAt: activeShift.openedAt,
@@ -57,7 +60,7 @@ export async function closeShift(
   return closed;
 }
 
-export type CashMovementInput = {
+type CashMovementInput = {
   type: CashMovementType;
   category: CashMovementCategory;
   amount: number;

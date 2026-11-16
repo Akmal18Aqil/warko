@@ -17,6 +17,7 @@
   "dependencies": {
     "@wakro/shared": "workspace:*",
     "@zxing/browser": "^0.2.1",
+    "@zxing/library": "^0.23.0",
     "dexie": "^4.4.5",
     "lucide-react": "^0.539.0",
     "qrcode": "^1.5.4",

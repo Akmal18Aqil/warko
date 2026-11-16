@@ -1,11 +1,11 @@
-import { dataSource } from "../data";
+import { dataSource } from "../data/index";
 import type { MenuItem } from "../data/menu";
 import { loadPublicMenu } from "../data/public";
-import { resetToDemoSeed } from "../data/backup";
 import { broadcastSync } from "../lib/syncBus";
 import type { CategoryRow, TableRow } from "../types/domain";
 import { catalogStore, sessionStore } from "./stores";
 import { useStore } from "./store";
+import { t } from "../locales/id";
 
 export const useProducts = () => useStore(catalogStore, (s) => s.products);
 export const useCategories = () => useStore(catalogStore, (s) => s.categories);
@@ -63,7 +63,7 @@ export async function adjustStock(item: MenuItem, mode: "set" | "add", qty: numb
 export async function addCategory(input: Partial<CategoryRow>): Promise<CategoryRow> {
   const category: CategoryRow = {
     id: input.id || `cat-${Date.now()}`,
-    name: input.name?.trim() || "Kategori Baru",
+    name: input.name?.trim() || t.state.newCategoryName,
     kind: input.kind || "Makanan",
     color: input.color || "accent",
     sortOrder: input.sortOrder ?? catalogStore.get().categories.length + 1,
@@ -107,6 +107,8 @@ export async function deleteTable(id: string): Promise<void> {
 
 /** Restores the demo menu, tables and categories in the browser database (local mode only). */
 export async function resetCatalogToDemo(): Promise<void> {
+  // Code-split: keeps Dexie out of the startup chunk; demo reset only exists in local mode.
+  const { resetToDemoSeed } = await import("../data/backup");
   await resetToDemoSeed();
   await Promise.all([refreshProducts(), refreshTables(), refreshCategories()]);
   broadcastSync({ type: "PRODUCTS_UPDATED" });

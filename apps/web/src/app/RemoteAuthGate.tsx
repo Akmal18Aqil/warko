@@ -1,9 +1,15 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import type { StaffRole } from "@wakro/shared";
-import type { StaffUser } from "./AuthContext";
+import type { StaffUser } from "../state/auth";
 import { API_BASE, isRemoteDataSource } from "../data/api";
 import { usePublicCustomer } from "../hooks/usePublicCustomer";
+import { t } from "../locales/id";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+
+/** Dispatched on `window` by the account menus to sign out of the remote session. */
+export const REMOTE_LOGOUT_EVENT = "wakro-remote-logout";
 
 type Session = {
   id: string;
@@ -31,15 +37,15 @@ export function RemoteAuthGate({ children }: Props) {
     fetch(`${API_BASE}/auth/session`, { credentials: "same-origin" })
       .then(async (response) => response.ok ? (await response.json()).data as Session : null)
       .then((value) => { if (active) setSession(value); })
-      .catch(() => { if (active) setError("Server tidak dapat dijangkau."); })
+      .catch(() => { if (active) setError(t.app.remoteGate.unreachable); })
       .finally(() => { if (active) setLoading(false); });
     const logout = () => {
       void fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "same-origin" })
         .then((response) => { if (!response.ok) throw new Error(); setSession(null); })
-        .catch(() => toast.error("Gagal keluar. Coba lagi."));
+        .catch(() => toast.error(t.app.remoteGate.logoutFailed));
     };
-    window.addEventListener("kasa-remote-logout", logout);
-    return () => { active = false; window.removeEventListener("kasa-remote-logout", logout); };
+    window.addEventListener(REMOTE_LOGOUT_EVENT, logout);
+    return () => { active = false; window.removeEventListener(REMOTE_LOGOUT_EVENT, logout); };
   }, []);
 
   async function login(event: FormEvent<HTMLFormElement>) {
@@ -53,13 +59,13 @@ export function RemoteAuthGate({ children }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      if (!response.ok) throw new Error("Nama pengguna atau kata sandi tidak benar.");
+      if (!response.ok) throw new Error(t.app.remoteGate.badCredentials);
       const current = await fetch(`${API_BASE}/auth/session`, { credentials: "same-origin" });
-      if (!current.ok) throw new Error("Sesi tidak dapat dibuka.");
+      if (!current.ok) throw new Error(t.app.remoteGate.sessionFailed);
       setSession((await current.json()).data as Session);
       setPassword("");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Server tidak dapat dijangkau.");
+      setError(cause instanceof Error ? cause.message : t.app.remoteGate.unreachable);
     } finally {
       setLoading(false);
     }
@@ -69,16 +75,27 @@ export function RemoteAuthGate({ children }: Props) {
   if (session) return children({ ...session, pin: "" });
   return (
     <main className="flex min-h-screen items-center justify-center bg-mineral p-4">
-      <form onSubmit={login} className="w-full max-w-sm space-y-4 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm">
-        <h1 className="font-display text-xl font-bold text-ink">Masuk staf</h1>
-        <label className="block text-sm font-semibold text-ink">Nama pengguna
-          <input className="mt-1 w-full rounded-lg border border-ink/20 px-3 py-2" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} required />
-        </label>
-        <label className="block text-sm font-semibold text-ink">Kata sandi
-          <input className="mt-1 w-full rounded-lg border border-ink/20 px-3 py-2" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-        </label>
-        {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
-        <button className="w-full rounded-lg bg-accent px-4 py-3 font-semibold text-white disabled:opacity-50" type="submit" disabled={loading}>{loading ? "Memuat..." : "Masuk"}</button>
+      <form onSubmit={login} className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-clay">
+        <h1 className="font-display text-xl font-bold text-ink">{t.app.remoteGate.title}</h1>
+        <Input
+          label={t.app.remoteGate.username}
+          autoComplete="username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          required
+        />
+        <Input
+          label={t.app.remoteGate.password}
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+        />
+        {error && <p role="alert" className="text-sm text-error-dark">{error}</p>}
+        <Button type="submit" className="w-full" loading={loading}>
+          {loading ? t.app.remoteGate.submitting : t.app.remoteGate.submit}
+        </Button>
       </form>
     </main>
   );

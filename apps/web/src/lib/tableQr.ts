@@ -1,6 +1,7 @@
-import QRCode from "qrcode";
 import type { TableRow } from "../types/domain";
 import { getNetworkHostInfo } from "../services/networkHost";
+import { qrDataUrl } from "./qr";
+import { STORE_PROFILE, STORE_TITLE } from "./storeProfile";
 
 /** Customer self-order URL for a table; the stable table id survives renames. */
 export function tableOrderUrl(table: Pick<TableRow, "id">, baseUrl: string = getNetworkHostInfo().baseUrl): string {
@@ -42,7 +43,7 @@ export function resolveTable(tables: readonly TableRow[], key: string | null | u
 }
 
 export function tableQrDataUrl(table: Pick<TableRow, "id">, width = 320): Promise<string> {
-  return QRCode.toDataURL(tableOrderUrl(table), {
+  return qrDataUrl(tableOrderUrl(table), {
     width,
     margin: 1,
     errorCorrectionLevel: "M",
@@ -66,7 +67,7 @@ export async function printTableQrSheets(tables: TableRow[]): Promise<void> {
     tables.map(async (table) => {
       const qr = await tableQrDataUrl(table, 360);
       return `<figure class="sticker">
-        <p class="brand">WAKRO Digital · Warung WakRo Baru</p>
+        <p class="brand">${escapeHtml(STORE_TITLE)}</p>
         <img src="${qr}" alt="QR ${escapeHtml(table.name)}" />
         <figcaption><strong>${escapeHtml(table.name)}</strong><span>${escapeHtml(table.area)}</span></figcaption>
         <p class="hint">Scan untuk lihat menu, pesan &amp; bayar</p>
@@ -74,7 +75,7 @@ export async function printTableQrSheets(tables: TableRow[]): Promise<void> {
     }),
   );
   win.document.open();
-  win.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8" /><title>QR Meja WAKRO</title>
+  win.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8" /><title>QR Meja ${escapeHtml(STORE_PROFILE.brand)}</title>
     <style>
       body { font-family: "Trebuchet MS", sans-serif; margin: 16px; color: #0B1B33; }
       .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }

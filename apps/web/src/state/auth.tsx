@@ -3,6 +3,9 @@ import type { StaffRole } from "@wakro/shared";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { STORAGE_KEYS } from "../lib/storageKeys";
+import { t } from "../locales/id";
+import { DEMO_STAFF } from "./demoStaff";
+import { normalizeAvatarColor } from "./staffAvatar";
 
 /**
  * Staff identity and role gating.
@@ -24,72 +27,14 @@ export interface StaffUser {
   description: string;
 }
 
-export const DEFAULT_STAFF_LIST: StaffUser[] = [
-  {
-    id: "staff-1",
-    name: "Jamie Morgan",
-    role: "kasir",
-    pin: "1234",
-    avatarColor: "bg-accent text-white",
-    initials: "JM",
-    title: "Kasir & Admin",
-    description: "Akses lengkap: POS kasir, produk, laporan, meja, laci kas & sistem",
-  },
-  {
-    id: "staff-2",
-    name: "Budi Santoso",
-    role: "pelayan",
-    pin: "2222",
-    avatarColor: "bg-emerald-500 text-white",
-    initials: "BS",
-    title: "Pelayan 1 (Waitstaff)",
-    description: "Input pesanan keliling, status meja, & notifikasi siap saji",
-  },
-  {
-    id: "staff-3",
-    name: "Siti Rahma",
-    role: "pelayan",
-    pin: "2223",
-    avatarColor: "bg-teal-500 text-white",
-    initials: "SR",
-    title: "Pelayan 2 (Waitstaff)",
-    description: "Input pesanan keliling, status meja, & notifikasi siap saji",
-  },
-  {
-    id: "staff-4",
-    name: "Agus Pratama",
-    role: "pelayan",
-    pin: "2224",
-    avatarColor: "bg-cyan-600 text-white",
-    initials: "AP",
-    title: "Pelayan 3 (Waitstaff)",
-    description: "Input pesanan keliling, status meja, & notifikasi siap saji",
-  },
-  {
-    id: "staff-5",
-    name: "Chef Junaedi",
-    role: "dapur",
-    pin: "3333",
-    avatarColor: "bg-amber-500 text-white",
-    initials: "CJ",
-    title: "Kepala Dapur (KDS)",
-    description: "Layar antrean memasak, timer pesanan, & tombol siap saji",
-  },
-  {
-    id: "staff-6",
-    name: "Hendra Wijaya",
-    role: "manajer",
-    pin: "8888",
-    avatarColor: "bg-sky-500 text-white",
-    initials: "HW",
-    title: "Manajer Restoran",
-    description: "Analisis laporan keuangan, ringkasan pesanan, laci kas & shift",
-  },
-];
+/** Roles with full access to every screen; they may confirm destructive actions such as deleting a category. */
+export const FULL_ACCESS_ROLES: readonly StaffRole[] = ["admin", "kasir"];
 
 interface AuthContextType {
   currentStaff: StaffUser;
   staffList: StaffUser[];
+  /** True when the staff member comes from a server session (no PINs exist in the browser). */
+  isRemote: boolean;
   isSwitchModalOpen: boolean;
   openSwitchModal: () => void;
   closeSwitchModal: () => void;
@@ -97,206 +42,162 @@ interface AuthContextType {
   switchStaffDirect: (staffId: string) => void;
   hasAccessTo: (path: string) => boolean;
   getAllowedDefaultRoute: (role: StaffRole) => string;
-  updateStaff: (staff: StaffUser) => void;
-  addStaff: (staff: Omit<StaffUser, "id">) => void;
-  deleteStaff: (staffId: string) => void;
+  /**
+   * Confirms a sensitive action. Local mode: `pin` must belong to a staff member with one of `roles`.
+   * Remote mode: there are no PINs in the browser, so the signed-in session's role decides (the API enforces it again).
+   */
+  verifyPin: (pin: string, roles: readonly StaffRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const withNormalizedAvatar = (staff: StaffUser): StaffUser => ({ ...staff, avatarColor: normalizeAvatarColor(staff.avatarColor) });
 
 function getInitialStaffList(): StaffUser[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.staffList);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return (parsed as StaffUser[]).map(withNormalizedAvatar);
     }
   } catch (err) {
-    console.warn("Failed to load staff list from localStorage", err);
+    console.warn("Daftar staf tersimpan tidak dapat dibaca:", err);
   }
-  return DEFAULT_STAFF_LIST;
+  return DEMO_STAFF;
 }
 
 function getInitialCurrentStaff(list: StaffUser[]): StaffUser {
   try {
     const activeId = localStorage.getItem(STORAGE_KEYS.currentStaffId);
-    if (activeId) {
-      const found = list.find((s) => s.id === activeId);
-      if (found) return found;
-    }
+    const found = activeId ? list.find((s) => s.id === activeId) : undefined;
+    if (found) return found;
   } catch (err) {
-    console.warn("Failed to load current staff", err);
+    console.warn("Staf aktif tersimpan tidak dapat dibaca:", err);
   }
-  return list[0] || DEFAULT_STAFF_LIST[0];
+  return list[0] ?? DEMO_STAFF[0];
+}
+
+function defaultRouteFor(role: StaffRole): string {
+  switch (role) {
+    case "pelayan":
+      return "/pelayan";
+    case "dapur":
+      return "/dapur";
+    case "manajer":
+      return "/laporan";
+    case "admin":
+    case "kasir":
+      return "/";
+  }
+}
+
+/** Screens each restricted role may open; admin and kasir may open everything. */
+const MANAGER_ROUTES = ["/laporan", "/produk", "/pesanan", "/laci-kas", "/pengaturan", "/meja"];
+
+function roleAllows(role: StaffRole, path: string): boolean {
+  if (path.startsWith("/order/")) return true;
+  switch (role) {
+    case "admin":
+    case "kasir":
+      return true;
+    case "pelayan":
+      return path === "/pelayan";
+    case "dapur":
+      return path === "/dapur";
+    case "manajer":
+      return MANAGER_ROUTES.includes(path);
+  }
 }
 
 export function AuthProvider({ children, remoteStaff }: { children: ReactNode; remoteStaff?: StaffUser }) {
-  const [staffList, setStaffList] = useState<StaffUser[]>(() => remoteStaff ? [remoteStaff] : getInitialStaffList());
-  const [currentStaff, setCurrentStaff] = useState<StaffUser>(() => remoteStaff ?? getInitialCurrentStaff(staffList));
+  const [staffList] = useState<StaffUser[]>(() => (remoteStaff ? [withNormalizedAvatar(remoteStaff)] : getInitialStaffList()));
+  const [currentStaff, setCurrentStaff] = useState<StaffUser>(() =>
+    remoteStaff ? withNormalizedAvatar(remoteStaff) : getInitialCurrentStaff(staffList),
+  );
   const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
   const [, setLocation] = useLocation();
+  const isRemote = remoteStaff !== undefined;
 
-  // Save changes to localStorage
   useEffect(() => {
-    if (remoteStaff) return;
+    if (isRemote) return;
     try {
       localStorage.setItem(STORAGE_KEYS.staffList, JSON.stringify(staffList));
-    } catch (err) {
-      console.warn("Could not save staff list", err);
-    }
-  }, [staffList, remoteStaff]);
-
-  useEffect(() => {
-    if (remoteStaff) return;
-    try {
       localStorage.setItem(STORAGE_KEYS.currentStaffId, currentStaff.id);
     } catch (err) {
-      console.warn("Could not save current staff id", err);
+      console.warn("Data staf tidak dapat disimpan:", err);
     }
-  }, [currentStaff, remoteStaff]);
+  }, [staffList, currentStaff.id, isRemote]);
 
   const openSwitchModal = useCallback(() => setIsSwitchModalOpen(true), []);
   const closeSwitchModal = useCallback(() => setIsSwitchModalOpen(false), []);
 
-  const getAllowedDefaultRoute = useCallback((role: StaffRole): string => {
-    switch (role) {
-      case "pelayan":
-        return "/pelayan";
-      case "dapur":
-        return "/dapur";
-      case "manajer":
-        return "/laporan";
-      case "admin":
-      case "kasir":
-      default:
-        return "/";
-    }
-  }, []);
+  const hasAccessTo = useCallback((path: string) => roleAllows(currentStaff.role, path), [currentStaff.role]);
 
-  const hasAccessTo = useCallback(
-    (path: string): boolean => {
-      const role = currentStaff.role;
-
-      // Admin & Kasir have full access
-      if (role === "admin" || role === "kasir") return true;
-
-      // Pelayan only accesses /pelayan and public order
-      if (role === "pelayan") {
-        return path === "/pelayan" || path.startsWith("/order/");
-      }
-
-      // Dapur only accesses /dapur and public order
-      if (role === "dapur") {
-        return path === "/dapur" || path.startsWith("/order/");
-      }
-
-      // Manajer (owner) accesses dashboard/reports, ready stock, orders, cash drawer, settings, tables
-      if (role === "manajer") {
-        const allowed = ["/laporan", "/produk", "/pesanan", "/laci-kas", "/pengaturan", "/meja"];
-        return allowed.includes(path) || path.startsWith("/order/");
-      }
-
-      return false;
+  const verifyPin = useCallback(
+    (pin: string, roles: readonly StaffRole[]): boolean => {
+      if (isRemote) return roles.includes(currentStaff.role);
+      return staffList.some((s) => roles.includes(s.role) && s.pin === pin);
     },
-    [currentStaff.role],
+    [isRemote, currentStaff.role, staffList],
+  );
+
+  const enter = useCallback(
+    (staff: StaffUser) => {
+      setCurrentStaff(staff);
+      setIsSwitchModalOpen(false);
+      setLocation(defaultRouteFor(staff.role));
+    },
+    [setLocation],
   );
 
   const switchStaffByPin = useCallback(
     (pin: string, targetStaffId?: string) => {
-      let matched: StaffUser | undefined;
-
-      if (targetStaffId) {
-        const candidate = staffList.find((s) => s.id === targetStaffId);
-        if (candidate && candidate.pin === pin) {
-          matched = candidate;
-        }
-      } else {
-        matched = staffList.find((s) => s.pin === pin);
-      }
-
-      if (!matched) {
-        return { success: false, error: "PIN salah! Silakan coba lagi." };
-      }
-
-      setCurrentStaff(matched);
-      setIsSwitchModalOpen(false);
-
-      const targetRoute = getAllowedDefaultRoute(matched.role);
-      setLocation(targetRoute);
-
-      toast.success(`Login berhasil: ${matched.name} (${matched.title})`);
+      const matched = targetStaffId
+        ? staffList.find((s) => s.id === targetStaffId && s.pin === pin)
+        : staffList.find((s) => s.pin === pin);
+      if (!matched) return { success: false, error: t.app.auth.wrongPin };
+      enter(matched);
+      toast.success(t.app.auth.loginSuccess(matched.name, matched.title));
       return { success: true, staff: matched };
     },
-    [staffList, getAllowedDefaultRoute, setLocation],
+    [staffList, enter],
   );
 
   const switchStaffDirect = useCallback(
     (staffId: string) => {
       const found = staffList.find((s) => s.id === staffId);
-      if (found) {
-        setCurrentStaff(found);
-        setIsSwitchModalOpen(false);
-        const targetRoute = getAllowedDefaultRoute(found.role);
-        setLocation(targetRoute);
-        toast.info(`Beralih ke: ${found.name} (${found.title})`);
-      }
+      if (!found) return;
+      enter(found);
+      toast.info(t.app.auth.switchedTo(found.name, found.title));
     },
-    [staffList, getAllowedDefaultRoute, setLocation],
+    [staffList, enter],
   );
-
-  const updateStaff = useCallback((updated: StaffUser) => {
-    setStaffList((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-    setCurrentStaff((curr) => (curr.id === updated.id ? updated : curr));
-    toast.success(`Data staf ${updated.name} berhasil diperbarui`);
-  }, []);
-
-  const addStaff = useCallback((newStaffData: Omit<StaffUser, "id">) => {
-    const newStaff: StaffUser = {
-      ...newStaffData,
-      id: `staff-${Date.now()}`,
-    };
-    setStaffList((prev) => [...prev, newStaff]);
-    toast.success(`Staf baru ${newStaff.name} ditambahkan`);
-  }, []);
-
-  const deleteStaff = useCallback((staffId: string) => {
-    setStaffList((prev) => {
-      if (prev.length <= 1) {
-        toast.error("Minimal harus ada 1 akun staf di sistem");
-        return prev;
-      }
-      return prev.filter((s) => s.id !== staffId);
-    });
-  }, []);
 
   const value = useMemo<AuthContextType>(
     () => ({
       currentStaff,
       staffList,
+      isRemote,
       isSwitchModalOpen,
       openSwitchModal,
       closeSwitchModal,
       switchStaffByPin,
       switchStaffDirect,
       hasAccessTo,
-      getAllowedDefaultRoute,
-      updateStaff,
-      addStaff,
-      deleteStaff,
+      getAllowedDefaultRoute: defaultRouteFor,
+      verifyPin,
     }),
     [
       currentStaff,
       staffList,
+      isRemote,
       isSwitchModalOpen,
       openSwitchModal,
       closeSwitchModal,
       switchStaffByPin,
       switchStaffDirect,
       hasAccessTo,
-      getAllowedDefaultRoute,
-      updateStaff,
-      addStaff,
-      deleteStaff,
+      verifyPin,
     ],
   );
 
@@ -305,8 +206,6 @@ export function AuthProvider({ children, remoteStaff }: { children: ReactNode; r
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
+  if (!context) throw new Error("useAuth harus dipakai di dalam AuthProvider");
   return context;
 }

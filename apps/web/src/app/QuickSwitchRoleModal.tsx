@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  X,
   KeyRound,
   ShieldCheck,
   UtensilsCrossed,
@@ -11,10 +10,13 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { StaffRole } from "@wakro/shared";
-import { useAuth, type StaffUser } from "./AuthContext";
+import { useAuth, type StaffUser } from "../state/auth";
+import { t } from "../locales/id";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "../ui/Modal";
+import { REMOTE_LOGOUT_EVENT } from "./RemoteAuthGate";
 import { cn } from "../lib/cn";
-import { Button } from "./ui/Button";
-import { isRemoteDataSource } from "../data";
+import { Button } from "../ui/Button";
+import { isRemoteDataSource } from "../data/index";
 
 export function QuickSwitchRoleModal() {
   const {
@@ -52,7 +54,7 @@ export function QuickSwitchRoleModal() {
           // Auto submit PIN
           const res = switchStaffByPin(nextPin, selectedStaff.id);
           if (!res.success) {
-            setErrorMsg(res.error || "PIN tidak sesuai!");
+            setErrorMsg(res.error || t.app.quickSwitch.pinMismatch);
             setIsShaking(true);
             setTimeout(() => {
               setPin("");
@@ -80,37 +82,40 @@ export function QuickSwitchRoleModal() {
     if (!isSwitchModalOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isRemoteDataSource) {
-        if (e.key === "Escape") closeSwitchModal();
-        return;
-      }
+      if (isRemoteDataSource) return;
       if (e.key >= "0" && e.key <= "9") {
         handleKeyPress(e.key);
       } else if (e.key === "Backspace") {
         handleDelete();
-      } else if (e.key === "Escape") {
-        closeSwitchModal();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isSwitchModalOpen, handleKeyPress, handleDelete, closeSwitchModal]);
+  }, [isSwitchModalOpen, handleKeyPress, handleDelete]);
 
   if (!isSwitchModalOpen) return null;
 
   if (isRemoteDataSource) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4" onClick={closeSwitchModal}>
-        <div role="dialog" aria-modal="true" aria-labelledby="remote-account-title" className="w-full max-w-sm rounded-2xl border border-ink/15 bg-white p-5 text-ink shadow-lg" onClick={(event) => event.stopPropagation()}>
-          <h2 id="remote-account-title" className="font-display text-lg font-bold">Akun {currentStaff.name}</h2>
-          <p className="mt-2 text-sm text-ink/70">Keluar untuk masuk menggunakan akun staf lain.</p>
-          <div className="mt-5 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={closeSwitchModal}>Batal</Button>
-            <Button type="button" onClick={() => { closeSwitchModal(); window.dispatchEvent(new Event("kasa-remote-logout")); }}>Keluar / ganti akun</Button>
-          </div>
-        </div>
-      </div>
+      <Modal onClose={closeSwitchModal} size="sm">
+        <ModalHeader title={t.app.quickSwitch.remoteTitle(currentStaff.name)} />
+        <ModalBody>
+          <p className="text-sm text-ink/70">{t.app.quickSwitch.remoteBody}</p>
+        </ModalBody>
+        <ModalFooter>
+          <Button type="button" variant="outline" onClick={closeSwitchModal}>{t.common.cancel}</Button>
+          <Button
+            type="button"
+            onClick={() => {
+              closeSwitchModal();
+              window.dispatchEvent(new Event(REMOTE_LOGOUT_EVENT));
+            }}
+          >
+            {t.app.header.logout}
+          </Button>
+        </ModalFooter>
+      </Modal>
     );
   }
 
@@ -130,50 +135,25 @@ export function QuickSwitchRoleModal() {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-xs animate-in fade-in"
-      onClick={closeSwitchModal}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xl overflow-hidden rounded-2xl border border-ink/15 bg-white shadow-2xl flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-ink/10 bg-mineral/30 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white shadow-xs">
-              <KeyRound size={20} />
-            </div>
-            <div>
-              <h2 className="font-display text-lg font-bold text-ink flex items-center gap-2">
-                Ganti Peran & Masuk Staf
-              </h2>
-              <p className="text-xs text-ink/60">
-                Pilih profil staf dan masukkan PIN 4 digit untuk akses modul khusus
-              </p>
-            </div>
+    <Modal onClose={closeSwitchModal} size="lg" className="max-h-[92vh]">
+      <ModalHeader
+        title={t.app.quickSwitch.title}
+        subtitle={t.app.quickSwitch.subtitle}
+        icon={
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white shadow-xs">
+            <KeyRound size={20} />
           </div>
-          <button
-            type="button"
-            onClick={closeSwitchModal}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-ink/50 hover:bg-ink/5 hover:text-ink transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-5 overflow-y-auto space-y-4">
+        }
+      />
+      <ModalBody className="space-y-4 p-5">
           {/* Step 1: Select Staff Profile */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold uppercase tracking-wider text-ink/60">
-                1. Pilih Akun Staf:
-              </label>
-              <span className="text-[11px] text-ink/40 font-medium">
-                Aktif saat ini: <strong className="text-ink">{currentStaff.name}</strong>
+              <p className="text-xs font-bold uppercase tracking-wider text-ink/60">
+                {t.app.quickSwitch.stepSelect}
+              </p>
+              <span className="text-xs2 text-ink/40 font-medium">
+                {t.app.quickSwitch.activeNow} <strong className="text-ink">{currentStaff.name}</strong>
               </span>
             </div>
 
@@ -195,7 +175,7 @@ export function QuickSwitchRoleModal() {
                       "flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all relative overflow-hidden",
                       isSelected
                         ? "bg-accent text-white border-accent-dark shadow-md ring-2 ring-accent/50"
-                        : "bg-surface-muted/30 text-ink border-ink/10 hover:bg-white hover:border-ink/30",
+                        : "bg-surface-muted/30 text-ink border-ink/10 hover:bg-surface hover:border-ink/30",
                     )}
                   >
                     <div
@@ -213,19 +193,19 @@ export function QuickSwitchRoleModal() {
                         {isCurrent && (
                           <span
                             className={cn(
-                              "text-[9px] px-1.5 py-0.2 rounded font-semibold",
-                              isSelected ? "bg-white text-accent-dark" : "bg-emerald-100 text-emerald-800",
+                              "text-2xs px-1.5 py-0.5 rounded font-semibold",
+                              isSelected ? "bg-surface text-accent-dark" : "bg-success/20 text-success-dark",
                             )}
                           >
-                            Aktif
+                            {t.app.quickSwitch.active}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-1 text-[11px] font-medium opacity-80 mt-0.5">
+                      <div className="flex items-center gap-1 text-xs2 font-medium opacity-80 mt-0.5">
                         {getRoleIcon(staff.role)}
                         <span>{staff.title}</span>
                       </div>
-                      <p className="text-[10px] opacity-60 line-clamp-1 mt-0.5">
+                      <p className="text-2xs opacity-60 line-clamp-1 mt-0.5">
                         {staff.description}
                       </p>
                     </div>
@@ -245,10 +225,7 @@ export function QuickSwitchRoleModal() {
           <div className="rounded-2xl bg-mineral/30 border border-ink/10 p-4 space-y-3">
             <div className="text-center space-y-0.5">
               <p className="text-xs font-bold text-ink/70">
-                Masukkan PIN untuk <span className="text-ink font-bold">{selectedStaff.name}</span>
-              </p>
-              <p className="text-[11px] text-ink/40">
-                (PIN Demo default: <strong className="text-ink font-mono">{selectedStaff.pin}</strong>)
+                {t.app.quickSwitch.enterPinFor} <span className="text-ink font-bold">{selectedStaff.name}</span>
               </p>
             </div>
 
@@ -256,7 +233,7 @@ export function QuickSwitchRoleModal() {
             <div
               className={cn(
                 "flex justify-center items-center gap-2.5 py-1 transition-transform",
-                isShaking && "animate-shake text-rose-500",
+                isShaking && "animate-shake text-error-dark",
               )}
             >
               {[0, 1, 2, 3].map((idx) => {
@@ -268,18 +245,18 @@ export function QuickSwitchRoleModal() {
                       "h-3.5 w-3.5 rounded-full border-2 transition-all flex items-center justify-center",
                       filled
                         ? "bg-accent border-accent-dark scale-110 shadow-xs"
-                        : "bg-white border-ink/25",
-                      errorMsg && "border-rose-500 bg-rose-100",
+                        : "bg-surface border-ink/25",
+                      errorMsg && "border-error-dark bg-error/20",
                     )}
                   >
-                    {filled && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    {filled && <span className="h-1.5 w-1.5 rounded-full bg-surface" />}
                   </div>
                 );
               })}
             </div>
 
             {errorMsg && (
-              <p className="text-xs font-bold text-rose-600 text-center animate-in fade-in">
+              <p className="text-xs font-bold text-error-dark text-center">
                 {errorMsg}
               </p>
             )}
@@ -291,7 +268,7 @@ export function QuickSwitchRoleModal() {
                   key={digit}
                   type="button"
                   onClick={() => handleKeyPress(digit)}
-                  className="h-10 rounded-xl bg-white border border-ink/10 font-display font-bold text-sm text-ink hover:bg-accent hover:border-ink/30 active:scale-95 shadow-2xs transition-all flex items-center justify-center"
+                  className="h-10 rounded-xl bg-surface border border-ink/10 font-display font-bold text-sm text-ink hover:bg-accent hover:border-ink/30 active:scale-95 shadow-2xs transition-all flex items-center justify-center"
                 >
                   {digit}
                 </button>
@@ -300,15 +277,15 @@ export function QuickSwitchRoleModal() {
               <button
                 type="button"
                 onClick={handleClear}
-                className="h-10 rounded-xl bg-white/70 border border-ink/10 text-xs font-bold text-ink/60 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 active:scale-95 transition-all flex items-center justify-center"
+                className="h-10 rounded-xl bg-surface border border-ink/10 text-xs font-bold text-ink/60 hover:bg-error/10 hover:text-error-dark hover:border-error/30 active:scale-95 transition-all flex items-center justify-center"
               >
-                Hapus
+                {t.app.quickSwitch.clear}
               </button>
 
               <button
                 type="button"
                 onClick={() => handleKeyPress("0")}
-                  className="h-10 rounded-xl bg-white border border-ink/10 font-display font-bold text-sm text-ink hover:bg-accent hover:border-ink/30 active:scale-95 shadow-2xs transition-all flex items-center justify-center"
+                  className="h-10 rounded-xl bg-surface border border-ink/10 font-display font-bold text-sm text-ink hover:bg-accent hover:border-ink/30 active:scale-95 shadow-2xs transition-all flex items-center justify-center"
               >
                 0
               </button>
@@ -316,20 +293,20 @@ export function QuickSwitchRoleModal() {
               <button
                 type="button"
                 onClick={handleDelete}
-                className="h-10 rounded-xl bg-white/70 border border-ink/10 text-xs font-bold text-ink/60 hover:bg-ink/5 hover:text-ink active:scale-95 transition-all flex items-center justify-center"
-                title="Hapus Satu Digit"
+                className="h-10 rounded-xl bg-surface border border-ink/10 text-xs font-bold text-ink/60 hover:bg-ink/5 hover:text-ink active:scale-95 transition-all flex items-center justify-center"
+                title={t.app.quickSwitch.deleteDigit}
+                aria-label={t.app.quickSwitch.deleteDigit}
               >
                 <Delete size={16} />
               </button>
             </div>
           </div>
-        </div>
+      </ModalBody>
 
-        {/* Footer / Quick Demo Switcher */}
-        <div className="border-t border-ink/10 bg-white px-6 py-3.5 flex items-center justify-between shrink-0">
+      <ModalFooter className="justify-between">
           <div className="flex items-center gap-1.5 text-xs text-ink/60">
-            <Sparkles size={14} className="text-amber-500" />
-            <span>Pintas Cepat (Tanpa Ketik PIN):</span>
+            <Sparkles size={14} className="text-warning-dark" />
+            <span>{t.app.quickSwitch.quickSwitch}</span>
           </div>
           <div className="flex items-center gap-1.5">
             {staffList.map((s) => (
@@ -339,7 +316,7 @@ export function QuickSwitchRoleModal() {
                 variant="outline"
                 onClick={() => switchStaffDirect(s.id)}
                 className={cn(
-                  "h-7 text-[11px] px-2.5 gap-1",
+                  "h-7 text-xs2 px-2.5 gap-1",
                   currentStaff.id === s.id && "!border-accent-dark !bg-accent !text-white font-bold",
                 )}
               >
@@ -347,8 +324,7 @@ export function QuickSwitchRoleModal() {
               </Button>
             ))}
           </div>
-        </div>
-      </div>
-    </div>
+      </ModalFooter>
+    </Modal>
   );
 }

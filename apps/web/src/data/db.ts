@@ -6,7 +6,6 @@ import type { CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } fr
 export const db = new Dexie("kasa-kasir") as Dexie & {
   products: EntityTable<MenuItem, "id">;
   orders: EntityTable<OrderRow, "no">;
-  tables: EntityTable<TableRow, "id">;
   shifts: EntityTable<ShiftRecord, "id">;
   cash_movements: EntityTable<CashMovementRow, "id">;
   categories: EntityTable<CategoryRow, "id">;
@@ -56,3 +55,5 @@ db.version(6).stores({
   cash_movements: "id, shiftId, type, category, createdAt",
   categories: "id, name, kind, sortOrder, createdAt",
 });
+
+export const restaurantTables = db.table<TableRow, string>("tables");

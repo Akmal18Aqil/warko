@@ -3,7 +3,7 @@ import { legacyStatusFor } from "../lib/orderStatus";
 import { expectedDrawerCash } from "../lib/cash";
 import { STORAGE_KEYS } from "../lib/storageKeys";
 import type { CashMovementRow, OrderRow, ShiftRecord, Snapshot } from "../types/domain";
-import { db } from "./db";
+import { db, restaurantTables } from "./db";
 import { MENU_SEED, type MenuItem } from "./menu";
 import { DEFAULT_CATEGORIES, DEFAULT_TABLES, demoMovements, demoOrders } from "./seed";
 import type { DataSource } from "./source";
@@ -40,7 +40,7 @@ async function ensureSeeded(): Promise<void> {
   const now = Date.now();
   if ((await db.products.count()) === 0) await db.products.bulkPut(MENU_SEED);
   if ((await db.orders.count()) === 0) await db.orders.bulkAdd(demoOrders(now));
-  if ((await db.tables.count()) === 0) await db.tables.bulkPut(DEFAULT_TABLES);
+  if ((await restaurantTables.count()) === 0) await restaurantTables.bulkPut(DEFAULT_TABLES);
   if ((await db.cash_movements.count()) === 0) await db.cash_movements.bulkPut(demoMovements(now));
   if ((await db.categories.count()) === 0) await db.categories.bulkPut(DEFAULT_CATEGORIES);
 }
@@ -110,16 +110,16 @@ export const localSource: DataSource = {
   },
 
   async loadTables() {
-    const rows = await db.tables.toArray();
+    const rows = await restaurantTables.toArray();
     return rows.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   },
 
   async saveTable(table) {
-    await db.tables.put(table);
+    await restaurantTables.put(table);
   },
 
   async deleteTable(id) {
-    await db.tables.delete(id);
+    await restaurantTables.delete(id);
   },
 
   async loadCategories() {

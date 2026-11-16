@@ -1,4 +1,5 @@
-import { dataSource } from "../data";
+import { applySnapshot } from "./snapshot";
+import { dataSource } from "../data/index";
 import { loadPublicMenu } from "../data/public";
 import { subscribeSync } from "../lib/syncBus";
 import { startTabPresence } from "../services/tabPresence";
@@ -7,24 +8,13 @@ import { refreshCategories, refreshProducts, refreshTables } from "./catalog";
 import { reloadOrders } from "./orders";
 import { reloadCashMovements, reloadActiveShift } from "./shift";
 import { catalogStore, ordersStore, pricingStore, sessionStore, shiftStore } from "./stores";
+import { t } from "../locales/id";
 
-const UNREACHABLE = "Server data tidak dapat dijangkau. Periksa koneksi dan masuk kembali.";
-const LOCAL_FAILED = "Database browser tidak dapat dibuka. Muat ulang halaman.";
+const UNREACHABLE = t.state.serverUnreachable;
+const LOCAL_FAILED = t.state.localDbFailed;
 
 function connectionMessage(): string {
   return dataSource.kind === "remote" ? UNREACHABLE : LOCAL_FAILED;
-}
-
-/** Writes a snapshot into every slice; slices that did not change keep their identity. */
-function applySnapshot(snapshot: Snapshot): void {
-  catalogStore.setIfChanged({
-    products: snapshot.products,
-    categories: snapshot.categories,
-    tables: snapshot.tables,
-  });
-  ordersStore.setIfChanged({ orders: snapshot.orders });
-  shiftStore.setIfChanged({ activeShift: snapshot.activeShift, cashMovements: snapshot.cashMovements });
-  pricingStore.setIfChanged({ pricing: snapshot.pricing });
 }
 
 /** The public page only has a menu: categories are derived from the products that exist. */
@@ -140,7 +130,3 @@ export function startDataSync(publicCustomer: boolean): () => void {
   };
 }
 
-/** Re-reads everything, e.g. after a backup was imported into the browser database. */
-export async function reloadAllData(): Promise<void> {
-  applySnapshot(await dataSource.loadSnapshot());
-}

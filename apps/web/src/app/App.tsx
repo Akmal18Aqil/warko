@@ -1,133 +1,105 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ComponentType, type LazyExoticComponent, type ReactNode } from "react";
 import { Route, Switch } from "wouter";
 import { Toaster } from "sonner";
-import { PrintProvider } from "./components/PrintContext";
-import { AuthProvider } from "./components/AuthContext";
-import { RemoteAuthGate } from "./components/RemoteAuthGate";
-import { PrintLayer } from "./components/PrintLayer";
-import { QuickSwitchRoleModal } from "./components/QuickSwitchRoleModal";
-import { RouteFallback } from "./components/RouteFallback";
-import { RouteGuard } from "./components/RouteGuard";
-import { AppLayout } from "./layouts/AppLayout";
-import { DataSync } from "./state/DataSync";
+import { QuickSwitchRoleModal } from "./QuickSwitchRoleModal";
+import { RemoteAuthGate } from "./RemoteAuthGate";
+import { RouteFallback } from "./RouteFallback";
+import { RouteGuard } from "./RouteGuard";
+import { AppLayout } from "./AppLayout";
+import { PrintLayer } from "../features/printing/PrintLayer";
+import { t } from "../locales/id";
+import { AuthProvider } from "../state/auth";
+import { DataSync } from "../state/DataSync";
+import { PrintProvider } from "../state/print";
 
 // Each screen is its own chunk: the public /order page never downloads the staff app.
-const Home = lazy(() => import("./pages/Home"));
-const Orders = lazy(() => import("./pages/Orders"));
-const Tables = lazy(() => import("./pages/Tables"));
-const Products = lazy(() => import("./pages/Products"));
-const Reports = lazy(() => import("./pages/Reports"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Kitchen = lazy(() => import("./pages/Kitchen"));
-const CustomerSelfOrder = lazy(() => import("./pages/CustomerSelfOrder"));
-const WaiterOrder = lazy(() => import("./pages/WaiterOrder"));
-const CashDrawer = lazy(() => import("./pages/CashDrawer"));
+const PosPage = lazy(() => import("../features/pos/PosPage"));
+const OrdersPage = lazy(() => import("../features/orders/OrdersPage"));
+const TablesPage = lazy(() => import("../features/tables/TablesPage"));
+const ProductsPage = lazy(() => import("../features/products/ProductsPage"));
+const ReportsPage = lazy(() => import("../features/reports/ReportsPage"));
+const SettingsPage = lazy(() => import("../features/settings/SettingsPage"));
+const KitchenPage = lazy(() => import("../features/kitchen/KitchenPage"));
+const CustomerSelfOrderPage = lazy(() => import("../features/self-order/CustomerSelfOrderPage"));
+const WaiterOrderPage = lazy(() => import("../features/waiter/WaiterOrderPage"));
+const CashDrawerPage = lazy(() => import("../features/cash-drawer/CashDrawerPage"));
+
+function Screen({ page: Page }: { page: LazyExoticComponent<ComponentType> }): ReactNode {
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <Page />
+    </Suspense>
+  );
+}
+
+function Guarded({ path, moduleName, page }: { path: string; moduleName: string; page: LazyExoticComponent<ComponentType> }) {
+  return (
+    <RouteGuard path={path} moduleName={moduleName}>
+      <Screen page={page} />
+    </RouteGuard>
+  );
+}
 
 export default function App() {
   return (
-    <RemoteAuthGate>{(remoteStaff) => <AuthProvider remoteStaff={remoteStaff}>
-      <DataSync />
-      <PrintProvider>
-        <Switch>
-          {/* 1. Standalone Customer Self-Order QR */}
-          <Route path="/order">
-            <Suspense fallback={<RouteFallback />}>
-              <CustomerSelfOrder />
-            </Suspense>
-          </Route>
-          <Route path="/order/:tableId">
-            <Suspense fallback={<RouteFallback />}>
-              <CustomerSelfOrder />
-            </Suspense>
-          </Route>
+    <RemoteAuthGate>
+      {(remoteStaff) => (
+        <AuthProvider remoteStaff={remoteStaff}>
+          <DataSync />
+          <PrintProvider>
+            <Switch>
+              {/* Public customer self-order (QR on the table) */}
+              <Route path="/order">
+                <Screen page={CustomerSelfOrderPage} />
+              </Route>
+              <Route path="/order/:tableId">
+                <Screen page={CustomerSelfOrderPage} />
+              </Route>
 
-          {/* 2. Standalone Fullscreen Focus Mode for Waiter */}
-          <Route path="/pelayan">
-            <RouteGuard path="/pelayan" moduleName="Mode Pelayan">
-              <Suspense fallback={<RouteFallback />}>
-                <WaiterOrder />
-              </Suspense>
-            </RouteGuard>
-          </Route>
+              {/* Full-screen focus modes */}
+              <Route path="/pelayan">
+                <Guarded path="/pelayan" moduleName={t.app.routes.waiter} page={WaiterOrderPage} />
+              </Route>
+              <Route path="/dapur">
+                <Guarded path="/dapur" moduleName={t.app.routes.kitchen} page={KitchenPage} />
+              </Route>
 
-          {/* 3. Standalone Fullscreen Focus Mode for Kitchen KDS */}
-          <Route path="/dapur">
-            <RouteGuard path="/dapur" moduleName="Layar Dapur (KDS)">
-              <Suspense fallback={<RouteFallback />}>
-                <Kitchen />
-              </Suspense>
-            </RouteGuard>
-          </Route>
+              {/* Dashboard with the role-filtered sidebar */}
+              <Route>
+                <AppLayout>
+                  <Switch>
+                    <Route path="/laci-kas">
+                      <Guarded path="/laci-kas" moduleName={t.app.routes.cashDrawer} page={CashDrawerPage} />
+                    </Route>
+                    <Route path="/pesanan">
+                      <Guarded path="/pesanan" moduleName={t.app.routes.orders} page={OrdersPage} />
+                    </Route>
+                    <Route path="/meja">
+                      <Guarded path="/meja" moduleName={t.app.routes.tables} page={TablesPage} />
+                    </Route>
+                    <Route path="/produk">
+                      <Guarded path="/produk" moduleName={t.app.routes.products} page={ProductsPage} />
+                    </Route>
+                    <Route path="/laporan">
+                      <Guarded path="/laporan" moduleName={t.app.routes.reports} page={ReportsPage} />
+                    </Route>
+                    <Route path="/pengaturan">
+                      <Guarded path="/pengaturan" moduleName={t.app.routes.settings} page={SettingsPage} />
+                    </Route>
+                    <Route>
+                      <Guarded path="/" moduleName={t.app.routes.pos} page={PosPage} />
+                    </Route>
+                  </Switch>
+                </AppLayout>
+              </Route>
+            </Switch>
 
-          {/* 4. Standard Dashboard with Dynamic Role-Filtered Sidebar */}
-          <Route>
-            <AppLayout>
-              <Switch>
-                <Route path="/">
-                  <RouteGuard path="/" moduleName="POS Kasir Utama">
-                    <Suspense fallback={<RouteFallback />}>
-                      <Home />
-                    </Suspense>
-                  </RouteGuard>
-                </Route>
-                <Route path="/laci-kas">
-                  <RouteGuard path="/laci-kas" moduleName="Laci Kas & Rekonsiliasi">
-                    <Suspense fallback={<RouteFallback />}>
-                      <CashDrawer />
-                    </Suspense>
-                  </RouteGuard>
-                </Route>
-                <Route path="/pesanan">
-                  <RouteGuard path="/pesanan" moduleName="Daftar Pesanan">
-                    <Suspense fallback={<RouteFallback />}>
-                      <Orders />
-                    </Suspense>
-                  </RouteGuard>
-                </Route>
-                <Route path="/meja">
-                  <RouteGuard path="/meja" moduleName="Manajemen Meja">
-                    <Suspense fallback={<RouteFallback />}>
-                      <Tables />
-                    </Suspense>
-                  </RouteGuard>
-                </Route>
-                <Route path="/produk">
-                  <RouteGuard path="/produk" moduleName="Katalog & Produk">
-                    <Suspense fallback={<RouteFallback />}>
-                      <Products />
-                    </Suspense>
-                  </RouteGuard>
-                </Route>
-                <Route path="/laporan">
-                  <RouteGuard path="/laporan" moduleName="Laporan Penjualan">
-                    <Suspense fallback={<RouteFallback />}>
-                      <Reports />
-                    </Suspense>
-                  </RouteGuard>
-                </Route>
-                <Route path="/pengaturan">
-                  <RouteGuard path="/pengaturan" moduleName="Pengaturan Sistem">
-                    <Suspense fallback={<RouteFallback />}>
-                      <Settings />
-                    </Suspense>
-                  </RouteGuard>
-                </Route>
-                <Route>
-                  <RouteGuard path="/" moduleName="POS Kasir Utama">
-                    <Suspense fallback={<RouteFallback />}>
-                      <Home />
-                    </Suspense>
-                  </RouteGuard>
-                </Route>
-              </Switch>
-            </AppLayout>
-          </Route>
-        </Switch>
-
-        <QuickSwitchRoleModal />
-        <PrintLayer />
-        <Toaster position="top-center" richColors closeButton duration={3200} />
-      </PrintProvider>
-    </AuthProvider>}</RemoteAuthGate>
+            <QuickSwitchRoleModal />
+            <PrintLayer />
+            <Toaster position="top-center" richColors closeButton duration={3200} />
+          </PrintProvider>
+        </AuthProvider>
+      )}
+    </RemoteAuthGate>
   );
 }

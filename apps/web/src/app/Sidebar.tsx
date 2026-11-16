@@ -15,11 +15,11 @@ import {
   KeyRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { KasaLogoBlock, StatusDot } from "./KasaLogo";
+import { KasaLogoBlock, StatusDot } from "../ui/KasaLogo";
 import { useOrders } from "../state/orders";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../state/auth";
 import { formatIDR } from "../data/menu";
-import { t } from "../locales/en";
+import { t } from "../locales/id";
 import { cn } from "../lib/cn";
 import { kitchenStatusOf, runningOrdersCount, salesToday } from "../lib/orderStatus";
 import { STORAGE_KEYS } from "../lib/storageKeys";
@@ -38,7 +38,7 @@ function writeCollapsed(value: boolean): void {
   try {
     localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, value ? "1" : "0");
   } catch {
-    /* penyimpanan tidak tersedia — abaikan */
+    // Storage unavailable (private mode): the preference is simply not remembered.
   }
 }
 
@@ -62,32 +62,32 @@ export function Sidebar() {
     const role = currentStaff.role;
 
     if (role === "pelayan") {
-      return [{ href: "/pelayan", label: "Pesanan Pelayan", icon: UtensilsCrossed }];
+      return [{ href: "/pelayan", label: t.app.nav.waiterOrders, icon: UtensilsCrossed }];
     }
 
     if (role === "dapur") {
-      return [{ href: "/dapur", label: "Dapur (KDS)", icon: ChefHat, badge: kitchenWaiting }];
+      return [{ href: "/dapur", label: t.app.nav.kitchen, icon: ChefHat, badge: kitchenWaiting }];
     }
 
     if (role === "manajer") {
       return [
-        { href: "/laporan", label: t.nav.reports, icon: BarChart3 },
-        { href: "/pesanan", label: t.nav.orders, icon: ReceiptText, badge: running },
-        { href: "/laci-kas", label: "Laci Kas", icon: Vault },
-        { href: "/meja", label: t.nav.tables, icon: Armchair },
+        { href: "/laporan", label: t.app.nav.reports, icon: BarChart3 },
+        { href: "/pesanan", label: t.app.nav.orders, icon: ReceiptText, badge: running },
+        { href: "/laci-kas", label: t.app.nav.cashDrawer, icon: Vault },
+        { href: "/meja", label: t.app.nav.tables, icon: Armchair },
       ];
     }
 
     // Default for Admin / Kasir: full access
     return [
-      { href: "/", label: t.nav.newPos, icon: CirclePlus },
-      { href: "/pelayan", label: "Pelayan", icon: UtensilsCrossed },
-      { href: "/laci-kas", label: "Laci Kas", icon: Vault },
-      { href: "/dapur", label: "Dapur (KDS)", icon: ChefHat, badge: kitchenWaiting },
-      { href: "/pesanan", label: t.nav.orders, icon: ReceiptText, badge: running },
-      { href: "/meja", label: t.nav.tables, icon: Armchair },
-      { href: "/produk", label: t.nav.products, icon: Package },
-      { href: "/laporan", label: t.nav.reports, icon: BarChart3 },
+      { href: "/", label: t.app.nav.newPos, icon: CirclePlus },
+      { href: "/pelayan", label: t.app.nav.waiterShort, icon: UtensilsCrossed },
+      { href: "/laci-kas", label: t.app.nav.cashDrawer, icon: Vault },
+      { href: "/dapur", label: t.app.nav.kitchen, icon: ChefHat, badge: kitchenWaiting },
+      { href: "/pesanan", label: t.app.nav.orders, icon: ReceiptText, badge: running },
+      { href: "/meja", label: t.app.nav.tables, icon: Armchair },
+      { href: "/produk", label: t.app.nav.products, icon: Package },
+      { href: "/laporan", label: t.app.nav.reports, icon: BarChart3 },
     ];
   }, [currentStaff.role, kitchenWaiting, running]);
 
@@ -96,27 +96,27 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "clay-sidebar hidden shrink-0 flex-col border-r border-ink/10 bg-white md:flex md:sticky md:top-0 md:h-screen overflow-y-auto scrollbar-none transition-all duration-200",
+        "hidden shrink-0 flex-col border-r border-ink/10 bg-surface md:flex md:sticky md:top-0 md:h-screen overflow-y-auto scrollbar-none transition-all duration-200",
         collapsed ? "w-[72px]" : "w-64",
       )}
     >
       <div className={cn("pt-6", collapsed ? "px-3" : "px-5")}>
         {collapsed ? <KasaLogoBlock compact /> : <KasaLogoBlock />}
         {!collapsed && (
-          <p className="mt-3 flex items-center gap-2 text-xs text-white/55">
+          <p className="mt-3 flex items-center gap-2 text-xs text-text-muted">
             <StatusDot />
-            {t.station}
+            {t.app.station}
           </p>
         )}
         {collapsed && (
-          <p className="mt-3 flex justify-center" title={t.station}>
+          <p className="mt-3 flex justify-center" title={t.app.station}>
             <StatusDot />
           </p>
         )}
       </div>
 
       <nav
-        aria-label="Navigasi utama"
+        aria-label={t.app.nav.mainLabel}
         className={cn("mt-7 space-y-1", collapsed ? "px-2" : "px-3")}
       >
         {navEntries.map((entry) => (
@@ -133,17 +133,17 @@ export function Sidebar() {
         <>
           {!collapsed && (
             <div className="mt-6 px-5">
-              <p className="label-caps text-[11px] font-medium text-white/40">
-                {t.controlSection}
+              <p className="label-caps text-xs2 font-medium text-text-light">
+                {t.app.controlSection}
               </p>
             </div>
           )}
           <nav
-            aria-label="Kontrol"
+            aria-label={t.app.controlSection}
             className={cn("mt-2 space-y-1", collapsed ? "px-2" : "px-3")}
           >
             <NavItem
-              entry={{ href: "/pengaturan", label: t.nav.settings, icon: Settings }}
+              entry={{ href: "/pengaturan", label: t.app.nav.settings, icon: Settings }}
               active={location === "/pengaturan"}
               collapsed={collapsed}
             />
@@ -155,9 +155,9 @@ export function Sidebar() {
 
       {/* Metrics (Shown for Admin/Kasir/Manager) */}
       {!collapsed && (currentStaff.role === "kasir" || currentStaff.role === "admin" || currentStaff.role === "manajer") && (
-        <div className="mx-4 mb-4 rounded-xl bg-white/5 p-4 border border-white/5">
-          <p className="label-caps text-[11px] font-medium text-white/45">
-            {t.metrics.todaySales}
+        <div className="mx-4 mb-4 rounded-xl bg-mineral p-4 border border-border">
+          <p className="label-caps text-xs2 font-medium text-text-light">
+            {t.pos.metrics.todaySales}
           </p>
           <p className="mt-1 font-display text-lg font-bold tracking-tight text-accent">
             {formatIDR(salesToday(orders))}
@@ -169,9 +169,9 @@ export function Sidebar() {
       <button
         type="button"
         onClick={openSwitchModal}
-        title="Klik untuk ganti peran atau masuk staf lain"
+        title={t.app.sidebar.switchStaff}
         className={cn(
-          "group flex items-center gap-3 border-t border-white/10 text-left transition-colors hover:bg-white/5 w-full",
+          "group flex items-center gap-3 border-t border-border text-left transition-colors hover:bg-mineral w-full",
           collapsed ? "justify-center py-4 px-2" : "px-5 py-4",
         )}
       >
@@ -186,13 +186,13 @@ export function Sidebar() {
         {!collapsed && (
           <div className="min-w-0 flex-1 leading-tight">
             <div className="flex items-center justify-between gap-1">
-              <p className="text-sm font-bold text-white truncate">{currentStaff.name}</p>
-              <span className="text-[10px] font-semibold text-accent bg-accent/15 px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
+              <p className="text-sm font-bold text-ink truncate">{currentStaff.name}</p>
+              <span className="text-2xs font-semibold text-accent bg-accent/15 px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
                 <KeyRound size={10} />
-                PIN
+                {t.app.sidebar.pin}
               </span>
             </div>
-            <p className="text-xs text-white/50 truncate mt-0.5">{currentStaff.title}</p>
+            <p className="text-xs text-text-muted truncate mt-0.5">{currentStaff.title}</p>
           </div>
         )}
       </button>
@@ -200,9 +200,9 @@ export function Sidebar() {
       <button
         type="button"
         onClick={toggle}
-        aria-label={collapsed ? t.sidebar.expand : t.sidebar.collapse}
-        title={collapsed ? t.sidebar.expand : t.sidebar.collapse}
-        className="pressable mb-4 flex h-10 w-10 items-center justify-center self-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        aria-label={collapsed ? t.app.sidebar.expand : t.app.sidebar.collapse}
+        title={collapsed ? t.app.sidebar.expand : t.app.sidebar.collapse}
+        className="pressable mb-4 flex h-10 w-10 items-center justify-center self-center rounded-lg text-text-muted hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
       </button>
@@ -218,38 +218,38 @@ export function MobileNav() {
     const role = currentStaff.role;
 
     if (role === "pelayan") {
-      return [{ href: "/pelayan", label: "Pelayan", icon: UtensilsCrossed }];
+      return [{ href: "/pelayan", label: t.app.nav.waiterShort, icon: UtensilsCrossed }];
     }
 
     if (role === "dapur") {
-      return [{ href: "/dapur", label: "Dapur", icon: ChefHat }];
+      return [{ href: "/dapur", label: t.app.nav.kitchenShort, icon: ChefHat }];
     }
 
     if (role === "manajer") {
       return [
-        { href: "/laporan", label: t.nav.reports, icon: BarChart3 },
-        { href: "/pesanan", label: t.nav.orders, icon: ReceiptText },
-        { href: "/laci-kas", label: "Laci Kas", icon: Vault },
-        { href: "/pengaturan", label: t.nav.settings, icon: Settings },
+        { href: "/laporan", label: t.app.nav.reports, icon: BarChart3 },
+        { href: "/pesanan", label: t.app.nav.orders, icon: ReceiptText },
+        { href: "/laci-kas", label: t.app.nav.cashDrawer, icon: Vault },
+        { href: "/pengaturan", label: t.app.nav.settings, icon: Settings },
       ];
     }
 
     return [
-      { href: "/", label: t.nav.newPos, icon: CirclePlus },
-      { href: "/laci-kas", label: "Laci Kas", icon: Vault },
-      { href: "/dapur", label: "Dapur", icon: ChefHat },
-      { href: "/pesanan", label: t.nav.orders, icon: ReceiptText },
-      { href: "/meja", label: t.nav.tables, icon: Armchair },
-      { href: "/produk", label: t.nav.products, icon: Package },
-      { href: "/laporan", label: t.nav.reports, icon: BarChart3 },
-      { href: "/pengaturan", label: t.nav.settings, icon: Settings },
+      { href: "/", label: t.app.nav.newPos, icon: CirclePlus },
+      { href: "/laci-kas", label: t.app.nav.cashDrawer, icon: Vault },
+      { href: "/dapur", label: t.app.nav.kitchenShort, icon: ChefHat },
+      { href: "/pesanan", label: t.app.nav.orders, icon: ReceiptText },
+      { href: "/meja", label: t.app.nav.tables, icon: Armchair },
+      { href: "/produk", label: t.app.nav.products, icon: Package },
+      { href: "/laporan", label: t.app.nav.reports, icon: BarChart3 },
+      { href: "/pengaturan", label: t.app.nav.settings, icon: Settings },
     ];
   }, [currentStaff.role]);
 
   return (
     <nav
-      aria-label="Navigasi utama"
-      className="clay-sidebar fixed inset-x-0 bottom-0 z-40 flex max-w-full items-stretch justify-start gap-1 overflow-x-auto scrollbar-none border-t border-ink/10 bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
+      aria-label={t.app.nav.mainLabel}
+      className="fixed inset-x-0 bottom-0 z-40 flex max-w-full items-stretch justify-start gap-1 overflow-x-auto scrollbar-none border-t border-ink/10 bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {entries.map((entry) => {
         const Icon = entry.icon;
@@ -262,8 +262,8 @@ export function MobileNav() {
             aria-label={entry.label}
             title={entry.label}
             className={cn(
-              "pressable flex min-h-14 min-w-[64px] flex-none flex-col items-center justify-center gap-1 px-1 py-2 text-[11px]",
-              active ? "bg-accent/15 text-accent font-bold" : "text-white/60",
+              "pressable flex min-h-14 min-w-[64px] flex-none flex-col items-center justify-center gap-1 px-1 py-2 text-xs2",
+              active ? "bg-accent/15 text-accent font-bold" : "text-ink-soft",
             )}
           >
             <Icon size={21} strokeWidth={active ? 2.4 : 1.8} />
@@ -274,18 +274,18 @@ export function MobileNav() {
       <button
         type="button"
         onClick={openSwitchModal}
-        className="pressable flex min-h-14 min-w-[64px] flex-none flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] text-white/60 hover:text-accent"
-        title="Ganti Peran"
+        className="pressable flex min-h-14 min-w-[64px] flex-none flex-col items-center justify-center gap-1 px-1 py-2 text-xs2 text-ink-soft hover:text-accent"
+        title={t.app.sidebar.switchRole}
       >
         <span
           className={cn(
-            "h-5 w-5 rounded-full flex items-center justify-center font-bold text-[9px]",
+            "h-5 w-5 rounded-full flex items-center justify-center font-bold text-2xs",
             currentStaff.avatarColor,
           )}
         >
           {currentStaff.initials}
         </span>
-        <span className="max-w-full truncate">Ganti</span>
+        <span className="max-w-full truncate">{t.app.sidebar.switchShort}</span>
       </button>
     </nav>
   );
@@ -312,7 +312,7 @@ function NavItem({
         collapsed ? "justify-center px-0" : "px-3",
         active
           ? "bg-accent text-white shadow-xs"
-          : "font-medium text-white/70 hover:bg-white/8 hover:text-white",
+          : "font-medium text-ink-soft hover:bg-ink/5 hover:text-ink",
       )}
     >
       <Icon size={19} strokeWidth={active ? 2.3 : 1.9} />
@@ -322,8 +322,8 @@ function NavItem({
           {entry.badge !== undefined && entry.badge > 0 && (
             <span
               className={cn(
-                "rounded-full px-2 py-0.5 text-[11px] font-bold",
-                active ? "bg-ink text-mineral" : "bg-coral text-white",
+                "rounded-full px-2 py-0.5 text-xs2 font-bold",
+                active ? "bg-ink text-mineral" : "bg-error text-white",
               )}
             >
               {String(entry.badge).padStart(2, "0")}
@@ -332,7 +332,7 @@ function NavItem({
         </>
       )}
       {collapsed && entry.badge !== undefined && entry.badge > 0 && (
-        <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-coral px-1 text-[11px] font-bold leading-none text-white">
+        <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-xs2 font-bold leading-none text-white">
           {entry.badge}
         </span>
       )}

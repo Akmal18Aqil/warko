@@ -1,4 +1,5 @@
 import type { ReceiptPayload } from "./types";
+import { STORE_PROFILE } from "../../lib/storeProfile";
 
 /**
  * Standard ESC/POS Command Byte Sequences
@@ -51,9 +52,9 @@ export function generateEscPosReceipt(payload: ReceiptPayload, paperWidth: 58 | 
   append(ESC_POS_COMMANDS.ALIGN_CENTER);
   append(ESC_POS_COMMANDS.BOLD_ON);
   append(ESC_POS_COMMANDS.DOUBLE_SIZE);
-  appendText("WAKRO DIGITAL\n");
+  appendText(`${STORE_PROFILE.brand.toUpperCase()}\n`);
   append(ESC_POS_COMMANDS.NORMAL_SIZE);
-  appendText("Warung WakRo Baru\n");
+  appendText(`${STORE_PROFILE.outlet}\n`);
   appendText(`${new Date().toLocaleDateString("id-ID")} ${new Date().toLocaleTimeString("id-ID")}\n`);
   append(ESC_POS_COMMANDS.BOLD_OFF);
 

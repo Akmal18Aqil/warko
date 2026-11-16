@@ -1,47 +1,55 @@
 import { useMemo, useState } from "react";
 import { Banknote, Printer, ReceiptText, Search } from "lucide-react";
 import { toast } from "sonner";
-import { formatIDR } from "../data/menu";
-import { t } from "../locales/en";
-import { Header } from "../components/Header";
-import { useAuth } from "../components/AuthContext";
 import type { KitchenStatus } from "@wakro/shared";
-import { useOrders } from "../state/orders";
-import type { OrderRow } from "../types/domain";
-import { usePrint } from "../components/PrintContext";
-import { PaymentModal } from "../components/PaymentModal";
-import { OrderReceiptView } from "../components/OrderReceiptView";
-import { Badge, type BadgeTone } from "../components/ui/Badge";
-import { Button } from "../components/ui/Button";
-import { cn } from "../lib/cn";
-import { isPaid, KITCHEN_LABEL, kitchenStatusOf, paymentStatusOf, tableLabel } from "../lib/orderStatus";
-import { PAY_METHOD_LABEL } from "../lib/receipt";
+import { formatIDR } from "../../data/menu";
+import { t } from "../../locales/id";
+import { Header } from "../../app/Header";
+import { useAuth } from "../../state/auth";
+import { useOrders } from "../../state/orders";
+import { usePrint } from "../../state/print";
+import type { OrderRow } from "../../types/domain";
+import { PaymentModal } from "../pos/PaymentModal";
+import { OrderReceiptView } from "../printing/OrderReceiptView";
+import { Badge, type BadgeTone } from "../../ui/Badge";
+import { Button } from "../../ui/Button";
+import { Empty } from "../../ui/Empty";
+import { Input } from "../../ui/Input";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
+import { PageHeader } from "../../ui/PageHeader";
+import { SegmentedTabs } from "../../ui/SegmentedTabs";
+import { isPaid, KITCHEN_LABEL, kitchenStatusOf, paymentStatusOf, tableLabel } from "../../lib/orderStatus";
+import { PAY_METHOD_LABEL } from "../../lib/receipt";
 
 type OrderFilter = "unpaid" | "active" | "all";
+
+const COLUMN_COUNT = 5;
 
 const KITCHEN_TONE: Record<KitchenStatus, BadgeTone> = {
   draft: "dark",
   queued: "warning",
-  preparing: "lime",
+  preparing: "accent",
   ready: "success",
   served: "neutral",
 };
 
-const SOURCE_LABEL: Record<NonNullable<OrderRow["source"]>, string> = {
-  pos: "Kasir",
-  waiter: "Pelayan",
-  "self-order": "QR Meja",
-};
+const HEADER_CELL = "label-caps px-5 py-3 text-xs2 font-semibold text-ink/50";
+
+function PaymentBadge({ order }: { order: OrderRow }) {
+  if (isPaid(order)) return <Badge tone="success">{t.orders.paid(order.method ? PAY_METHOD_LABEL[order.method] : undefined)}</Badge>;
+  if (paymentStatusOf(order) === "refunded") return <Badge tone="dark">{t.orders.refunded}</Badge>;
+  return <Badge tone="error">{t.orders.unpaid}</Badge>;
+}
 
 /** Cashier order desk: confirm cash payments of self-orders / waiter orders and reprint receipts. */
-export default function Orders() {
+export default function OrdersPage() {
   const orders = useOrders();
   const { currentStaff } = useAuth();
   const { printOrderReceipt } = usePrint();
   const [filter, setFilter] = useState<OrderFilter>("unpaid");
   const [query, setQuery] = useState("");
   const [payingOrder, setPayingOrder] = useState<OrderRow | null>(null);
-  const [detailOrder, setDetailOrder] = useState<OrderRow | null>(null);
+  const [detailNo, setDetailNo] = useState<number | null>(null);
   const canSettle = currentStaff.role === "admin" || currentStaff.role === "kasir";
 
   const counts = useMemo(
@@ -69,81 +77,71 @@ export default function Orders() {
       .sort((a, b) => (filter === "unpaid" ? a.no - b.no : b.no - a.no));
   }, [filter, orders, query]);
 
+  const detailOrder = detailNo === null ? undefined : orders.find((o) => o.no === detailNo);
+
   const handlePrint = (order: OrderRow) => {
     printOrderReceipt(order).catch((err: unknown) =>
-      toast.error(err instanceof Error ? err.message : "Struk gagal dicetak."),
+      toast.error(err instanceof Error ? err.message : t.orders.printFailed),
     );
   };
 
   return (
     <div className="service-rail-surface flex min-h-screen flex-col">
-      <Header title={t.ordersPage.title} />
+      <Header title={t.orders.title} />
       <div className="flex-1 p-5 md:p-8">
-        <p className="-mt-1 mb-4 text-sm text-ink/55">
-          Konfirmasi pembayaran tunai pesanan QR meja &amp; pelayan, lalu cetak struk.
-        </p>
+        <PageHeader subtitle={t.orders.subtitle} subtitleClassName="text-sm" />
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          {(
-            [
-              ["unpaid", `Belum Bayar (${counts.unpaid})`],
-              ["active", `Sedang Diproses (${counts.active})`],
-              ["all", `Semua (${counts.all})`],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={filter === key}
-              onClick={() => setFilter(key)}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
-                filter === key ? "bg-ink text-mineral" : "border border-ink/10 bg-white text-ink/65 hover:bg-ink/5",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-          <label className="relative ml-auto w-full sm:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" aria-hidden="true" />
-            <input
+          <SegmentedTabs<OrderFilter>
+            label={t.orders.filterLabel}
+            value={filter}
+            onChange={setFilter}
+            tabs={[
+              { id: "unpaid", label: t.orders.filters.unpaid(counts.unpaid) },
+              { id: "active", label: t.orders.filters.active(counts.active) },
+              { id: "all", label: t.orders.filters.all(counts.all) },
+            ]}
+          />
+          <div className="relative ml-auto w-full sm:w-64">
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" aria-hidden="true" />
+            <Input
               type="search"
+              size="sm"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari no., meja, atau nama"
-              aria-label="Cari pesanan"
-              className="h-9 w-full rounded-lg border border-ink/15 bg-white pl-8 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-accent/60"
+              placeholder={t.orders.searchPlaceholder}
+              aria-label={t.orders.searchLabel}
+              className="pl-8"
             />
-          </label>
+          </div>
         </div>
 
-        <div className="max-w-full overflow-x-auto rounded-xl border border-ink/10 bg-white">
+        <div className="max-w-full overflow-x-auto rounded-xl border border-ink/10 bg-surface shadow-clay">
           <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
               <tr className="border-b border-ink/10 bg-mineral/60">
-                <th scope="col" className="label-caps px-5 py-3 text-[11px] font-semibold text-ink/50">Pesanan</th>
-                <th scope="col" className="label-caps px-5 py-3 text-[11px] font-semibold text-ink/50">Dapur</th>
-                <th scope="col" className="label-caps px-5 py-3 text-[11px] font-semibold text-ink/50">Pembayaran</th>
-                <th scope="col" className="label-caps px-5 py-3 text-right text-[11px] font-semibold text-ink/50">Total</th>
-                <th scope="col" className="px-5 py-3"><span className="sr-only">Aksi</span></th>
+                <th scope="col" className={HEADER_CELL}>{t.orders.columns.order}</th>
+                <th scope="col" className={HEADER_CELL}>{t.orders.columns.kitchen}</th>
+                <th scope="col" className={HEADER_CELL}>{t.orders.columns.payment}</th>
+                <th scope="col" className={`${HEADER_CELL} text-right`}>{t.orders.columns.total}</th>
+                <th scope="col" className="px-5 py-3"><span className="sr-only">{t.orders.columns.actions}</span></th>
               </tr>
             </thead>
             <tbody>
               {visible.map((order) => {
                 const stage = kitchenStatusOf(order);
-                const paid = isPaid(order);
                 return (
                   <tr key={order.no} className="border-b border-ink/6 last:border-0 hover:bg-mineral/40">
                     <td className="px-5 py-3.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-display font-bold tracking-tight text-ink">#{order.no}</p>
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-ink/70">{tableLabel(order)}</span>
+                        <span className="rounded bg-surface-muted px-1.5 py-0.5 text-2xs font-bold text-ink/70">{tableLabel(order)}</span>
                         {order.source && (
-                          <span className="text-[10px] font-semibold text-ink/50">{SOURCE_LABEL[order.source]}</span>
+                          <span className="text-2xs font-semibold text-ink/50">{t.orders.source[order.source]}</span>
                         )}
                       </div>
                       <p className="mt-0.5 text-xs text-ink/50">
-                        {order.customerName || "Pelanggan"} · {t.ordersPage.itemsUnit(order.itemCount)} ·{" "}
+                        {order.customerName || t.orders.guest} · {t.orders.itemsUnit(order.itemCount)} ·{" "}
                         {new Date(order.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
                       </p>
                     </td>
@@ -151,26 +149,20 @@ export default function Orders() {
                       <Badge tone={KITCHEN_TONE[stage]}>{KITCHEN_LABEL[stage]}</Badge>
                     </td>
                     <td className="px-5 py-3.5">
-                      {paid ? (
-                        <Badge tone="success">Lunas{order.method ? ` · ${PAY_METHOD_LABEL[order.method]}` : ""}</Badge>
-                      ) : paymentStatusOf(order) === "refunded" ? (
-                        <Badge tone="dark">Refund</Badge>
-                      ) : (
-                        <Badge tone="coral">Belum bayar</Badge>
-                      )}
+                      <PaymentBadge order={order} />
                     </td>
                     <td className="px-5 py-3.5 text-right font-display font-bold tracking-tight text-ink">{formatIDR(order.total)}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex justify-end gap-1.5">
-                        {!paid && paymentStatusOf(order) === "unpaid" && canSettle && (
-                          <Button size="sm" onClick={() => setPayingOrder(order)} className="gap-1">
-                            <Banknote size={14} aria-hidden="true" /> Terima Bayar
+                        {paymentStatusOf(order) === "unpaid" && canSettle && (
+                          <Button size="sm" onClick={() => setPayingOrder(order)}>
+                            <Banknote size={14} aria-hidden="true" /> {t.orders.settle}
                           </Button>
                         )}
-                        <Button variant="outline" size="sm" onClick={() => setDetailOrder(order)} aria-label={`Rincian pesanan ${order.no}`}>
+                        <Button variant="outline" size="sm" onClick={() => setDetailNo(order.no)} aria-label={t.orders.detailTitle(order.no)}>
                           <ReceiptText size={14} aria-hidden="true" />
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handlePrint(order)} aria-label={`Cetak struk pesanan ${order.no}`}>
+                        <Button variant="outline" size="sm" onClick={() => handlePrint(order)} aria-label={t.orders.printReceipt(order.no)}>
                           <Printer size={14} aria-hidden="true" />
                         </Button>
                       </div>
@@ -180,8 +172,8 @@ export default function Orders() {
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-ink/50">
-                    {filter === "unpaid" ? "Tidak ada pesanan yang menunggu pembayaran." : "Tidak ada pesanan."}
+                  <td colSpan={COLUMN_COUNT}>
+                    <Empty title={filter === "unpaid" ? t.orders.emptyUnpaid : t.orders.empty} />
                   </td>
                 </tr>
               )}
@@ -193,25 +185,20 @@ export default function Orders() {
       <PaymentModal open={payingOrder !== null} order={payingOrder ?? undefined} onClose={() => setPayingOrder(null)} />
 
       {detailOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/55 p-4" onClick={() => setDetailOrder(null)}>
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Rincian pesanan ${detailOrder.no}`}
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] w-full max-w-sm space-y-3 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl"
-          >
-            <OrderReceiptView order={orders.find((o) => o.no === detailOrder.no) ?? detailOrder} />
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setDetailOrder(null)}>
-                Tutup
-              </Button>
-              <Button className="flex-1 gap-1.5" onClick={() => handlePrint(orders.find((o) => o.no === detailOrder.no) ?? detailOrder)}>
-                <Printer size={15} /> Cetak
-              </Button>
-            </div>
-          </div>
-        </div>
+        <Modal size="sm" onClose={() => setDetailNo(null)}>
+          <ModalHeader title={t.orders.detailTitle(detailOrder.no)} />
+          <ModalBody>
+            <OrderReceiptView order={detailOrder} />
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" onClick={() => setDetailNo(null)}>
+              {t.common.close}
+            </Button>
+            <Button onClick={() => handlePrint(detailOrder)}>
+              <Printer size={15} aria-hidden="true" /> {t.orders.print}
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </div>
   );

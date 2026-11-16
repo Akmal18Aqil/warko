@@ -55,7 +55,7 @@ Aturan yang dijaga server (Worker + D1):
 QRIS mandiri pelanggan **nonaktif** sampai `MIDTRANS_SERVER_KEY` diisi. Tanpa key, pelanggan hanya dapat memilih bayar tunai di kasir.
 
 ```bash
-cd client
+cd apps/api
 pnpm exec wrangler secret put MIDTRANS_SERVER_KEY       # Server Key dari dashboard Midtrans
 # Opsional, untuk akun produksi:
 pnpm exec wrangler secret put MIDTRANS_IS_PRODUCTION     # isi: true
@@ -133,67 +133,20 @@ Perilaku transaksi:
 
 ---
 
-## 🛠️ Teknologi yang Pertahankan
-- React 19 + TypeScript + Vite + Tailwind CSS v4 (SPA offline-first)
-- Dexie / IndexedDB sebagai sumber data lokal primer
-- BroadcastChannel + localStorage sinkronisasi multi-perangkat LAN
-- PWA + Service Worker untuk instalasi di layar utama
-- Web Bluetooth ESC/POS, ZXing barcode scanner, Web Audio beep
+## 🛠️ Teknologi
+
+- **Web** (`apps/web`): React 19, TypeScript, Vite 7, Tailwind CSS 4, PWA (Workbox), Dexie/IndexedDB, ZXing, Web Bluetooth ESC/POS.
+- **API** (`apps/api`): Cloudflare Worker + D1 (SQLite), satu Worker melayani aset web dan `/api/*`.
+- **Shared** (`packages/shared`): kosakata domain (status, role, metode bayar) dan rumus harga (`calculateCharges`, `discountAmount`) yang dipakai web dan API sehingga total di layar selalu sama dengan total di server.
 
 ### Sumber Data
 
-KASA mendukung dua mode:
+| Mode | Cara aktif | Penyimpanan | Untuk |
+|---|---|---|---|
+| `local` | default (`VITE_DATA_SOURCE=local`) | IndexedDB satu browser, sinkron antar-tab | demo / uji tampilan tanpa server |
+| `remote` | `VITE_DATA_SOURCE=remote` (otomatis pada `pnpm build`) | Worker + D1 | operasional multi-perangkat |
 
-- `local`: mode demo/offline. Data dummy tetap disimpan di IndexedDB dan ditampilkan.
-- `remote`: produk, order, meja, kategori, shift, dan mutasi kas dibaca dari API Laravel yang terhubung ke MySQL. Data dummy tetap ada di IndexedDB sebagai data lokal lama, tetapi tidak dipakai untuk tampilan utama.
-
-Aktifkan mode remote dengan membuat `client/.env`:
-
-```env
-VITE_DATA_SOURCE=remote
-VITE_API_URL=/api
-```
-
-Vite meneruskan `/api` ke Laravel pada `http://127.0.0.1:8000` saat development.
-
----
-
-## 📋 Rencana Implementasi Bertahap (Fase)
-
-| Fase | Fokus | Status |
-|---|---|---|
-| 1 | Design tokens & komponen primitif UI | ✅ Selesai |
-| 2 | Layout skeleton & navigasi (Sidebar, Header, MobileNav, AppLayout) | ✅ Selesai |
-| 3 | POS kasir utama & keranjang (Home, CartPanel) | ✅ Selesai |
-| 4 | Layar dapur / KDS (Kitchen) | ✅ Selesai |
-| 5 | Mode pelayan keliling (WaiterOrder) | ✅ Selesai |
-| 6 | QR self-order pelanggan (CustomerSelfOrder) | ✅ Selesai |
-| 7 | Laporan & laci kas (Reports, CashDrawer) | ✅ Selesai |
-| 8 | Pengaturan & pusat jaringan (Settings, NetworkHub) | ✅ Selesai |
-| 9 | Hardening, aksesibilitas, E2E, dokumentasi | ✅ Selesai |
-
-Setiap fase diverifikasi dengan `tsc --noEmit` dan `vite build` sebelum melanjutkan.
-
----
-
-## 🧪 Verifikasi
-
-```bash
-cd client
-npm run check      # TypeScript (harus 0 error)
-npm run build      # Vite production build
-```
-
-Skenario workflow pembayaran yang diverifikasi di browser:
-
-1. Tambahkan item ke keranjang POS.
-2. Pilih **Bayar & Kirim ke Dapur**.
-3. Selesaikan pembayaran tunai, kartu/QR, atau QRIS.
-4. Pastikan modal pembayaran tertutup dan transaksi baru dibuat.
-5. Buka `/dapur` dan pastikan tiket pesanan muncul di antrean KDS.
-6. Buka `/pesanan` dan pastikan badge **Lunas** muncul tanpa menghilangkan status dapur.
-
-Build menghasilkan warning ukuran chunk JavaScript dari Vite, tetapi tidak ada error TypeScript, build, maupun runtime pada skenario tersebut.
+Pemilihan dilakukan sekali saat aplikasi dimulai (`apps/web/src/data/index.ts`); mode remote tidak menulis ke IndexedDB. Perangkat staf memuat ulang `/api/bootstrap` setiap 5 detik dengan `If-None-Match`, sehingga data yang tidak berubah dijawab `304` tanpa render ulang.
 
 ---
 
@@ -221,9 +174,9 @@ Panduan lengkap untuk pemilik restoran dan tim operasional tersedia di:
 
 ---
 
-## 🔑 Akun & PIN Default (Role-Based Access)
+## 🔑 Akun Demo (mode `local`)
 
-Sistem dilengkapi tombol ganti akun cepat (*Quick Switch*) dengan proteksi PIN 4 digit:
+Mode demo lokal menyediakan staf contoh dengan PIN 4 digit untuk tombol ganti akun cepat (*Quick Switch*). PIN ini hanya ada di browser dan bukan kontrol keamanan; mode `remote` memakai akun staf di D1 dengan username dan password, dan hak akses diperiksa oleh server.
 
 | Nama Staf | Peran (*Role*) | PIN Default | Hak Akses Rute |
 | :--- | :--- | :--- | :--- |
@@ -242,7 +195,7 @@ Sistem dilengkapi tombol ganti akun cepat (*Quick Switch*) dengan proteksi PIN 4
 - **Pencarian Cepat (`Ctrl + K`)**: Cari menu berdasarkan nama atau SKU barcode.
 - **Multi-Tab Cart Meja**: Simpan draf transaksi di beberapa meja tanpa takut data hilang saat beralih.
 - **Kustomisasi Pesanan**: Tambahkan catatan per item (*less sugar, tanpa bawang, pedas sedang*).
-- **Kalkulasi Otomatis**: Subtotal, diskon (persen/nominal), biaya layanan (*Service Charge*), dan Pajak Pertambahan Nilai (PPN 11%).
+- **Kalkulasi Otomatis**: Subtotal, diskon (persen/nominal), biaya layanan (*Service Charge*), dan pajak (PPN, tarif dapat diatur; bawaan 11%).
 - **Multi-Metode Pembayaran**: Tunai dengan kalkulator uang kembalian cepat, QRIS Dinamis Mandiri, Kartu Debit/Kredit, dan Transfer Bank.
 - **Pembayaran atomik**: Aksi utama `Bayar & Kirim ke Dapur` mencatat pembayaran dan mengantrekan tiket KDS dalam satu alur.
 - **Status terpisah**: Status pembayaran tidak menimpa status proses dapur, sehingga pesanan bisa `Lunas` sekaligus `Dimasak`.
@@ -268,7 +221,7 @@ Sistem dilengkapi tombol ganti akun cepat (*Quick Switch*) dengan proteksi PIN 4
 - **Hardware Barcode Gun (USB / Bluetooth HID)**: Menangkap ketukan berkecepatan tinggi scanner fisik secara pasif di kasir tanpa perlu klik form.
 - **Kamera Scanner (ZXing Multi-Format)**: Memindai barcode 1D (*EAN-13, EAN-8, Code 128, Code 39, UPC*) dan 2D (*QR Code, Data Matrix*) dengan algoritma `TRY_HARDER`.
 - **Web Audio Beep**: Synthesizer audio asli (*high chime* saat sukses dan *low buzz* saat error) tanpa ketergantungan file audio eksternal.
-- **4 Tab Pemindai**: *Kamera Langsung* (dengan targeting reticle dan laser), *Unggah Foto*, *Ketik Manual*, dan *Demo Cepat*.
+- **3 Tab Pemindai**: *Kamera Langsung*, *Unggah Foto*, dan *Ketik Manual*.
 
 ### 6. 💵 Laci Kas & Rekonsiliasi Shift (`/laci-kas` & `/pengaturan`)
 - **Buka Shift**: Pencatatan kasir bertugas dan modal awal uang kembalian.
@@ -281,109 +234,82 @@ Sistem dilengkapi tombol ganti akun cepat (*Quick Switch*) dengan proteksi PIN 4
 - **Fallback Cetak Standar**: Opsi dialog print browser (`window.print()`) untuk printer kabel USB/LAN.
 
 ### 8. 🌐 Pusat Jaringan & Panduan Server Lokal
-- **Pairing QR Code**: Menampilkan IP jaringan lokal (contoh: `192.168.18.14:5173`) untuk menghubungkan HP pelayan dan tablet dapur dengan satu scan.
+- **Pairing QR Code**: Menampilkan alamat jaringan lokal perangkat (contoh: `192.168.1.10:5173`) untuk menghubungkan HP pelayan dan tablet dapur dengan satu scan.
 - **WiFi QR Generator**: Buat dan cetak kartu QR WiFi restoran untuk pelanggan.
 
 ---
 
-## 🏗️ Struktur Arsitektur & Folder
+## 🏗️ Struktur Monorepo
 
 ```text
-├── client/                      # Frontend SPA (React 19 + TypeScript + Vite + Tailwind 4)
-│   ├── public/                  # Ikon PWA, manifest, favicon
-│   ├── scripts/                 # Otomasi pengujian E2E & visual Puppeteer
-│   └── src/
-│       ├── components/          # Komponen UI, BarcodeScanner, CartPanel, RouteGuard, Modals
-│       ├── hooks/               # Custom hooks (useBarcodeGunScanner, etc.)
-│       ├── lib/                 # Database Dexie.js, Audio Feedback, Exporters, Sync Bus
-│       ├── pages/               # Home (Kasir), WaiterOrder, Kitchen, CustomerSelfOrder,
-│       │                        # CashDrawer, Orders, Tables, Products, Reports, Settings
-│       └── services/            # ESC/POS binary encoder & Bluetooth GATT driver
-├── docs/                        # Tangkapan layar antarmuka & dokumentasi panduan
-├── server/                      # Backend opsional (Laravel 11 REST API)
-└── capacitor/                   # Konfigurasi wrapper native Android/iOS
+├── apps/
+│   ├── web/                     # SPA React (Vite) — POS, KDS, pelayan, self-order, laporan
+│   │   ├── public/              # Ikon PWA, favicon
+│   │   ├── scripts/             # Screenshot dokumentasi, brosur PDF, generator ikon
+│   │   └── src/
+│   │       ├── app/             # App, routing (lazy), layout, guard, sidebar/header
+│   │       ├── features/<fitur>/ # Halaman + komponen per fitur (pos, kitchen, waiter, cash-drawer, …)
+│   │       ├── state/           # Store terfokus: catalog, orders, cart, shift, pricing, auth, print
+│   │       ├── data/            # DataSource: local (Dexie) & remote (HTTP API)
+│   │       ├── lib/             # Fungsi murni + unit test (harga, kas, QR meja, status)
+│   │       ├── services/        # Driver printer ESC/POS, host jaringan, presence antar-tab
+│   │       ├── ui/              # Komponen dasar (Button, Modal, Badge, …)
+│   │       └── locales/id.ts    # Semua teks antarmuka
+│   └── api/                     # Cloudflare Worker + D1
+│       ├── migrations/          # Skema D1 berurutan (0001…)
+│       ├── src/
+│       │   ├── router.ts        # Tabel rute: method, path, role, CSRF
+│       │   ├── routes/          # auth, bootstrap, catalog, orders, cash, public, payments
+│       │   └── orders.ts, pricing.ts, auth.ts, …
+│       ├── test/                # Vitest di runtime Workers dengan D1 lokal
+│       └── wrangler.jsonc
+├── packages/shared/             # Tipe domain & rumus harga bersama (+ test)
+├── docs/                        # Handbook, brosur, tangkapan layar
+└── capacitor/                   # Panduan pembungkus Android
 ```
 
 ---
 
-## 🚀 Panduan Instalasi & Menjalankan
+## 🚀 Instalasi & Menjalankan
 
-### Kebutuhan Sistem
-- **Node.js**: versi 18.0.0 atau lebih baru
-- **Package Manager**: `npm`, `pnpm`, atau `yarn`
-- **Browser Modern**: Google Chrome, Microsoft Edge, atau browser berbasis Chromium (disarankan untuk Web Bluetooth & Barcode Scanner API).
+### Kebutuhan
+- Node.js 20+ dan pnpm 10 (`corepack enable`)
+- Chrome/Edge (Web Bluetooth & kamera barcode)
 
-### 1. Clone Repository
-```bash
-git clone https://github.com/Akmal18Aqil/kasir-restoran.git
-cd kasir-restoran
-```
-
-### 2. Jalankan Frontend KASA
-```bash
-cd client
-npm install
-npm run dev
-```
-Aplikasi kasir akan aktif di `http://localhost:5173`.
-
-### 3. Jalankan API Laravel dan MySQL
-
-Pastikan MySQL aktif dan database `kasir_restoran` sudah tersedia. Server Laravel membutuhkan PHP 8.3 atau lebih baru.
+### Development
 
 ```bash
-cd server
-composer install
-php artisan migrate
-php artisan serve --host=127.0.0.1 --port=8000
+pnpm install
+cp apps/api/.dev.vars.example apps/api/.dev.vars     # isi SESSION_SECRET & BOOTSTRAP_SECRET
+pnpm --filter @wakro/api migrate:local                # skema D1 lokal
+pnpm dev                                              # web :5173 + API wrangler :8787
 ```
 
-Salin `server/.env.example` menjadi `server/.env`, lalu isi `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD` sesuai MySQL lokal.
+Web memakai mode `local` secara default. Untuk mencoba alur server, buat `apps/web/.env.local` berisi `VITE_DATA_SOURCE=remote`; Vite meneruskan `/api` ke `wrangler dev` di port 8787.
 
-Untuk memakai data MySQL pada frontend, aktifkan `VITE_DATA_SOURCE=remote` sebelum menjalankan Vite.
+Perangkat lain di WiFi yang sama: buka `http://<IP-laptop>:5173/pelayan`, `/dapur`, atau `/order/<id-meja>`.
 
-### 4. Hubungkan Perangkat di Jaringan WiFi yang Sama
-- Dapatkan alamat IP laptop kasir (misal: `http://192.168.1.10:5173`).
-- Buka di HP Pelayan: `http://192.168.1.10:5173/pelayan`
-- Buka di Tablet Dapur: `http://192.168.1.10:5173/dapur`
-- Buka QR Meja Pelanggan: `http://192.168.1.10:5173/order/meja-01`
-
-### 5. Build untuk Produksi
-```bash
-cd client
-npm run build
-```
-Hasil build statis dan Service Worker PWA siap di-deploy di folder `client/dist`.
-
-### Persiapan Cloudflare Workers dan D1
-
-Worker dan migrasi D1 dapat diuji secara lokal dari direktori `client`:
+### Pemeriksaan
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm exec wrangler d1 migrations apply DB --local
-pnpm run check:worker
-pnpm exec wrangler deploy --dry-run
+pnpm check     # TypeScript semua paket
+pnpm test      # Vitest: shared, web (fungsi murni), api (runtime Workers + D1)
+pnpm build     # build web mode remote
 ```
 
-Build Worker menggunakan `VITE_DATA_SOURCE=remote`; jangan gunakan build mode lokal untuk deployment. Isi `SESSION_SECRET` dan `BOOTSTRAP_SECRET` melalui secret Worker atau `.dev.vars` yang tidak dikomit. Admin pertama dibuat melalui `/api/setup/bootstrap`; endpoint menerima secret bootstrap melalui header `X-Bootstrap-Secret`, dan `username`, `name`, serta `password` pada body JSON. Ganti secret bootstrap dengan nilai kurang dari 32 karakter setelah penyiapan untuk menonaktifkan endpoint.
-
-Menu profil di header menampilkan pilihan pengelolaan staf untuk admin dan pilihan keluar atau ganti akun. Membuka menu tidak mengakhiri sesi.
-
-Mode Cloudflare mengizinkan pelanggan memesan tanpa login lalu membayar tunai di kasir atau lewat QRIS Midtrans bila `MIDTRANS_SERVER_KEY` diisi (lihat bagian QRIS di atas). Pembayaran QRIS pada mode lokal adalah simulasi, bukan verifikasi pembayaran. Tarif pajak dan layanan disimpan di D1; pesanan ditolak jika total yang disetujui pelanggan berbeda dari total server atau stok tidak mencukupi. Migrasi `0002_wakro_operations.sql` (stok, `table_id`, idempotensi, pelunasan) dan `0003_qris_charges.sql` (charge QRIS) wajib diterapkan sebelum deploy: `pnpm exec wrangler d1 migrations apply DB --remote`. Data MySQL tidak otomatis disalin ke D1; cadangkan dan verifikasi data sumber sebelum cutover.
-
----
-
-## 🧪 Pengujian Otomatis (E2E Testing)
-
-KASA dilengkapi suite pengujian otomatis berbasis Puppeteer untuk memverifikasi fungsionalitas dan mencegah regresi visual:
+### Deploy Cloudflare
 
 ```bash
-cd client
-node scripts/test-barcode-qr-fix.mjs     # Uji scanner kamera, demo, hardware gun, & table QR
-node scripts/test-multi-waiter.mjs       # Uji sesi terisolasi multi-pelayan & table locking
-node scripts/test-self-order.mjs         # Uji alur self-order meja ke KDS real-time
+cd apps/api
+pnpm exec wrangler secret put SESSION_SECRET
+pnpm exec wrangler secret put BOOTSTRAP_SECRET
+pnpm migrate:remote        # wajib sebelum deploy: menerapkan semua migrasi termasuk 0004
+pnpm deploy                # build web (mode remote) lalu wrangler deploy
 ```
+
+- Admin pertama dibuat lewat `POST /api/setup/bootstrap` dengan header `X-Bootstrap-Secret` dan body JSON `username`, `name`, `password`. Setelah itu ganti `BOOTSTRAP_SECRET` dengan nilai < 32 karakter untuk menonaktifkan endpoint.
+- Cron harian (`triggers.crons`) membersihkan sesi kedaluwarsa dan catatan throttle login.
+- Migrasi `0004_integrity_and_indexes.sql` memindahkan `products.category` (nama) menjadi `category_id` (FK) dan mewajibkan nama kategori unik tanpa membedakan huruf besar/kecil. Jika D1 produksi punya dua kategori yang hanya beda huruf besar/kecil, gabungkan dulu sebelum menjalankan migrasi; cadangkan data (`wrangler d1 export`) sebelum `migrate:remote`.
 
 ---
 

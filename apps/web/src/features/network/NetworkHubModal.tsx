@@ -1,553 +1,197 @@
-import { useState, useEffect } from "react";
-import QRCode from "qrcode";
-import {
-  Wifi,
-  Smartphone,
-  ChefHat,
-  QrCode,
-  Users,
-  Copy,
-  Check,
-  ExternalLink,
-  RefreshCw,
-  Server,
-  Info,
-  X,
-  Radio,
-  Laptop,
-  Tablet,
-} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "./ui/Button";
-import { cn } from "../lib/cn";
-import { getNetworkHostInfo } from "../services/networkHost";
-import { getLocalTabId, getTabPeers, subscribeTabPeers } from "../services/tabPresence";
-import { STORAGE_KEYS } from "../lib/storageKeys";
-import { tableOrderUrl } from "../lib/tableQr";
-import { useTables } from "../state/catalog";
-import type { ConnectedDevice } from "../types/domain";
+import { ChefHat, Info, QrCode, Radio, Smartphone, TriangleAlert, Wifi } from "lucide-react";
+import { STORAGE_KEYS } from "../../lib/storageKeys";
+import { t } from "../../locales/id";
+import { getNetworkHostInfo, getSavedServerIp, type NetworkHostInfo } from "../../services/networkHost";
+import { subscribeTabPeers } from "../../services/tabPresence";
+import type { ConnectedDevice } from "../../types/domain";
+import { Badge } from "../../ui/Badge";
+import { Button } from "../../ui/Button";
+import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
+import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
+import { AccessLinkTab } from "./AccessLinkTab";
+import { NetworkDevicesTab } from "./NetworkDevicesTab";
+import { NetworkTableTab } from "./NetworkTableTab";
+import { RichText } from "./RichText";
+import { ServerAddressBar } from "./ServerAddressBar";
+import { useCopyLink } from "./useCopyLink";
+import { useQrDataUrl } from "./useQrDataUrl";
 
 interface NetworkHubModalProps {
   open: boolean;
   onClose: () => void;
 }
 
+type HubTab = "pelayan" | "dapur" | "meja" | "perangkat";
+
+/** Base URL other devices should use: the manually entered server address, else the detected one. */
+function resolveBaseUrl(savedIp: string, info: NetworkHostInfo): string {
+  const address = savedIp.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  if (!address) return info.baseUrl;
+  return `${info.protocol}//${address.includes(":") ? address : `${address}:${info.port}`}`;
+}
+
 export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
-  const tables = useTables();
+  return (
+    <Modal open={open} onClose={onClose} size="lg">
+      <NetworkHub onClose={onClose} />
+    </Modal>
+  );
+}
+
+/** Mounted only while the modal is open, so edits and the active tab reset each time. */
+function NetworkHub({ onClose }: { onClose: () => void }) {
   const hostInfo = getNetworkHostInfo();
-  const [activeTab, setActiveTab] = useState<"pelayan" | "dapur" | "meja" | "perangkat">("pelayan");
-  const [customIp, setCustomIp] = useState(() => {
-    return localStorage.getItem(STORAGE_KEYS.customServerIp) || "";
-  });
-  const [isEditingIp, setIsEditingIp] = useState(false);
-  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
-  const [selectedTableId, setSelectedTableId] = useState<string>(tables[0]?.id ?? "");
-  const [connectedPeers, setConnectedPeers] = useState<ConnectedDevice[]>([]);
+  const [tab, setTab] = useState<HubTab>("pelayan");
+  const [savedIp, setSavedIp] = useState(getSavedServerIp);
+  const [draftIp, setDraftIp] = useState("");
+  const [editingIp, setEditingIp] = useState(false);
+  const [peers, setPeers] = useState<ConnectedDevice[]>([]);
+  const { copiedUrl, copy } = useCopyLink();
 
-  // Keep selected table valid if tables change
-  useEffect(() => {
-    if (tables.length > 0 && !tables.some((t) => t.id === selectedTableId)) {
-      setSelectedTableId(tables[0].id);
-    }
-  }, [tables, selectedTableId]);
+  useEffect(() => subscribeTabPeers(setPeers), []);
 
-  const selectedTable = tables.find((t) => t.id === selectedTableId) || tables[0];
+  const baseUrl = resolveBaseUrl(savedIp, hostInfo);
+  const waiterUrl = `${baseUrl}/pelayan`;
+  const kitchenUrl = `${baseUrl}/dapur`;
+  const waiterQr = useQrDataUrl(tab === "pelayan" ? waiterUrl : null);
+  const kitchenQr = useQrDataUrl(tab === "dapur" ? kitchenUrl : null);
 
-  // Generated QR Data URLs
-  const [waiterQrUrl, setWaiterQrUrl] = useState<string>("");
-  const [kitchenQrUrl, setKitchenQrUrl] = useState<string>("");
-  const [tableQrUrl, setTableQrUrl] = useState<string>("");
+  const exampleAddress = `${hostInfo.isLoopback ? t.network.hub.ipExampleHostName : hostInfo.host}:${hostInfo.port}`;
 
-  // Determine effective base URL
-  const effectiveBaseUrl = customIp.trim()
-    ? `http://${customIp.trim().replace(/^https?:\/\//, "")}${
-        customIp.includes(":") ? "" : `:${hostInfo.port || "5173"}`
-      }`
-    : hostInfo.baseUrl;
-
-  const waiterFullUrl = `${effectiveBaseUrl}/pelayan`;
-  const kitchenFullUrl = `${effectiveBaseUrl}/dapur`;
-  const tableFullUrl = selectedTable ? tableOrderUrl(selectedTable, effectiveBaseUrl) : `${effectiveBaseUrl}/order`;
-
-  // Subscribe to live connected peers
-  useEffect(() => {
-    if (!open) return;
-    const unsub = subscribeTabPeers((peers) => {
-      setConnectedPeers(peers);
-    });
-    return unsub;
-  }, [open]);
-
-  // Generate QR codes
-  useEffect(() => {
-    if (!open) return;
-
-    QRCode.toDataURL(waiterFullUrl, { width: 280, margin: 1, color: { dark: "#172B4D", light: "#FFFFFF" } })
-      .then(setWaiterQrUrl)
-      .catch(console.error);
-
-    QRCode.toDataURL(kitchenFullUrl, { width: 280, margin: 1, color: { dark: "#172B4D", light: "#FFFFFF" } })
-      .then(setKitchenQrUrl)
-      .catch(console.error);
-
-    QRCode.toDataURL(tableFullUrl, { width: 280, margin: 1, color: { dark: "#172B4D", light: "#FFFFFF" } })
-      .then(setTableQrUrl)
-      .catch(console.error);
-  }, [open, waiterFullUrl, kitchenFullUrl, tableFullUrl]);
-
-  if (!open) return null;
-
-  const handleCopy = (url: string, label: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedUrl(url);
-    toast.success(`${label} disalin ke clipboard!`);
-    setTimeout(() => setCopiedUrl(null), 2500);
+  const startEditing = () => {
+    setDraftIp(savedIp);
+    setEditingIp(true);
   };
 
-  const handleSaveCustomIp = () => {
-    const clean = customIp.trim();
-    if (clean) {
-      localStorage.setItem(STORAGE_KEYS.customServerIp, clean);
-      toast.success("Alamat IP Server Lokal disimpan!");
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.customServerIp);
-      toast.info("Menggunakan alamat IP otomatis.");
+  const saveIp = () => {
+    const clean = draftIp.trim();
+    try {
+      if (clean) localStorage.setItem(STORAGE_KEYS.customServerIp, clean);
+      else localStorage.removeItem(STORAGE_KEYS.customServerIp);
+    } catch (error) {
+      console.error("Alamat IP server gagal disimpan:", error);
+      toast.error(t.common.unknownError);
+      return;
     }
-    setIsEditingIp(false);
+    setSavedIp(clean);
+    setEditingIp(false);
+    if (clean) toast.success(t.network.hub.ipSaved);
+    else toast.info(t.network.hub.ipAuto);
   };
+
+  const tabs: readonly SegmentedTab<HubTab>[] = [
+    { id: "pelayan", label: t.network.hub.tabs.waiter, icon: <Smartphone size={14} aria-hidden="true" /> },
+    { id: "dapur", label: t.network.hub.tabs.kitchen, icon: <ChefHat size={14} aria-hidden="true" /> },
+    { id: "meja", label: t.network.hub.tabs.table, icon: <QrCode size={14} aria-hidden="true" /> },
+    { id: "perangkat", label: t.network.hub.tabs.devices(peers.length), icon: <Wifi size={14} aria-hidden="true" /> },
+  ];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-xs animate-in fade-in"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-2xl flex flex-col max-h-[90vh]"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-ink/10 bg-mineral/30 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white shadow-xs">
-              <Radio size={20} />
-            </div>
-            <div>
-              <h2 className="font-display text-lg font-bold text-ink flex items-center gap-2">
-                Pusat Jaringan & Perangkat
-                <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300/60">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                  Server Lokal Aktif
-                </span>
-              </h2>
-              <p className="text-xs text-ink/55">
-                Hubungkan HP Pelayan & Tablet Dapur ke Server Utama dalam 1 jaringan WiFi.
-              </p>
-            </div>
+    <>
+      <ModalHeader
+        title={t.network.hub.title}
+        subtitle={t.network.hub.subtitle}
+        icon={
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white">
+            <Radio size={20} aria-hidden="true" />
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl p-1.5 text-ink/40 hover:bg-ink/5 hover:text-ink transition-colors"
-          >
-            <X size={18} />
-          </button>
-        </div>
+        }
+        actions={
+          <Badge tone="success">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success-dark" aria-hidden="true" />
+            {t.network.hub.serverActive}
+          </Badge>
+        }
+      />
 
-        {/* Server IP Info Banner */}
-        <div className="bg-ink/5 px-6 py-3 border-b border-ink/10 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <Server size={15} className="text-ink/60" />
-            <span className="font-bold text-ink/70">Alamat Server Utama:</span>
-            {!isEditingIp ? (
-              <code className="bg-white px-2 py-0.5 rounded-md border border-ink/15 font-mono font-bold text-ink text-[13px]">
-                {effectiveBaseUrl}
-              </code>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={customIp}
-                  onChange={(e) => setCustomIp(e.target.value)}
-                  placeholder="Contoh: 192.168.1.15:5173"
-                  className="h-7 w-48 rounded-md border border-ink/30 bg-white px-2 text-xs font-mono font-bold text-ink focus:outline-none focus:ring-1 focus:ring-accent"
-                />
-                <Button size="sm" variant="primary" onClick={handleSaveCustomIp} className="h-7 text-[11px] px-2">
-                  Simpan
-                </Button>
-              </div>
-            )}
-          </div>
+      <ServerAddressBar
+        baseUrl={baseUrl}
+        peerCount={peers.length}
+        editing={editingIp}
+        draft={draftIp}
+        placeholder={t.network.hub.ipExample(exampleAddress)}
+        onDraftChange={setDraftIp}
+        onStartEdit={startEditing}
+        onCancel={() => setEditingIp(false)}
+        onSave={saveIp}
+      />
 
-          <div className="flex items-center gap-2">
-            {!isEditingIp ? (
-              <button
-                type="button"
-                onClick={() => setIsEditingIp(true)}
-                className="text-[11px] font-bold text-ink/60 hover:text-ink underline"
-              >
-                Ubah IP Manual
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setIsEditingIp(false)}
-                className="text-[11px] font-semibold text-ink/40 hover:text-ink"
-              >
-                Batal
-              </button>
-            )}
-            <span className="text-ink/20">|</span>
-            <span className="text-ink/60 flex items-center gap-1">
-              <Users size={13} /> {connectedPeers.length} Perangkat Terhubung
-            </span>
-          </div>
-        </div>
+      {hostInfo.isLoopback && !savedIp && (
+        <p role="alert" className="flex items-start gap-2 border-b border-warning/40 bg-warning/10 px-6 py-2.5 text-xs text-warning-dark">
+          <TriangleAlert size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+          {t.network.hub.loopbackWarning}
+        </p>
+      )}
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-ink/10 px-6 bg-white shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab("pelayan")}
-            className={cn(
-              "flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all",
-              activeTab === "pelayan"
-                ? "border-ink text-ink bg-mineral/20"
-                : "border-transparent text-ink/50 hover:text-ink"
-            )}
-          >
-            <Smartphone size={15} />
-            HP Pelayan Keliling
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("dapur")}
-            className={cn(
-              "flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all",
-              activeTab === "dapur"
-                ? "border-ink text-ink bg-mineral/20"
-                : "border-transparent text-ink/50 hover:text-ink"
-            )}
-          >
-            <ChefHat size={15} />
-            Layar Dapur (KDS)
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("meja")}
-            className={cn(
-              "flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all",
-              activeTab === "meja"
-                ? "border-ink text-ink bg-mineral/20"
-                : "border-transparent text-ink/50 hover:text-ink"
-            )}
-          >
-            <QrCode size={15} />
-            QR Menu Meja
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("perangkat")}
-            className={cn(
-              "flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all",
-              activeTab === "perangkat"
-                ? "border-ink text-ink bg-mineral/20"
-                : "border-transparent text-ink/50 hover:text-ink"
-            )}
-          >
-            <Wifi size={15} />
-            Perangkat ({connectedPeers.length})
-          </button>
-        </div>
-
-        {/* Tab Contents */}
-        <div className="flex-1 overflow-y-auto p-6 bg-mineral/10">
-          {/* TAB 1: HP PELAYAN */}
-          {activeTab === "pelayan" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-ink/10 shadow-sm text-center">
-                {waiterQrUrl ? (
-                  <img
-                    src={waiterQrUrl}
-                    alt="QR Code HP Pelayan"
-                    className="w-52 h-52 rounded-xl border border-ink/10 p-2 bg-white shadow-2xs"
-                  />
-                ) : (
-                  <div className="w-52 h-52 rounded-xl bg-mineral animate-pulse" />
-                )}
-                <p className="text-xs font-bold text-ink mt-3">Scan dengan Kamera HP Pelayan</p>
-                <p className="text-[11px] text-ink/50 mt-0.5">Langsung membuka mode pelayan keliling</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-xl bg-white border border-ink/10 p-4 space-y-2.5">
-                  <span className="text-xs font-bold text-ink/60 uppercase tracking-wider block">
-                    Link Akses Langsung
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      readOnly
-                      value={waiterFullUrl}
-                      className="flex-1 bg-mineral/50 border border-ink/15 rounded-lg px-3 py-2 text-xs font-mono text-ink select-all focus:outline-none"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopy(waiterFullUrl, "Link Pelayan")}
-                      className="shrink-0 h-8 gap-1 text-xs"
-                    >
-                      {copiedUrl === waiterFullUrl ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
-                      Salin
-                    </Button>
-                    <a
-                      href={waiterFullUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-ink/15 bg-white text-ink/70 hover:bg-mineral/50 transition-colors"
-                      title="Buka di tab baru"
-                    >
-                      <ExternalLink size={13} />
-                    </a>
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-emerald-50/80 border border-emerald-200/80 p-4 space-y-2 text-xs text-emerald-950">
-                  <p className="font-bold flex items-center gap-1.5 text-emerald-900">
-                    <Wifi size={14} /> Petunjuk Penggunaan Pelayan:
-                  </p>
-                  <ol className="list-decimal list-inside space-y-1 text-emerald-900/85">
-                    <li>Pastikan HP Pelayan terhubung ke <strong>WiFi Restoran</strong> yang sama.</li>
-                    <li>Buka kamera atau browser, scan QR Code di samping.</li>
-                    <li>Isi nama pelayan di HP dan langsung mulai mencatat pesanan di meja pelanggan.</li>
-                    <li>Pesanan yang dikirim seketika masuk ke <strong>Dapur (KDS)</strong> dan <strong>Kasir</strong>!</li>
-                  </ol>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: LAYAR DAPUR KDS */}
-          {activeTab === "dapur" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-ink/10 shadow-sm text-center">
-                {kitchenQrUrl ? (
-                  <img
-                    src={kitchenQrUrl}
-                    alt="QR Code Layar Dapur"
-                    className="w-52 h-52 rounded-xl border border-ink/10 p-2 bg-white shadow-2xs"
-                  />
-                ) : (
-                  <div className="w-52 h-52 rounded-xl bg-mineral animate-pulse" />
-                )}
-                <p className="text-xs font-bold text-ink mt-3">Scan untuk Tablet Dapur (KDS)</p>
-                <p className="text-[11px] text-ink/50 mt-0.5">Layar antrean masak real-time koki & barista</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-xl bg-white border border-ink/10 p-4 space-y-2.5">
-                  <span className="text-xs font-bold text-ink/60 uppercase tracking-wider block">
-                    Link Akses Dapur (KDS)
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      readOnly
-                      value={kitchenFullUrl}
-                      className="flex-1 bg-mineral/50 border border-ink/15 rounded-lg px-3 py-2 text-xs font-mono text-ink select-all focus:outline-none"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopy(kitchenFullUrl, "Link Dapur")}
-                      className="shrink-0 h-8 gap-1 text-xs"
-                    >
-                      {copiedUrl === kitchenFullUrl ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
-                      Salin
-                    </Button>
-                    <a
-                      href={kitchenFullUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-ink/15 bg-white text-ink/70 hover:bg-mineral/50 transition-colors"
-                      title="Buka di tab baru"
-                    >
-                      <ExternalLink size={13} />
-                    </a>
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-amber-50/80 border border-amber-200/80 p-4 space-y-2 text-xs text-amber-950">
-                  <p className="font-bold flex items-center gap-1.5 text-amber-900">
-                    <ChefHat size={14} /> Integrasi Dapur Real-Time:
-                  </p>
-                  <p className="text-amber-900/85">
-                    Pasang tablet di area dapur atau bar kopi. Setiap pesanan baru dari pelayan atau kasir akan langsung muncul dengan peringatan suara bel dapur dan timer antrean.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: QR MENU MEJA */}
-          {activeTab === "meja" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-ink/10 shadow-sm text-center">
-                {tableQrUrl ? (
-                  <img
-                    src={tableQrUrl}
-                    alt={`QR Code ${selectedTable?.name || "Meja"}`}
-                    className="w-52 h-52 rounded-xl border border-ink/10 p-2 bg-white shadow-2xs"
-                  />
-                ) : (
-                  <div className="w-52 h-52 rounded-xl bg-mineral animate-pulse" />
-                )}
-                <p className="text-xs font-bold text-ink mt-3">
-                  QR Code: {selectedTable?.name || "Meja 01"} {selectedTable?.area ? `(${selectedTable.area})` : ""}
-                </p>
-                <p className="text-[11px] text-ink/50 mt-0.5">Pelanggan scan untuk pesan sendiri dari meja</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-xl bg-white border border-ink/10 p-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-ink/60 uppercase tracking-wider block">
-                      Pilih Meja Restoran:
-                    </label>
-                    <span className="text-[11px] font-semibold text-ink/40">
-                      {tables.length} meja aktif
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 max-h-52 overflow-y-auto pr-1">
-                    {tables.map((t) => {
-                      const isSelected = selectedTable?.id === t.id;
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => setSelectedTableId(t.id)}
-                          className={cn(
-                            "px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 shadow-2xs",
-                            isSelected
-                              ? "bg-accent text-white border-ink ring-2 ring-accent/40"
-                              : "bg-mineral/40 text-ink/75 border-ink/15 hover:bg-white hover:border-ink/35"
-                          )}
-                        >
-                          <span>{t.name}</span>
-                          {t.area && (
-                            <span
-                              className={cn(
-                                "text-[10px] px-1.5 py-0.5 rounded font-medium",
-                                isSelected
-                                  ? "bg-white/15 text-accent"
-                                  : "bg-ink/10 text-ink/60"
-                              )}
-                            >
-                              {t.area}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <input
-                    readOnly
-                    value={tableFullUrl}
-                    className="flex-1 bg-white border border-ink/15 rounded-lg px-3 py-2 text-xs font-mono text-ink select-all focus:outline-none"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleCopy(tableFullUrl, `Link ${selectedTable?.name || "Meja"}`)}
-                    className="shrink-0 h-8 gap-1 text-xs"
-                  >
-                    Salin Link
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: PERANGKAT TERHUBUNG */}
-          {activeTab === "perangkat" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-sm text-ink">Tab Aktif di Browser Ini</h3>
-                  <p className="text-xs text-ink/50">Tab aplikasi yang terbuka di browser ini. Perangkat lain di jaringan tidak ditampilkan.</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setConnectedPeers(getTabPeers());
-                    toast.success("Daftar tab diperbarui.");
-                  }}
-                  className="gap-1.5 text-xs font-semibold"
-                >
-                  <RefreshCw size={13} />
-                  Refresh
-                </Button>
-              </div>
-
-              <div className="rounded-2xl border border-ink/10 bg-white divide-y divide-ink/8 shadow-sm overflow-hidden">
-                {connectedPeers.map((peer) => {
-                  const isLocal = peer.id === getLocalTabId();
-                  return (
-                    <div key={peer.id} className="p-4 flex items-center justify-between gap-3 hover:bg-mineral/20 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-mineral flex items-center justify-center border border-ink/10 text-ink/70">
-                          {peer.role === "kasir" ? (
-                            <Laptop size={18} />
-                          ) : peer.role === "dapur" ? (
-                            <Tablet size={18} />
-                          ) : (
-                            <Smartphone size={18} />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-sm text-ink">{peer.name}</p>
-                            {isLocal && (
-                              <span className="text-[10px] bg-accent/40 text-ink font-bold px-1.5 py-0.2 rounded">
-                                Perangkat Ini
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-ink/50 mt-0.5">
-                            Peran: <span className="font-semibold uppercase text-ink/70">{peer.role}</span> · Aktif:{" "}
-                            {Math.round((Date.now() - peer.lastSeen) / 1000)} detik lalu
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                          Online
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-ink/10 bg-white px-6 py-3.5 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 text-xs text-ink/50">
-            <Info size={14} className="text-ink/40" />
-            <span>Pastikan semua perangkat tersambung ke router WiFi yang sama.</span>
-          </div>
-          <Button variant="ink" size="sm" onClick={onClose}>
-            Selesai
-          </Button>
-        </div>
+      <div className="shrink-0 px-6 pt-4">
+        <SegmentedTabs label={t.network.hub.tabsLabel} tabs={tabs} value={tab} onChange={setTab} />
       </div>
-    </div>
+
+      <ModalBody className="bg-mineral/10">
+        {tab === "pelayan" && (
+          <AccessLinkTab
+            qr={waiterQr}
+            qrAlt={t.network.hub.waiter.qrAlt}
+            qrTitle={t.network.hub.waiter.qrTitle}
+            qrBody={t.network.hub.waiter.qrBody}
+            linkTitle={t.network.hub.waiter.linkTitle}
+            url={waiterUrl}
+            copied={copiedUrl === waiterUrl}
+            onCopy={() => void copy(waiterUrl, t.network.hub.waiter.copyLabel)}
+            note={{
+              tone: "success",
+              icon: <Wifi size={14} aria-hidden="true" />,
+              title: t.network.hub.waiter.noteTitle,
+              children: (
+                <ol className="list-inside list-decimal space-y-1">
+                  {t.network.hub.waiter.steps.map((step) => (
+                    <li key={step}>
+                      <RichText text={step} />
+                    </li>
+                  ))}
+                </ol>
+              ),
+            }}
+          />
+        )}
+
+        {tab === "dapur" && (
+          <AccessLinkTab
+            qr={kitchenQr}
+            qrAlt={t.network.hub.kitchen.qrAlt}
+            qrTitle={t.network.hub.kitchen.qrTitle}
+            qrBody={t.network.hub.kitchen.qrBody}
+            linkTitle={t.network.hub.kitchen.linkTitle}
+            url={kitchenUrl}
+            copied={copiedUrl === kitchenUrl}
+            onCopy={() => void copy(kitchenUrl, t.network.hub.kitchen.copyLabel)}
+            note={{
+              tone: "warning",
+              icon: <ChefHat size={14} aria-hidden="true" />,
+              title: t.network.hub.kitchen.noteTitle,
+              children: <p>{t.network.hub.kitchen.noteBody}</p>,
+            }}
+          />
+        )}
+
+        {tab === "meja" && (
+          <NetworkTableTab baseUrl={baseUrl} copiedUrl={copiedUrl} onCopy={(url, label) => void copy(url, label)} />
+        )}
+
+        {tab === "perangkat" && <NetworkDevicesTab peers={peers} onRefresh={setPeers} />}
+      </ModalBody>
+
+      <ModalFooter className="justify-between">
+        <div className="flex items-center gap-2 text-xs text-text-muted">
+          <Info size={14} className="text-text-light" aria-hidden="true" />
+          <span>{t.network.hub.footerNote}</span>
+        </div>
+        <Button variant="ink" size="sm" onClick={onClose}>
+          {t.network.hub.done}
+        </Button>
+      </ModalFooter>
+    </>
   );
 }

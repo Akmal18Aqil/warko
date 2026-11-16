@@ -1,14 +1,7 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import type { OrderRow } from "../types/domain";
 import { escPosPayload, receiptFromOrder } from "../lib/receipt";
-import { getPrinterDriver } from "../services/printer";
+import { getPrinterDriver } from "../services/printer/index";
 
 export type ReportPayload = {
   title: string;
@@ -18,54 +11,73 @@ export type ReportPayload = {
   totalOrders: number;
 };
 
-type PrintMode = "receipt" | "report" | "order";
+export type ReportRow = { label: string; value: string; strong?: boolean };
+
+/** End-of-shift (Z) report, already formatted for paper. */
+export type ZReportPayload = {
+  /** Cashier, opening and closing time. */
+  details: ReportRow[];
+  /** Starting cash, sales, cash in / out, expected, counted and difference. */
+  figures: ReportRow[];
+  /** Counted notes and coins; empty when the cash was typed in as one amount. */
+  denominations: ReportRow[];
+  notes?: string;
+};
+
+/** What the print layer renders. Without a job it shows the live cashier cart as a receipt preview. */
+type PrintJob =
+  | { kind: "cart" }
+  | { kind: "order"; order: OrderRow }
+  | { kind: "report"; report: ReportPayload }
+  | { kind: "zreport"; report: ZReportPayload };
 
 type PrintContextValue = {
-  mode: PrintMode;
-  report: ReportPayload | null;
-  /** Order whose receipt is being printed by the browser driver. */
-  order: OrderRow | null;
+  job: PrintJob;
   printReport: (payload: ReportPayload) => void;
+  printZReport: (payload: ZReportPayload) => void;
   /** Prints a stored order's receipt with the configured driver (browser or ESC/POS Bluetooth). */
   printOrderReceipt: (order: OrderRow) => Promise<void>;
 };
 
+const CART_JOB: PrintJob = { kind: "cart" };
+
 const PrintContext = createContext<PrintContextValue | null>(null);
 
 export function PrintProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<PrintMode>("receipt");
-  const [report, setReport] = useState<ReportPayload | null>(null);
-  const [order, setOrder] = useState<OrderRow | null>(null);
+  const [job, setJob] = useState<PrintJob>(CART_JOB);
 
-  const printReport = useCallback((payload: ReportPayload) => {
-    setReport(payload);
-    setMode("report");
-    setTimeout(() => {
-      window.print();
-      setMode("receipt");
-    }, 80);
-  }, []);
+  /** Renders `next` into the print layer, opens the browser print dialog, then restores the cart preview. */
+  const printWithBrowser = useCallback(
+    (next: PrintJob) =>
+      new Promise<void>((resolve) => {
+        setJob(next);
+        setTimeout(() => {
+          window.print();
+          setJob(CART_JOB);
+          resolve();
+        }, 80);
+      }),
+    [],
+  );
 
-  const printOrderReceipt = useCallback(async (target: OrderRow) => {
-    const driver = getPrinterDriver();
-    if (driver.id !== "browser") {
-      await driver.printReceipt(escPosPayload(receiptFromOrder(target)));
-      return;
-    }
-    setOrder(target);
-    setMode("order");
-    await new Promise<void>((resolve) =>
-      setTimeout(() => {
-        window.print();
-        setMode("receipt");
-        resolve();
-      }, 80),
-    );
-  }, []);
+  const printReport = useCallback((report: ReportPayload) => void printWithBrowser({ kind: "report", report }), [printWithBrowser]);
+  const printZReport = useCallback((report: ZReportPayload) => void printWithBrowser({ kind: "zreport", report }), [printWithBrowser]);
+
+  const printOrderReceipt = useCallback(
+    async (order: OrderRow) => {
+      const driver = getPrinterDriver();
+      if (driver.id !== "browser") {
+        await driver.printReceipt(escPosPayload(receiptFromOrder(order)));
+        return;
+      }
+      await printWithBrowser({ kind: "order", order });
+    },
+    [printWithBrowser],
+  );
 
   const value = useMemo(
-    () => ({ mode, report, order, printReport, printOrderReceipt }),
-    [mode, report, order, printReport, printOrderReceipt],
+    () => ({ job, printReport, printZReport, printOrderReceipt }),
+    [job, printReport, printZReport, printOrderReceipt],
   );
 
   return <PrintContext.Provider value={value}>{children}</PrintContext.Provider>;

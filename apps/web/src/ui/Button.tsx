@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 
 type Variant =
   | "primary"
@@ -61,7 +61,7 @@ export function Button({
       disabled={isDisabled}
       aria-busy={loading || undefined}
       className={cn(
-        "clay-control pressable inline-flex items-center justify-center rounded-lg font-medium transition-all duration-140 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50",
+        "clay-control pressable inline-flex items-center justify-center rounded-clay font-medium transition-all duration-140 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50",
         variantClasses[variant],
         sizeClasses[size],
         className,
@@ -91,7 +91,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        "clay-control pressable inline-flex h-[40px] min-h-[40px] w-[40px] min-w-[40px] items-center justify-center rounded-lg text-ink/70 hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50",
+        "clay-control pressable inline-flex h-[40px] min-h-[40px] w-[40px] min-w-[40px] items-center justify-center rounded-clay text-ink/70 hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
       {...rest}

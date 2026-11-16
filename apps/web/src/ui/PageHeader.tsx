@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "../../lib/cn";
+import { cn } from "../lib/cn";
 
 interface PageHeaderProps {
   title?: string;
@@ -26,7 +26,7 @@ export function PageHeader({
         </h2>
       )}
       {subtitle && (
-        <p className={cn("text-[11px] text-text-muted", subtitleClassName)}>
+        <p className={cn("text-xs2 text-text-muted", subtitleClassName)}>
           {subtitle}
         </p>
       )}

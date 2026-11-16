@@ -193,7 +193,7 @@ export const remoteSource: DataSource = {
   },
 
   loadShiftHistory() {
-    return listResource<ShiftRecord>("shifts");
+    return requestAllPages<ShiftRecord>("/resources/shifts", { limit: String(MAX_PAGE) });
   },
 
   saveShift(shift) {
@@ -211,7 +211,7 @@ export const remoteSource: DataSource = {
   },
 
   async loadCashMovements(shiftId) {
-    const rows = await listResource<CashMovementRow>("cashMovements");
+    const rows = await requestAllPages<CashMovementRow>("/resources/cashMovements", { limit: String(MAX_PAGE) });
     return shiftId ? rows.filter((row) => row.shiftId === shiftId) : rows;
   },
 

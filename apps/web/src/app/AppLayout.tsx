@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Sidebar, MobileNav } from "../components/Sidebar";
+import { Sidebar, MobileNav } from "./Sidebar";
 import { useDataSourceError } from "../state/session";
 import { cn } from "../lib/cn";
 interface AppLayoutProps {

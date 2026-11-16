@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { STORE_PROFILE, STORE_TITLE } from "./src/lib/storeProfile";
 
 export default defineConfig({
   server: {
@@ -23,17 +24,17 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg"],
       manifest: {
-        name: "WAKRO Digital · Warung WakRo Baru",
-        short_name: "WAKRO",
+        name: STORE_TITLE,
+        short_name: STORE_PROFILE.brand.split(" ")[0].toUpperCase(),
         description:
-          "POS, layar dapur, dan self-order QR Warung WakRo Baru.",
+          `POS, layar dapur, dan self-order QR ${STORE_PROFILE.outlet}.`,
         lang: "id",
         start_url: "/",
         scope: "/",
         display: "standalone",
         orientation: "any",
-        background_color: "#eef0eb",
-        theme_color: "#14211f",
+        background_color: "#f3f6fa",
+        theme_color: "#f3f6fa",
         icons: [
           { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
@@ -51,7 +52,7 @@ export default defineConfig({
             urlPattern: /^https:\/\/images\.unsplash\.com\/.*/i,
             handler: "CacheFirst",
             options: {
-              cacheName: "kasa-foto-menu",
+              cacheName: "wakro-foto-menu",
               expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
             },

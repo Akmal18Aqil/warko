@@ -9,11 +9,13 @@ import {
   ChefHat,
   UtensilsCrossed,
 } from "lucide-react";
-import { KasaMark } from "./KasaLogo";
-import { useAuth } from "./AuthContext";
+import { KasaMark } from "../ui/KasaLogo";
+import { useAuth } from "../state/auth";
 import { getNetworkHostInfo } from "../services/networkHost";
 import { cn } from "../lib/cn";
-import { NetworkHubModal } from "./NetworkHubModal";
+import { STORE_PROFILE } from "../lib/storeProfile";
+import { t } from "../locales/id";
+import { NetworkHubModal } from "../features/network/NetworkHubModal";
 
 interface FocusModeHeaderProps {
   title: string;
@@ -49,46 +51,47 @@ export function FocusModeHeader({
     }
   };
 
+  const fullscreenLabel = isFullscreen ? t.app.focus.fullscreenExit : t.app.focus.fullscreenEnter;
   const isFullAdmin = currentStaff.role === "admin" || currentStaff.role === "kasir";
 
   return (
     <>
-      <header className="focus-header-light sticky top-0 z-30 flex min-w-0 items-center justify-between gap-2 overflow-hidden border-b border-ink/10 bg-white px-3 py-2.5 text-ink md:px-6 shrink-0 shadow-md">
+      <header className="sticky top-0 z-30 flex min-w-0 items-center justify-between gap-2 overflow-hidden border-b border-ink/10 bg-surface px-3 py-2.5 text-ink md:px-6 shrink-0 shadow-md">
         {/* Left: Branding & Station Name */}
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex items-center gap-2.5">
             <KasaMark size={32} />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-display text-base font-bold tracking-tight text-white">
-                  {title || "WAKRO"}
+                <span className="font-display text-base font-bold tracking-tight text-ink">
+                  {title || STORE_PROFILE.brand}
                 </span>
                 <span
                   className={cn(
-                    "text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full flex items-center gap-1",
+                    "text-2xs font-extrabold uppercase px-2 py-0.5 rounded-full flex items-center gap-1",
                     roleType === "pelayan"
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                      : "bg-amber-500/20 text-amber-300 border border-amber-500/30",
+                      ? "border border-success/40 bg-success/20 text-success-dark"
+                      : "border border-warning/40 bg-warning/20 text-warning-dark",
                   )}
                 >
                   {roleType === "pelayan" ? <UtensilsCrossed size={11} /> : <ChefHat size={11} />}
-                  {roleType === "pelayan" ? "Pelayan Focus" : "Dapur KDS Focus"}
+                  {roleType === "pelayan" ? t.app.focus.waiter : t.app.focus.kitchen}
                   {badgeCount > 0 && (
-                    <span className="ml-1 px-1.5 py-0.2 rounded-full bg-coral text-white font-bold text-[9px]">
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-error-dark text-white font-bold text-2xs">
                       {badgeCount}
                     </span>
                   )}
                 </span>
               </div>
-              <p className="text-[11px] text-white/50 hidden sm:block">
-                {subtitle || "Modul Khusus Staf · Bebas Distraksi"}
+              <p className="hidden text-xs2 text-text-muted sm:block">
+                {subtitle || t.app.focus.defaultSubtitle}
               </p>
             </div>
           </div>
         </div>
 
         {/* Center: Live Realtime Clock */}
-        <div className="hidden lg:flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs text-white/80">
+        <div className="hidden lg:flex items-center gap-2 border border-border bg-mineral px-3 py-1 rounded-full text-xs text-ink-soft">
           <Clock size={13} className="text-accent" />
           <span className="font-mono font-bold">
             {currentTime.toLocaleTimeString("id-ID", {
@@ -97,8 +100,8 @@ export function FocusModeHeader({
               second: "2-digit",
             })}
           </span>
-          <span className="text-white/40">·</span>
-          <span className="text-[11px] text-white/60">
+          <span className="text-text-light">·</span>
+          <span className="text-xs2 text-text-muted">
             {currentTime.toLocaleDateString("id-ID", {
               weekday: "short",
               day: "numeric",
@@ -113,19 +116,20 @@ export function FocusModeHeader({
           <button
             type="button"
             onClick={() => setNetworkModalOpen(true)}
-            className="hidden sm:flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/80 hover:bg-white/10 transition-all"
-            title="Pusat Jaringan & Server Lokal"
+            className="hidden items-center gap-1.5 rounded-lg border border-border bg-mineral px-2.5 py-1.5 text-xs text-ink-soft transition-all hover:border-border-hover sm:flex"
+            title={t.app.focus.networkTitle}
           >
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-mono text-[11px]">{hostInfo.host}:{hostInfo.port}</span>
+            <span className="h-2 w-2 rounded-full bg-success-dark animate-pulse" />
+            <span className="font-mono text-xs2">{hostInfo.host}:{hostInfo.port}</span>
           </button>
 
           {/* Fullscreen Toggle */}
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-all"
-            title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh (Kiosk)"}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-mineral text-ink-soft transition-all hover:border-border-hover hover:text-ink"
+            title={fullscreenLabel}
+            aria-label={fullscreenLabel}
           >
             {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
           </button>
@@ -134,11 +138,11 @@ export function FocusModeHeader({
           {isFullAdmin && (
             <Link
               href="/"
-              className="flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/15 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-accent hover:text-ink transition-all"
-              title="Kembali ke Layar POS Kasir"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-mineral px-2.5 py-1.5 text-xs font-bold text-ink transition-all hover:bg-accent hover:text-white"
+              title={t.app.focus.toPosTitle}
             >
               <LayoutGrid size={14} />
-              <span className="hidden md:inline">Ke POS Kasir</span>
+              <span className="hidden md:inline">{t.app.focus.toPos}</span>
             </Link>
           )}
 
@@ -146,12 +150,12 @@ export function FocusModeHeader({
           <button
             type="button"
             onClick={openSwitchModal}
-            className="group flex min-w-0 shrink-0 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-white/20 transition-all"
-            title="Klik untuk ganti akun staf / PIN"
+            className="group flex min-w-0 shrink-0 items-center gap-2 rounded-xl border border-border bg-mineral px-2.5 py-1.5 text-xs font-bold text-ink transition-all hover:border-border-hover"
+            title={t.app.focus.switchStaffTitle}
           >
             <span
               className={cn(
-                "flex h-6 w-6 items-center justify-center rounded-full font-display text-[10px] font-bold shadow-2xs",
+                "flex h-6 w-6 items-center justify-center rounded-full font-display text-2xs font-bold shadow-2xs",
                 currentStaff.avatarColor,
               )}
             >
@@ -160,9 +164,9 @@ export function FocusModeHeader({
             <span className="hidden max-w-[90px] truncate sm:block md:max-w-[120px]">
               {currentStaff.name.split(" ")[0]}
             </span>
-            <span className="hidden items-center gap-0.5 text-[10px] font-semibold text-accent bg-accent/20 px-1.5 py-0.5 rounded sm:flex">
+            <span className="hidden items-center gap-0.5 text-2xs font-semibold text-accent-dark bg-accent/15 px-1.5 py-0.5 rounded sm:flex">
               <KeyRound size={10} />
-              PIN
+              {t.app.focus.pin}
             </span>
           </button>
         </div>

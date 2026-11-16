@@ -1,4 +1,4 @@
-import { t } from "../../locales/en";
+import { t } from "../../locales/id";
 import { generateEscPosReceipt } from "./escpos";
 import type { PrinterDriver, ReceiptPayload } from "./types";
 
@@ -78,7 +78,7 @@ export class EscPosBluetoothDriver implements PrinterDriver {
     const bluetooth = (navigator as unknown as BleNavigator).bluetooth;
     if (!bluetooth) {
       throw new Error(
-        `${t.printerService.bluetoothUnavailable} — Browser ini belum mendukung Web Bluetooth API (gunakan Chrome/Edge di desktop atau Android).`,
+        `${t.printing.printer.bluetoothUnavailable} — Browser ini belum mendukung Web Bluetooth API (gunakan Chrome/Edge di desktop atau Android).`,
       );
     }
 
@@ -86,12 +86,12 @@ export class EscPosBluetoothDriver implements PrinterDriver {
     try {
       device = await this.pairedDevice(bluetooth);
       if (!device.gatt) {
-        throw new Error("Perangkat Bluetooth tidak memiliki antarmuka GATT.");
+        throw new Error(t.printing.printer.noGatt);
       }
       const server = await device.gatt.connect();
       const characteristic = await findWritableCharacteristic(server);
       if (!characteristic) {
-        throw new Error("Karakteristik pengiriman data (Write Characteristic) tidak ditemukan pada printer ini.");
+        throw new Error(t.printing.printer.noWriteCharacteristic);
       }
 
       const rawData = generateEscPosReceipt(payload, 58);
@@ -110,11 +110,11 @@ export class EscPosBluetoothDriver implements PrinterDriver {
       this.device = null;
       if (err instanceof Error) {
         if (err.name === "NotFoundError" || err.message.includes("User cancelled")) {
-          throw new Error("Pemilihan printer Bluetooth dibatalkan.");
+          throw new Error(t.printing.printer.pairingCancelled);
         }
         throw new Error(`Gagal mencetak struk Bluetooth: ${err.message}`);
       }
-      throw new Error("Terjadi kesalahan yang tidak diketahui saat mencetak ke Bluetooth.");
+      throw new Error(t.printing.printer.unknownPrintError);
     } finally {
       device?.gatt?.disconnect();
     }

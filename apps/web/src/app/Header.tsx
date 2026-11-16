@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, Radio, Smartphone, ChevronDown, LogOut, Users } from "lucide-react";
 import { toast } from "sonner";
-import { IconButton } from "./ui/Button";
-import { StatusDot } from "./KasaLogo";
-import { t } from "../locales/en";
-import { NetworkHubModal } from "./NetworkHubModal";
+import { IconButton } from "../ui/Button";
+import { StatusDot } from "../ui/KasaLogo";
+import { t } from "../locales/id";
+import { NetworkHubModal } from "../features/network/NetworkHubModal";
 import { getNetworkHostInfo } from "../services/networkHost";
 import { useLocation } from "wouter";
-import { isRemoteDataSource } from "../data";
-import { useAuth } from "./AuthContext";
+import { isRemoteDataSource } from "../data/index";
+import { useAuth } from "../state/auth";
 import { cn } from "../lib/cn";
+import { REMOTE_LOGOUT_EVENT } from "./RemoteAuthGate";
 
 export function Header({
   title,
@@ -46,24 +47,24 @@ export function Header({
   }, [accountMenuOpen]);
 
   const handleNotifications = () => {
-    toast(t.toasts.noNotifications);
+    toast(t.app.header.noNotifications);
   };
 
   return (
     <>
-      <header className="app-header-light flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-5 py-3.5 md:px-8 shrink-0 bg-white text-ink">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-5 py-3.5 md:px-8 shrink-0 bg-surface text-ink">
         <div>
-          <p className="label-caps text-[10px] font-medium text-white/55">
-            {t.header.dateToday}
+          <p className="label-caps text-2xs font-medium text-text-muted">
+            {t.app.header.today(new Date())}
           </p>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-            <h1 className="font-display text-xl font-bold tracking-tight text-white md:text-2xl">
+            <h1 className="font-display text-xl font-bold tracking-tight text-ink md:text-2xl">
               {title}
             </h1>
             {showSavedStatus && (
-              <span className="flex items-center gap-1.5 text-xs text-white/60">
+              <span className="flex items-center gap-1.5 text-xs text-text-muted">
                 <StatusDot />
-                {t.header.allSaved}
+                {t.app.header.allSaved}
               </span>
             )}
           </div>
@@ -74,22 +75,22 @@ export function Header({
           <button
             type="button"
             onClick={() => setNetworkModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-bold text-white shadow-2xs hover:border-white/30 hover:bg-white/15 transition-all"
-            title="Buka Pusat Jaringan & Pairing HP Pelayan"
+            className="flex items-center gap-2 rounded-xl border border-border bg-mineral px-3 py-2 text-xs font-bold text-ink shadow-2xs transition-all hover:border-border-hover"
+            title={t.app.header.networkTitle}
           >
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="flex items-center gap-1.5 text-white/85">
-              <Radio size={14} className="text-success" />
-              <span className="hidden sm:inline">Server Lokal:</span>
-              <span className="font-mono text-[11px] text-white font-extrabold">{hostInfo.host}:{hostInfo.port}</span>
+            <span className="flex h-2 w-2 rounded-full bg-success-dark animate-pulse" />
+            <span className="flex items-center gap-1.5 text-ink-soft">
+              <Radio size={14} className="text-success-dark" />
+              <span className="hidden sm:inline">{t.app.header.localServer}</span>
+              <span className="font-mono text-xs2 font-extrabold text-ink">{hostInfo.host}:{hostInfo.port}</span>
             </span>
-            <span className="hidden md:inline-flex items-center gap-1 bg-accent px-1.5 py-0.5 rounded ml-0.5 text-[10px] font-extrabold text-ink">
+            <span className="hidden md:inline-flex items-center gap-1 bg-accent px-1.5 py-0.5 rounded ml-0.5 text-2xs font-extrabold text-white">
               <Smartphone size={11} />
-              Pair HP
+              {t.app.header.pairPhone}
             </span>
           </button>
 
-          <IconButton label={t.header.notifications} onClick={handleNotifications}>
+          <IconButton label={t.app.header.notifications} onClick={handleNotifications}>
             <Bell size={19} />
           </IconButton>
 
@@ -100,8 +101,8 @@ export function Header({
               onClick={() => isRemoteDataSource ? setAccountMenuOpen((open) => !open) : openSwitchModal()}
               aria-expanded={isRemoteDataSource ? accountMenuOpen : undefined}
               aria-controls={isRemoteDataSource ? "account-menu" : undefined}
-              aria-label={`Menu akun ${currentStaff.name}`}
-              className="group flex items-center gap-2 rounded-full border border-white/15 bg-white/10 pl-1 pr-3 py-1 shadow-2xs hover:border-white/30 hover:bg-white/15 transition-all"
+              aria-label={t.app.header.accountMenu(currentStaff.name)}
+              className="group flex items-center gap-2 rounded-full border border-border bg-mineral pl-1 pr-3 py-1 shadow-2xs hover:border-border-hover transition-all"
             >
               <span
                 className={cn(
@@ -112,22 +113,22 @@ export function Header({
                 {currentStaff.initials}
               </span>
               <div className="text-left hidden sm:block">
-                <p className="text-xs font-bold text-white leading-none">{currentStaff.name.split(" ")[0]}</p>
-                <p className="text-[10px] font-semibold text-white/55 uppercase leading-tight mt-0.5">
+                <p className="text-xs font-bold leading-none text-ink">{currentStaff.name.split(" ")[0]}</p>
+                <p className="text-2xs font-semibold uppercase text-text-muted leading-tight mt-0.5">
                   {currentStaff.role}
                 </p>
               </div>
-              <ChevronDown size={14} className="text-white/45 group-hover:text-white transition-colors ml-0.5" />
+              <ChevronDown size={14} className="text-text-light transition-colors group-hover:text-ink ml-0.5" />
             </button>
             {isRemoteDataSource && accountMenuOpen && (
-              <div id="account-menu" className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-ink/15 bg-white p-1.5 text-ink shadow-lg">
+              <div id="account-menu" className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-border bg-surface p-1.5 text-ink shadow-lg">
                 {currentStaff.role === "admin" && (
                   <button type="button" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent" onClick={() => { setAccountMenuOpen(false); setLocation("/pengaturan"); }}>
-                    <Users size={16} aria-hidden="true" /> Kelola akun staf
+                    <Users size={16} aria-hidden="true" /> {t.app.header.manageStaff}
                   </button>
                 )}
-                <button type="button" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent" onClick={() => { setAccountMenuOpen(false); window.dispatchEvent(new Event("kasa-remote-logout")); }}>
-                  <LogOut size={16} aria-hidden="true" /> Keluar / ganti akun
+                <button type="button" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent" onClick={() => { setAccountMenuOpen(false); window.dispatchEvent(new Event(REMOTE_LOGOUT_EVENT)); }}>
+                  <LogOut size={16} aria-hidden="true" /> {t.app.header.logout}
                 </button>
               </div>
             )}

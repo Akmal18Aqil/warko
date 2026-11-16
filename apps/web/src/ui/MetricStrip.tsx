@@ -1,86 +1,61 @@
-import { Banknote, Vault } from "lucide-react";
-import { toast } from "sonner";
-import { useLocation } from "wouter";
-import { Button } from "./ui/Button";
-import { playDrawerBeep } from "../lib/audioFeedback";
-import { useOrders } from "../state/orders";
-import { formatIDR } from "../data/menu";
-import { t } from "../locales/en";
-import { isPaid, runningOrdersCount, salesToday } from "../lib/orderStatus";
+import type { ReactNode } from "react";
+import { cn } from "../lib/cn";
 
-export function MetricStrip() {
-  const [, setLocation] = useLocation();
-  const orders = useOrders();
-  const running = runningOrdersCount(orders);
-  const paidOrders = orders.filter(isPaid);
-  const avgOrder =
-    paidOrders.length > 0
-      ? Math.round(
-          paidOrders.reduce((sum, o) => sum + o.total, 0) / paidOrders.length,
-        )
-      : 0;
+type MetricTone = "neutral" | "success" | "warning" | "error" | "accent";
 
-  const handleOpenDrawerClick = () => {
-    playDrawerBeep();
-    toast.success("Bunyi laci kas diputar", {
-      description: "Perintah buka laci ke printer belum didukung; buka laci secara manual.",
-      icon: <Vault size={16} className="text-accent-dark" />,
-      action: {
-        label: "Buka Modul Kas",
-        onClick: () => setLocation("/laci-kas"),
-      },
-    });
-  };
+const TONE_TEXT: Record<MetricTone, string> = {
+  neutral: "text-ink",
+  accent: "text-accent-dark",
+  success: "text-success-dark",
+  warning: "text-warning-dark",
+  error: "text-error-dark",
+};
 
+const TONE_ICON: Record<MetricTone, string> = {
+  neutral: "border-border bg-mineral text-ink-soft",
+  accent: "border-accent/20 bg-accent/10 text-accent-dark",
+  success: "border-success/30 bg-success/15 text-success-dark",
+  warning: "border-warning/40 bg-warning/15 text-warning-dark",
+  error: "border-error/30 bg-error/10 text-error-dark",
+};
+
+/** A row of dividing metric cells (`MetricCell`) in one rounded card. */
+export function MetricStrip({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
     <section
-      aria-label="Ringkasan operasional"
-      className="grid grid-cols-2 divide-ink/8 overflow-hidden rounded-2xl border border-ink/8 bg-white lg:grid-cols-4 lg:divide-x shadow-2xs"
+      aria-label={label}
+      className={cn(
+        "grid grid-cols-2 divide-ink/10 overflow-hidden rounded-2xl border border-ink/10 bg-surface shadow-2xs lg:grid-cols-4 lg:divide-x",
+        className,
+      )}
     >
-      <MetricCell
-        active
-        label={t.metrics.running}
-        value={String(running).padStart(2, "0")}
-      />
-      <MetricCell
-        label={t.metrics.todaySales}
-        value={formatIDR(salesToday(orders))}
-      />
-      <MetricCell
-        label={t.metrics.avgOrder}
-        value={formatIDR(avgOrder)}
-      />
-      <div className="flex items-center justify-center p-3">
-        <Button variant="outline" size="sm" onClick={handleOpenDrawerClick} className="h-8 text-xs">
-          <Banknote size={15} />
-          {t.metrics.openDrawer}
-        </Button>
-      </div>
+      {children}
     </section>
   );
 }
 
-function MetricCell({
-  label,
-  value,
-  active = false,
-}: {
+interface MetricCellProps {
   label: string;
-  value: string;
+  value: ReactNode;
+  icon?: ReactNode;
+  tone?: MetricTone;
+  footnote?: ReactNode;
+  /** Accent bar on the leading edge. */
   active?: boolean;
-}) {
+}
+
+export function MetricCell({ label, value, icon, tone = "neutral", footnote, active = false }: MetricCellProps) {
   return (
-    <div className="relative min-w-0 px-4 py-3.5 md:px-5">
-      {active && (
-        <span
-          aria-hidden="true"
-          className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-accent"
-        />
-      )}
-      <p className="label-caps text-[10px] font-semibold text-ink/50">{label}</p>
-      <p className="mt-0.5 truncate font-display text-base font-bold tracking-tight text-ink md:text-lg">
-        {value}
-      </p>
+    <div className="relative flex min-w-0 items-center gap-3 px-4 py-3.5 md:px-5">
+      {active ? <span aria-hidden="true" className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-accent" /> : null}
+      {icon ? (
+        <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border", TONE_ICON[tone])}>{icon}</span>
+      ) : null}
+      <div className="min-w-0">
+        <p className="label-caps text-2xs font-semibold text-ink/50">{label}</p>
+        <p className={cn("mt-0.5 truncate font-display text-base font-bold tracking-tight md:text-lg", TONE_TEXT[tone])}>{value}</p>
+        {footnote ? <p className="truncate text-2xs text-text-muted">{footnote}</p> : null}
+      </div>
     </div>
   );
 }

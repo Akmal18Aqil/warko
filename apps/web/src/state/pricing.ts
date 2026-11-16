@@ -1,5 +1,5 @@
 import type { PricingSettings } from "@wakro/shared";
-import { dataSource } from "../data";
+import { dataSource } from "../data/index";
 import { pricingStore } from "./stores";
 import { useStore } from "./store";
 

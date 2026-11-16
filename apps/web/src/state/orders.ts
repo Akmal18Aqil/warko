@@ -1,5 +1,5 @@
 import type { KitchenStatus, PayMethod } from "@wakro/shared";
-import { dataSource } from "../data";
+import { dataSource } from "../data/index";
 import { createPublicOrder } from "../data/public";
 import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
 import { buildOrderRow } from "../lib/orderBuilder";
@@ -9,6 +9,7 @@ import { refreshProductsAfterOrder } from "./catalog";
 import { resyncAfterConflict } from "./conflict";
 import { useStore } from "./store";
 import { catalogStore, ordersStore, pricingStore, sessionStore } from "./stores";
+import { t } from "../locales/id";
 
 export const useOrders = () => useStore(ordersStore, (s) => s.orders);
 
@@ -42,11 +43,11 @@ export async function persistNewOrder(row: OrderRow, options: OrderSubmitOptions
 
 function tableById(id: string) {
   const table = catalogStore.get().tables.find((t) => t.id === id);
-  if (!table) throw new Error("Meja tidak ditemukan. Muat ulang daftar meja.");
+  if (!table) throw new Error(t.state.tableNotFound);
   return table;
 }
 
-export type SelfOrderInput = {
+type SelfOrderInput = {
   tableId: string;
   customerName: string;
   lines: CartLine[];
@@ -57,13 +58,13 @@ export type SelfOrderInput = {
 };
 
 export async function createSelfOrder(input: SelfOrderInput): Promise<OrderRow> {
-  if (input.lines.length === 0) throw new Error("Keranjang masih kosong.");
+  if (input.lines.length === 0) throw new Error(t.state.cartEmpty);
   const { products } = catalogStore.get();
   const totals = computeTotals(input.lines, products, NO_DISCOUNT, pricingStore.get().pricing);
 
   if (sessionStore.get().publicCustomer) {
     if (input.paymentChoice !== "pay-later") {
-      throw new Error("Pembayaran dilakukan di kasir atau lewat QRIS setelah pesanan dibuat.");
+      throw new Error(t.state.publicPayLater);
     }
     try {
       const created = await createPublicOrder({
@@ -87,14 +88,14 @@ export async function createSelfOrder(input: SelfOrderInput): Promise<OrderRow> 
     source: "self-order",
     orderType: "meja",
     table: tableById(input.tableId),
-    customerName: input.customerName.trim() || "Pelanggan Meja",
+    customerName: input.customerName.trim() || t.state.defaultCustomer,
     method: paid ? "qris" : undefined,
     paymentChoice: input.paymentChoice,
   });
   return persistNewOrder(row, { clientRef: input.clientRef });
 }
 
-export type WaiterOrderInput = {
+type WaiterOrderInput = {
   tableId: string;
   customerName?: string;
   lines: CartLine[];
@@ -109,7 +110,7 @@ export type WaiterOrderInput = {
 };
 
 export async function createWaiterOrder(input: WaiterOrderInput): Promise<OrderRow> {
-  if (input.lines.length === 0) throw new Error("Keranjang masih kosong.");
+  if (input.lines.length === 0) throw new Error(t.state.cartEmpty);
   const table = tableById(input.tableId);
   const { products } = catalogStore.get();
   const totals = computeTotals(input.lines, products, NO_DISCOUNT, pricingStore.get().pricing);
@@ -118,7 +119,7 @@ export async function createWaiterOrder(input: WaiterOrderInput): Promise<OrderR
     orderType: "meja",
     table,
     guests: input.guests || 2,
-    customerName: input.customerName?.trim() || "Tamu Meja",
+    customerName: input.customerName?.trim() || t.state.defaultGuest,
     waiterId: input.waiterId,
     waiterName: input.waiterName,
     method: input.method,
@@ -127,7 +128,7 @@ export async function createWaiterOrder(input: WaiterOrderInput): Promise<OrderR
   return persistNewOrder(row, { clientRef: input.clientRef, cashReceived: input.cashReceived });
 }
 
-export type SettleOutcome = SettleResult & { change: number | null };
+type SettleOutcome = SettleResult & { change: number | null };
 
 /** Settles an existing unpaid order (self-order / waiter order paid at the register). */
 export async function settleOrder(
