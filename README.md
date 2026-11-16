@@ -307,7 +307,7 @@ Satu Worker (`kasa-pos`) melayani web dan `/api/*`, dengan database D1 `kasa-pos
 pnpm exec wrangler secret put SESSION_SECRET
 pnpm exec wrangler secret put BOOTSTRAP_SECRET
 pnpm migrate:remote
-pnpm deploy
+pnpm run deploy   # `pnpm deploy` adalah perintah bawaan pnpm, jadi pakai `run`
 ```
 
 Buat admin pertama dengan `POST /api/setup/bootstrap` (header `X-Bootstrap-Secret`, body JSON `username`, `name`, `password`). Setelah admin pertama ada, endpoint ini menolak permintaan berikutnya (`409`).
@@ -322,7 +322,7 @@ Buat admin pertama dengan `POST /api/setup/bootstrap` (header `X-Bootstrap-Secre
    pnpm exec wrangler d1 execute DB --local --persist-to .wrangler/rehearsal --file ../../backups/<tanggal>.sql
    pnpm exec wrangler d1 migrations apply DB --local --persist-to .wrangler/rehearsal
    ```
-5. `pnpm migrate:remote`, lalu `pnpm deploy` (build web mode remote, lalu `wrangler deploy`).
+5. `pnpm migrate:remote`, lalu `pnpm run deploy` (build web mode remote, lalu `wrangler deploy`).
 6. Verifikasi: buka situs, login staf, buka halaman self-order, dan pastikan `GET /api/public/menu` mengembalikan 200.
 
 **Rollback**
