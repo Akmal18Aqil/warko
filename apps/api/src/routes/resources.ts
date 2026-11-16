@@ -1,7 +1,7 @@
 import type { StaffRole } from "@wakro/shared";
 import { decodeId } from "../guards";
 import { HttpError, json, readJsonObject } from "../http";
-import { get, send, type AuthedContext, type Route } from "../router";
+import { type AuthedContext, get, type Route, send } from "../router";
 
 type ResourceSpec = {
   name: string;

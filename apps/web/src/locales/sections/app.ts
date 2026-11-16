@@ -34,9 +34,7 @@ export const app = {
     logout: "Keluar / ganti akun",
     /** Computed when rendered, so a tab left open overnight shows the right day. */
     today: (date: Date) =>
-      new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-        .format(date)
-        .toUpperCase(),
+      new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date).toUpperCase(),
   },
 
   demo: {

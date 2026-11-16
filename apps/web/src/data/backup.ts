@@ -1,6 +1,6 @@
+import type { CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } from "../types/domain";
 import { db, restaurantTables } from "./db";
 import type { MenuItem } from "./menu";
-import type { CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } from "../types/domain";
 
 /**
  * Backup and import operate on the browser database only. They are unavailable in remote
@@ -69,7 +69,14 @@ function missingCategories(products: readonly MenuItem[], known: readonly Catego
     if (key === "" || names.has(key)) continue;
     names.add(key);
     sortOrder += 1;
-    created.push({ id: `cat-import-${sortOrder}-${Date.now()}`, name: product.category.trim(), kind: product.kind, color: "accent", sortOrder, createdAt: Date.now() });
+    created.push({
+      id: `cat-import-${sortOrder}-${Date.now()}`,
+      name: product.category.trim(),
+      kind: product.kind,
+      color: "accent",
+      sortOrder,
+      createdAt: Date.now(),
+    });
   }
   return created;
 }

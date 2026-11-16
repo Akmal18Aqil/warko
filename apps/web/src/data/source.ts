@@ -1,5 +1,4 @@
 import type { KitchenStatus, PayMethod, PricingSettings } from "@wakro/shared";
-import type { MenuItem } from "./menu";
 import type {
   CashMovementRow,
   CategoryRow,
@@ -11,6 +10,7 @@ import type {
   StockMode,
   TableRow,
 } from "../types/domain";
+import type { MenuItem } from "./menu";
 
 export type WatchHandlers = {
   onSnapshot: (snapshot: Snapshot) => void;

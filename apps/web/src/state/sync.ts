@@ -1,15 +1,15 @@
-import { applySnapshot, reloadAllData } from "./snapshot";
 import { dataSource } from "../data/index";
 import { loadPublicMenu } from "../data/public";
 import { subscribeSync } from "../lib/syncBus";
+import { t } from "../locales/id";
 import { startTabPresence } from "../services/tabPresence";
 import type { CategoryRow, Snapshot } from "../types/domain";
 import { refreshCategories, refreshProducts, refreshTables } from "./catalog";
 import { reloadOrders } from "./orders";
 import { reloadPricing } from "./pricing";
-import { reloadCashMovements, reloadActiveShift } from "./shift";
+import { reloadActiveShift, reloadCashMovements } from "./shift";
+import { applySnapshot, reloadAllData } from "./snapshot";
 import { catalogStore, ordersStore, pricingStore, sessionStore, shiftStore } from "./stores";
-import { t } from "../locales/id";
 
 const UNREACHABLE = t.state.serverUnreachable;
 const LOCAL_FAILED = t.state.localDbFailed;
@@ -142,4 +142,3 @@ export function startDataSync(publicCustomer: boolean): () => void {
     stopTabEvents();
   };
 }
-

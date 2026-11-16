@@ -1,16 +1,9 @@
+import type { PricingSettings } from "@wakro/shared";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { MenuItem } from "../data/menu";
-import {
-  addLine,
-  decreaseLine,
-  increaseLine,
-  removeLine,
-  setLineNote,
-  stockLimitMessage,
-} from "../lib/cart";
+import { addLine, decreaseLine, increaseLine, removeLine, setLineNote, stockLimitMessage } from "../lib/cart";
 import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
-import type { PricingSettings } from "@wakro/shared";
 import type { CartLine } from "../types/domain";
 
 type Options = {
@@ -65,10 +58,7 @@ export function useCartLines({ products, pricing, stockGuard = true, initialLine
   );
 
   const decrease = useCallback((itemId: string) => setLines(decreaseLine(linesRef.current, itemId)), [setLines]);
-  const setNote = useCallback(
-    (itemId: string, note: string) => setLines(setLineNote(linesRef.current, itemId, note)),
-    [setLines],
-  );
+  const setNote = useCallback((itemId: string, note: string) => setLines(setLineNote(linesRef.current, itemId, note)), [setLines]);
   const remove = useCallback((itemId: string) => setLines(removeLine(linesRef.current, itemId)), [setLines]);
   const clear = useCallback(() => setLines([]), [setLines]);
 

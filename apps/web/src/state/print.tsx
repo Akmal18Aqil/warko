@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import type { OrderRow } from "../types/domain";
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { escPosPayload, receiptFromOrder } from "../lib/receipt";
 import { getPrinterDriver } from "../services/printer/index";
+import type { OrderRow } from "../types/domain";
 
 export type ReportPayload = {
   title: string;
@@ -75,10 +75,7 @@ export function PrintProvider({ children }: { children: ReactNode }) {
     [printWithBrowser],
   );
 
-  const value = useMemo(
-    () => ({ job, printReport, printZReport, printOrderReceipt }),
-    [job, printReport, printZReport, printOrderReceipt],
-  );
+  const value = useMemo(() => ({ job, printReport, printZReport, printOrderReceipt }), [job, printReport, printZReport, printOrderReceipt]);
 
   return <PrintContext.Provider value={value}>{children}</PrintContext.Provider>;
 }

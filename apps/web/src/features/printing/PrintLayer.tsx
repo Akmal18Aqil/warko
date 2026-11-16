@@ -7,7 +7,7 @@ import { useCart } from "../../state/cart";
 import { useProducts } from "../../state/catalog";
 import { useNextOrderNo } from "../../state/orders";
 import { usePricing } from "../../state/pricing";
-import { usePrint, type ReportPayload, type ReportRow, type ZReportPayload } from "../../state/print";
+import { type ReportPayload, type ReportRow, usePrint, type ZReportPayload } from "../../state/print";
 import type { OrderRow } from "../../types/domain";
 
 /** The only element that survives `window.print()`: everything else is hidden by the print stylesheet. */

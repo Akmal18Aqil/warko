@@ -1,8 +1,8 @@
 import Dexie, { type EntityTable } from "dexie";
+import type { CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } from "../types/domain";
 import { writeDemoData } from "./demoData";
 import type { MenuItem } from "./menu";
 import type { MetaRow } from "./meta";
-import type { CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } from "../types/domain";
 
 /** Browser-only database for the local (demo) data source. The remote data source never opens it. */
 export const db = new Dexie("kasa-kasir") as Dexie & {

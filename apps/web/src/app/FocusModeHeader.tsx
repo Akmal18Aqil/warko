@@ -1,22 +1,14 @@
-import { useState, useEffect } from "react";
+import { ChefHat, Clock, KeyRound, LayoutGrid, Maximize2, Minimize2, UtensilsCrossed } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import {
-  KeyRound,
-  LayoutGrid,
-  Clock,
-  Maximize2,
-  Minimize2,
-  ChefHat,
-  UtensilsCrossed,
-} from "lucide-react";
-import { KasaMark } from "../ui/KasaLogo";
-import { useAuth } from "../state/auth";
-import { getNetworkHostInfo } from "../services/networkHost";
+import { NetworkHubModal } from "../features/network/NetworkHubModal";
 import { cn } from "../lib/cn";
 import { STORE_PROFILE } from "../lib/storeProfile";
 import { t } from "../locales/id";
-import { NetworkHubModal } from "../features/network/NetworkHubModal";
+import { getNetworkHostInfo } from "../services/networkHost";
+import { useAuth } from "../state/auth";
 import { isDemoMode } from "../state/demo";
+import { KasaMark } from "../ui/KasaLogo";
 import { DemoModeBadge } from "./DemoModeBadge";
 
 interface FocusModeHeaderProps {
@@ -26,12 +18,7 @@ interface FocusModeHeaderProps {
   badgeCount?: number;
 }
 
-export function FocusModeHeader({
-  title,
-  subtitle,
-  roleType,
-  badgeCount = 0,
-}: FocusModeHeaderProps) {
+export function FocusModeHeader({ title, subtitle, roleType, badgeCount = 0 }: FocusModeHeaderProps) {
   const { currentStaff, openSwitchModal } = useAuth();
   const hostInfo = getNetworkHostInfo();
   const [networkModalOpen, setNetworkModalOpen] = useState(false);
@@ -65,9 +52,7 @@ export function FocusModeHeader({
             <KasaMark size={32} />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-display text-base font-bold tracking-tight text-ink">
-                  {title || STORE_PROFILE.brand}
-                </span>
+                <span className="font-display text-base font-bold tracking-tight text-ink">{title || STORE_PROFILE.brand}</span>
                 <span
                   className={cn(
                     "text-2xs font-extrabold uppercase px-2 py-0.5 rounded-full flex items-center gap-1",
@@ -79,15 +64,11 @@ export function FocusModeHeader({
                   {roleType === "pelayan" ? <UtensilsCrossed size={11} /> : <ChefHat size={11} />}
                   {roleType === "pelayan" ? t.app.focus.waiter : t.app.focus.kitchen}
                   {badgeCount > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-error-dark text-white font-bold text-2xs">
-                      {badgeCount}
-                    </span>
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-error-dark text-white font-bold text-2xs">{badgeCount}</span>
                   )}
                 </span>
               </div>
-              <p className="hidden text-xs2 text-text-muted sm:block">
-                {subtitle || t.app.focus.defaultSubtitle}
-              </p>
+              <p className="hidden text-xs2 text-text-muted sm:block">{subtitle || t.app.focus.defaultSubtitle}</p>
             </div>
           </div>
         </div>
@@ -125,7 +106,9 @@ export function FocusModeHeader({
               title={t.app.focus.networkTitle}
             >
               <span className="h-2 w-2 rounded-full bg-success-dark animate-pulse" />
-              <span className="font-mono text-xs2">{hostInfo.host}:{hostInfo.port}</span>
+              <span className="font-mono text-xs2">
+                {hostInfo.host}:{hostInfo.port}
+              </span>
             </button>
           )}
 
@@ -167,9 +150,7 @@ export function FocusModeHeader({
             >
               {currentStaff.initials}
             </span>
-            <span className="hidden max-w-[90px] truncate sm:block md:max-w-[120px]">
-              {currentStaff.name.split(" ")[0]}
-            </span>
+            <span className="hidden max-w-[90px] truncate sm:block md:max-w-[120px]">{currentStaff.name.split(" ")[0]}</span>
             <span className="hidden items-center gap-0.5 text-2xs font-semibold text-accent-dark bg-accent/15 px-1.5 py-0.5 rounded sm:flex">
               <KeyRound size={10} />
               {t.app.focus.pin}
@@ -178,10 +159,7 @@ export function FocusModeHeader({
         </div>
       </header>
 
-      <NetworkHubModal
-        open={networkModalOpen}
-        onClose={() => setNetworkModalOpen(false)}
-      />
+      <NetworkHubModal open={networkModalOpen} onClose={() => setNetworkModalOpen(false)} />
     </>
   );
 }

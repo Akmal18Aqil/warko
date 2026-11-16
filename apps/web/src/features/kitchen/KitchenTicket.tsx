@@ -1,22 +1,11 @@
-import { useEffect, useState } from "react";
-import {
-  AlertTriangle,
-  Check,
-  CheckCircle2,
-  Clock,
-  Flame,
-  QrCode,
-  Smartphone,
-  Store,
-  UserCheck,
-  Utensils,
-} from "lucide-react";
-import { t } from "../../locales/id";
-import { Button } from "../../ui/Button";
-import type { OrderRow } from "../../types/domain";
 import type { OrderSource } from "@wakro/shared";
+import { AlertTriangle, Check, CheckCircle2, Clock, Flame, QrCode, Smartphone, Store, UserCheck, Utensils } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "../../lib/cn";
 import { isPaid, kitchenStatusOf } from "../../lib/orderStatus";
+import { t } from "../../locales/id";
+import type { OrderRow } from "../../types/domain";
+import { Button } from "../../ui/Button";
 
 const CLOCK_TICK_MS = 10_000;
 const MS_PER_MINUTE = 60_000;

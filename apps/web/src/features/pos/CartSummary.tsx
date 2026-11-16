@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { Tag } from "lucide-react";
-import { toast } from "sonner";
 import { DISCOUNT_ROLES } from "@wakro/shared";
-import { formatIDR } from "../../data/menu";
+import { Tag } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { useCan } from "../../app/useCan";
+import { formatIDR } from "../../data/menu";
 import { t } from "../../locales/id";
+import { getPrinterDriver } from "../../services/printer/index";
 import { saveDraft, setDiscount, useCart } from "../../state/cart";
 import { useProducts } from "../../state/catalog";
 import { useNextOrderNo } from "../../state/orders";
 import { usePricing } from "../../state/pricing";
-import { getPrinterDriver } from "../../services/printer/index";
 import { Button } from "../../ui/Button";
 import { DiscountEditor } from "./DiscountEditor";
 
@@ -91,9 +91,7 @@ export function CartSummary({ onPay }: { onPay: () => void }) {
         {totals.discountAmount > 0 && (
           <SummaryRow tone="error" label={t.pos.cart.discountLine} value={`-${formatIDR(totals.discountAmount)}`} />
         )}
-        {serviceChargeEnabled && (
-          <SummaryRow label={t.pos.cart.serviceCharge(serviceChargeRate)} value={formatIDR(totals.serviceCharge)} />
-        )}
+        {serviceChargeEnabled && <SummaryRow label={t.pos.cart.serviceCharge(serviceChargeRate)} value={formatIDR(totals.serviceCharge)} />}
         {taxEnabled && <SummaryRow label={t.pos.cart.tax(taxRate)} value={formatIDR(totals.tax)} />}
         <div className="mt-1 flex items-baseline justify-between border-t border-border pt-1.5">
           <dt className="font-display text-sm font-bold text-ink">{t.pos.cart.totalLabel}</dt>
@@ -116,16 +114,22 @@ export function CartSummary({ onPay }: { onPay: () => void }) {
         </Button>
       </div>
 
-      <Button variant="ghost" size="sm" className="h-7.5 w-full rounded-lg text-xs2 font-semibold text-text-muted hover:text-ink" onClick={handlePrint}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7.5 w-full rounded-lg text-xs2 font-semibold text-text-muted hover:text-ink"
+        onClick={handlePrint}
+      >
         {t.pos.cart.print}
-        <kbd aria-hidden="true" className="kbd-hint ml-1.5 rounded border border-border bg-surface px-1.5 py-0.5 text-2xs font-semibold text-text-muted">
+        <kbd
+          aria-hidden="true"
+          className="kbd-hint ml-1.5 rounded border border-border bg-surface px-1.5 py-0.5 text-2xs font-semibold text-text-muted"
+        >
           {t.pos.cart.printShortcut}
         </kbd>
       </Button>
 
-      {discountOpen && (
-        <DiscountEditor initialType={discountType} initialValue={discountValue} onClose={() => setDiscountOpen(false)} />
-      )}
+      {discountOpen && <DiscountEditor initialType={discountType} initialValue={discountValue} onClose={() => setDiscountOpen(false)} />}
     </div>
   );
 }

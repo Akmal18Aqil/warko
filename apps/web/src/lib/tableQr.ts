@@ -1,5 +1,5 @@
-import type { TableRow } from "../types/domain";
 import { getNetworkHostInfo } from "../services/networkHost";
+import type { TableRow } from "../types/domain";
 import { qrDataUrl } from "./qr";
 import { STORE_PROFILE, STORE_TITLE } from "./storeProfile";
 
@@ -87,6 +87,6 @@ export async function printTableQrSheets(tables: TableRow[]): Promise<void> {
       .hint { margin: 8px 0 0; font-size: 11px; }
       @media print { body { margin: 0; } }
     </style></head><body><div class="grid">${stickers.join("")}</div>
-    <script>window.onload = () => { window.focus(); window.print(); };<\/script></body></html>`);
+    <script>window.onload = () => { window.focus(); window.print(); };</script></body></html>`);
   win.document.close();
 }

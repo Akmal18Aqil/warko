@@ -1,9 +1,9 @@
 import { PackageCheck } from "lucide-react";
 import { formatIDR, isLowStock, isSoldOut, type MenuItem } from "../../data/menu";
+import { t } from "../../locales/id";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { FoodImage } from "../../ui/FoodImage";
-import { t } from "../../locales/id";
 
 function StockBadge({ item }: { item: MenuItem }) {
   const text = t.products.row;

@@ -26,11 +26,7 @@ export function removeLine(lines: readonly CartLine[], itemId: string): CartLine
 }
 
 /** Why one more portion of `itemId` cannot be added, or null when it fits the ready stock. */
-export function stockLimitMessage(
-  lines: readonly CartLine[],
-  products: readonly MenuItem[],
-  itemId: string,
-): string | null {
+export function stockLimitMessage(lines: readonly CartLine[], products: readonly MenuItem[], itemId: string): string | null {
   const product = products.find((p) => p.id === itemId);
   if (!product || product.stock === undefined || product.stock === null) return null;
   const inCart = lines.find((l) => l.itemId === itemId)?.qty ?? 0;

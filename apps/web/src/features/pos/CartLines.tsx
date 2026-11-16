@@ -1,13 +1,13 @@
-import { useState } from "react";
 import { Check, Edit3, MessageSquarePlus, Minus, Plus, ReceiptText, Trash2, X } from "lucide-react";
+import { useState } from "react";
 import { formatIDR, type MenuItem } from "../../data/menu";
+import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
 import { decreaseItem, increaseItem, removeItem, setItemNote, useCart } from "../../state/cart";
 import { useProducts } from "../../state/catalog";
 import type { CartLine } from "../../types/domain";
-import { cn } from "../../lib/cn";
-import { FoodImage } from "../../ui/FoodImage";
 import { Empty } from "../../ui/Empty";
+import { FoodImage } from "../../ui/FoodImage";
 import { Input } from "../../ui/Input";
 import { QtyButton } from "./OrderTypeSelector";
 

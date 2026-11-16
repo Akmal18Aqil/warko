@@ -1,5 +1,5 @@
-import type { StaffRole } from "@wakro/shared";
 import { env } from "cloudflare:workers";
+import type { StaffRole } from "@wakro/shared";
 import { createSession } from "../src/auth";
 import worker from "../src/index";
 
@@ -89,14 +89,25 @@ export async function seedProduct(
     `INSERT INTO products (id, barcode, name, price, category_id, kind, stock, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, 'Makanan', ?, ?, ?)`,
   )
-    .bind(id, barcode, options.name ?? `Menu ${barcode}`, options.price ?? 10_000, options.categoryId ?? "cat-1", options.stock ?? null, now, now)
+    .bind(
+      id,
+      barcode,
+      options.name ?? `Menu ${barcode}`,
+      options.price ?? 10_000,
+      options.categoryId ?? "cat-1",
+      options.stock ?? null,
+      now,
+      now,
+    )
     .run();
   return id;
 }
 
 export async function seedTable(id = "table-1", name = "Meja 1"): Promise<string> {
   const now = Date.now();
-  await env.DB.prepare("INSERT INTO restaurant_tables (id, name, seats, area, active, created_at, updated_at) VALUES (?, ?, 4, 'Indoor', 1, ?, ?)")
+  await env.DB.prepare(
+    "INSERT INTO restaurant_tables (id, name, seats, area, active, created_at, updated_at) VALUES (?, ?, 4, 'Indoor', 1, ?, ?)",
+  )
     .bind(id, name, now, now)
     .run();
   return id;

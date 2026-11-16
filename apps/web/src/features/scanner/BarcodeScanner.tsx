@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Barcode as BarcodeIcon, Camera, Keyboard, Upload, X } from "lucide-react";
+import { useState } from "react";
 import type { MenuItem } from "../../data/menu";
 import { playScanErrorBeep } from "../../lib/audioFeedback";
 import { t } from "../../locales/id";
 import { Modal } from "../../ui/Modal";
-import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
+import { type SegmentedTab, SegmentedTabs } from "../../ui/SegmentedTabs";
 import { ScannerCameraView } from "./ScannerCameraView";
 import { ScannerManualEntry } from "./ScannerManualEntry";
 import { ScannerUploadTab } from "./ScannerUploadTab";
@@ -30,12 +30,7 @@ const TABS: readonly SegmentedTab<ScannerTab>[] = [
 
 export function BarcodeScanner({ open, title = t.scanner.title, ...rest }: BarcodeScannerProps) {
   return (
-    <Modal
-      open={open}
-      onClose={rest.onClose}
-      ariaLabel={title}
-      className="border-white/10! bg-ink! text-white"
-    >
+    <Modal open={open} onClose={rest.onClose} ariaLabel={title} className="border-white/10! bg-ink! text-white">
       <ScannerDialog title={title} {...rest} />
     </Modal>
   );
@@ -75,14 +70,7 @@ function ScannerDialog({
         </button>
       </div>
 
-      <SegmentedTabs
-        tone="dark"
-        label={t.scanner.tabsLabel}
-        tabs={TABS}
-        value={tab}
-        onChange={setTab}
-        className="m-1.5 shrink-0"
-      />
+      <SegmentedTabs tone="dark" label={t.scanner.tabsLabel} tabs={TABS} value={tab} onChange={setTab} className="m-1.5 shrink-0" />
 
       <div className="relative flex min-h-75 flex-1 flex-col justify-center overflow-y-auto bg-ink/40">
         {tab === "camera" && (
@@ -98,9 +86,7 @@ function ScannerDialog({
           <span>{t.scanner.footerNote}</span>
         </div>
         {lastScannedCode && (
-          <span className="max-w-48 truncate font-mono text-xs2 text-accent">
-            {t.scanner.lastScanned(lastScannedCode)}
-          </span>
+          <span className="max-w-48 truncate font-mono text-xs2 text-accent">{t.scanner.lastScanned(lastScannedCode)}</span>
         )}
       </div>
     </>

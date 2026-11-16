@@ -7,11 +7,7 @@ const IMAGE_JPEG_QUALITY = 0.82;
  * Compresses a photo from the device in the browser (HTML5 canvas) into a small JPEG data URL
  * (~40-80KB), light enough to store offline in IndexedDB.
  */
-export function compressImageFile(
-  file: File,
-  maxDim: number = IMAGE_MAX_DIMENSION,
-  quality: number = IMAGE_JPEG_QUALITY,
-): Promise<string> {
+export function compressImageFile(file: File, maxDim: number = IMAGE_MAX_DIMENSION, quality: number = IMAGE_JPEG_QUALITY): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;

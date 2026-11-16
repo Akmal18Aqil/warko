@@ -1,10 +1,10 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { toast } from "sonner";
 import type { StaffRole } from "@wakro/shared";
-import type { StaffUser } from "../state/auth";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { API_BASE, isRemoteDataSource } from "../data/api";
 import { usePublicCustomer } from "../hooks/usePublicCustomer";
 import { t } from "../locales/id";
+import type { StaffUser } from "../state/auth";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 
@@ -35,17 +35,29 @@ export function RemoteAuthGate({ children }: Props) {
     if (!isRemoteDataSource) return;
     let active = true;
     fetch(`${API_BASE}/auth/session`, { credentials: "same-origin" })
-      .then(async (response) => response.ok ? (await response.json()).data as Session : null)
-      .then((value) => { if (active) setSession(value); })
-      .catch(() => { if (active) setError(t.app.remoteGate.unreachable); })
-      .finally(() => { if (active) setLoading(false); });
+      .then(async (response) => (response.ok ? ((await response.json()).data as Session) : null))
+      .then((value) => {
+        if (active) setSession(value);
+      })
+      .catch(() => {
+        if (active) setError(t.app.remoteGate.unreachable);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     const logout = () => {
       void fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "same-origin" })
-        .then((response) => { if (!response.ok) throw new Error(); setSession(null); })
+        .then((response) => {
+          if (!response.ok) throw new Error();
+          setSession(null);
+        })
         .catch(() => toast.error(t.app.remoteGate.logoutFailed));
     };
     window.addEventListener(REMOTE_LOGOUT_EVENT, logout);
-    return () => { active = false; window.removeEventListener(REMOTE_LOGOUT_EVENT, logout); };
+    return () => {
+      active = false;
+      window.removeEventListener(REMOTE_LOGOUT_EVENT, logout);
+    };
   }, []);
 
   async function login(event: FormEvent<HTMLFormElement>) {
@@ -92,7 +104,11 @@ export function RemoteAuthGate({ children }: Props) {
           onChange={(event) => setPassword(event.target.value)}
           required
         />
-        {error && <p role="alert" className="text-sm text-error-dark">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-error-dark">
+            {error}
+          </p>
+        )}
         <Button type="submit" className="w-full" loading={loading}>
           {loading ? t.app.remoteGate.submitting : t.app.remoteGate.submit}
         </Button>

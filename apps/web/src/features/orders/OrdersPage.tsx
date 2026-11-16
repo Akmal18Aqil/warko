@@ -1,16 +1,16 @@
-import { useMemo, useState } from "react";
+import { type KitchenStatus, SETTLE_ROLES } from "@wakro/shared";
 import { Banknote, Printer, ReceiptText, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { SETTLE_ROLES, type KitchenStatus } from "@wakro/shared";
-import { formatIDR } from "../../data/menu";
-import { t } from "../../locales/id";
 import { Header } from "../../app/Header";
 import { useCan } from "../../app/useCan";
+import { formatIDR } from "../../data/menu";
+import { isPaid, KITCHEN_LABEL, kitchenStatusOf, paymentStatusOf, tableLabel } from "../../lib/orderStatus";
+import { PAY_METHOD_LABEL } from "../../lib/receipt";
+import { t } from "../../locales/id";
 import { useOrders } from "../../state/orders";
 import { usePrint } from "../../state/print";
 import type { OrderRow } from "../../types/domain";
-import { PaymentModal } from "../pos/PaymentModal";
-import { OrderReceiptView } from "../printing/OrderReceiptView";
 import { Badge, type BadgeTone } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { Empty } from "../../ui/Empty";
@@ -18,8 +18,8 @@ import { Input } from "../../ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
 import { PageHeader } from "../../ui/PageHeader";
 import { SegmentedTabs } from "../../ui/SegmentedTabs";
-import { isPaid, KITCHEN_LABEL, kitchenStatusOf, paymentStatusOf, tableLabel } from "../../lib/orderStatus";
-import { PAY_METHOD_LABEL } from "../../lib/receipt";
+import { PaymentModal } from "../pos/PaymentModal";
+import { OrderReceiptView } from "../printing/OrderReceiptView";
 
 type OrderFilter = "unpaid" | "active" | "all";
 
@@ -63,9 +63,7 @@ export default function OrdersPage() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return orders
-      .filter((o) =>
-        filter === "unpaid" ? paymentStatusOf(o) === "unpaid" : filter === "active" ? kitchenStatusOf(o) !== "served" : true,
-      )
+      .filter((o) => (filter === "unpaid" ? paymentStatusOf(o) === "unpaid" : filter === "active" ? kitchenStatusOf(o) !== "served" : true))
       .filter(
         (o) =>
           q === "" ||
@@ -79,9 +77,7 @@ export default function OrdersPage() {
   const detailOrder = detailNo === null ? undefined : orders.find((o) => o.no === detailNo);
 
   const handlePrint = (order: OrderRow) => {
-    printOrderReceipt(order).catch((err: unknown) =>
-      toast.error(err instanceof Error ? err.message : t.orders.printFailed),
-    );
+    printOrderReceipt(order).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t.orders.printFailed));
   };
 
   return (
@@ -119,11 +115,21 @@ export default function OrdersPage() {
           <table className="w-full min-w-[720px] border-collapse text-left">
             <thead>
               <tr className="border-b border-ink/10 bg-mineral/60">
-                <th scope="col" className={HEADER_CELL}>{t.orders.columns.order}</th>
-                <th scope="col" className={HEADER_CELL}>{t.orders.columns.kitchen}</th>
-                <th scope="col" className={HEADER_CELL}>{t.orders.columns.payment}</th>
-                <th scope="col" className={`${HEADER_CELL} text-right`}>{t.orders.columns.total}</th>
-                <th scope="col" className="px-5 py-3"><span className="sr-only">{t.orders.columns.actions}</span></th>
+                <th scope="col" className={HEADER_CELL}>
+                  {t.orders.columns.order}
+                </th>
+                <th scope="col" className={HEADER_CELL}>
+                  {t.orders.columns.kitchen}
+                </th>
+                <th scope="col" className={HEADER_CELL}>
+                  {t.orders.columns.payment}
+                </th>
+                <th scope="col" className={`${HEADER_CELL} text-right`}>
+                  {t.orders.columns.total}
+                </th>
+                <th scope="col" className="px-5 py-3">
+                  <span className="sr-only">{t.orders.columns.actions}</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -135,9 +141,7 @@ export default function OrdersPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-display font-bold tracking-tight text-ink">#{order.no}</p>
                         <span className="rounded bg-surface-muted px-1.5 py-0.5 text-2xs font-bold text-ink/70">{tableLabel(order)}</span>
-                        {order.source && (
-                          <span className="text-2xs font-semibold text-ink/50">{t.orders.source[order.source]}</span>
-                        )}
+                        {order.source && <span className="text-2xs font-semibold text-ink/50">{t.orders.source[order.source]}</span>}
                       </div>
                       <p className="mt-0.5 text-xs text-ink/50">
                         {order.customerName || t.orders.guest} · {t.orders.itemsUnit(order.itemCount)} ·{" "}
@@ -158,7 +162,12 @@ export default function OrdersPage() {
                             <Banknote size={14} aria-hidden="true" /> {t.orders.settle}
                           </Button>
                         )}
-                        <Button variant="outline" size="sm" onClick={() => setDetailNo(order.no)} aria-label={t.orders.detailTitle(order.no)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDetailNo(order.no)}
+                          aria-label={t.orders.detailTitle(order.no)}
+                        >
                           <ReceiptText size={14} aria-hidden="true" />
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => handlePrint(order)} aria-label={t.orders.printReceipt(order.no)}>

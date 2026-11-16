@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { FlaskConical } from "lucide-react";
+import { useState } from "react";
 import { ResetDemoModal } from "../features/settings/ResetDemoModal";
 import { t } from "../locales/id";
 

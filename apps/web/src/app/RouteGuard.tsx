@@ -1,9 +1,9 @@
+import { ArrowLeft, KeyRound, Lock } from "lucide-react";
 import type { ReactNode } from "react";
 import { useLocation } from "wouter";
-import { KeyRound, ArrowLeft, Lock } from "lucide-react";
-import { useAuth } from "../state/auth";
 import { cn } from "../lib/cn";
 import { t } from "../locales/id";
+import { useAuth } from "../state/auth";
 import { Button } from "../ui/Button";
 import { Header } from "./Header";
 
@@ -35,17 +35,16 @@ export function RouteGuard({ path, children, moduleName = t.app.guard.defaultMod
             <Lock size={32} />
           </div>
 
-          <h2 className="font-display text-xl font-bold text-ink">
-            {t.app.guard.lockedTitle}
-          </h2>
+          <h2 className="font-display text-xl font-bold text-ink">{t.app.guard.lockedTitle}</h2>
 
-          <p className="mt-2 text-xs text-ink/65 leading-relaxed">
-            {t.app.guard.body(moduleName)}
-          </p>
+          <p className="mt-2 text-xs text-ink/65 leading-relaxed">{t.app.guard.body(moduleName)}</p>
 
           <div className="mt-4 flex items-center justify-center gap-2.5 rounded-xl bg-mineral/50 border border-ink/10 p-3">
             <span
-              className={cn("flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-bold", currentStaff.avatarColor)}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-bold",
+                currentStaff.avatarColor,
+              )}
             >
               {currentStaff.initials}
             </span>
@@ -56,20 +55,12 @@ export function RouteGuard({ path, children, moduleName = t.app.guard.defaultMod
           </div>
 
           <div className="mt-6 flex flex-col gap-2.5">
-            <Button
-              variant="primary"
-              onClick={openSwitchModal}
-              className="w-full gap-2 font-bold justify-center"
-            >
+            <Button variant="primary" onClick={openSwitchModal} className="w-full gap-2 font-bold justify-center">
               <KeyRound size={16} />
               {t.app.guard.switchStaff}
             </Button>
 
-            <Button
-              variant="outline"
-              onClick={() => setLocation(defaultRoute)}
-              className="w-full gap-2 text-xs justify-center"
-            >
+            <Button variant="outline" onClick={() => setLocation(defaultRoute)} className="w-full gap-2 text-xs justify-center">
               <ArrowLeft size={14} />
               {t.app.guard.backTo(currentStaff.title)}
             </Button>

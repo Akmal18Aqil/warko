@@ -4,7 +4,14 @@ import { cartUnchanged, readPendingOrder } from "./pendingOrder";
 
 describe("pending self-order", () => {
   it("restores the original table, cart, total, and idempotency key", () => {
-    const saved = { tableId: "meja-1", customerName: "Tamu", lines: [{ itemId: "kopi", qty: 2 }], clientRef: "a".repeat(32), paymentChoice: "pay-later", expectedTotal: 22200 };
+    const saved = {
+      tableId: "meja-1",
+      customerName: "Tamu",
+      lines: [{ itemId: "kopi", qty: 2 }],
+      clientRef: "a".repeat(32),
+      paymentChoice: "pay-later",
+      expectedTotal: 22200,
+    };
     const storage = { getItem: (key: string) => (key === STORAGE_KEYS.selfPendingOrder ? JSON.stringify(saved) : null) } as Storage;
     expect(readPendingOrder(storage)).toEqual(saved);
   });

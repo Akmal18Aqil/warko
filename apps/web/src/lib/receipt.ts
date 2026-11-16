@@ -1,8 +1,8 @@
-import { formatIDR } from "../data/menu";
 import type { PayMethod } from "@wakro/shared";
+import { formatIDR } from "../data/menu";
+import type { ReceiptPayload } from "../services/printer/index";
 import type { OrderRow } from "../types/domain";
 import { isPaid, tableLabel } from "./orderStatus";
-import type { ReceiptPayload } from "../services/printer/index";
 
 export const PAY_METHOD_LABEL: Record<PayMethod, string> = {
   tunai: "Tunai",

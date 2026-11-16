@@ -16,12 +16,12 @@ import {
   MAX_MONEY,
   MAX_RATE,
   MAX_STOCK,
+  type PricingSettings,
   REPORT_ROLES,
   SETTLE_ROLES,
   STOCK_ROLES,
-  UPDATE_STATUS_ROLES,
-  type PricingSettings,
   type StaffRole,
+  UPDATE_STATUS_ROLES,
 } from "@wakro/shared";
 import { expectedDrawerCash } from "../lib/cash";
 import { isKitchenActive, legacyStatusFor, paymentStatusOf } from "../lib/orderStatus";
@@ -81,7 +81,8 @@ function readStoredPricing(): PricingSettings {
     return {
       taxEnabled: typeof value.taxEnabled === "boolean" ? value.taxEnabled : DEFAULT_PRICING.taxEnabled,
       taxRate: rate(value.taxRate, DEFAULT_PRICING.taxRate),
-      serviceChargeEnabled: typeof value.serviceChargeEnabled === "boolean" ? value.serviceChargeEnabled : DEFAULT_PRICING.serviceChargeEnabled,
+      serviceChargeEnabled:
+        typeof value.serviceChargeEnabled === "boolean" ? value.serviceChargeEnabled : DEFAULT_PRICING.serviceChargeEnabled,
       serviceChargeRate: rate(value.serviceChargeRate, DEFAULT_PRICING.serviceChargeRate),
     };
   } catch {
@@ -105,7 +106,8 @@ const isOpenOrder = (order: OrderRow): boolean => paymentStatusOf(order) === "un
 
 function assertProduct(item: MenuItem): void {
   if (item.name.trim() === "") throw new Error("Nama produk wajib diisi.");
-  if (!Number.isSafeInteger(item.price) || item.price < 0 || item.price > MAX_MONEY) throw new Error("Harga harus bilangan bulat rupiah yang valid.");
+  if (!Number.isSafeInteger(item.price) || item.price < 0 || item.price > MAX_MONEY)
+    throw new Error("Harga harus bilangan bulat rupiah yang valid.");
   if (item.image.length > MAX_IMAGE_LENGTH || !IMAGE_PATTERN.test(item.image)) {
     throw new Error("image harus berupa URL http(s), path relatif, atau data URI gambar.");
   }
@@ -142,7 +144,16 @@ export const localSource: DataSource = {
       this.loadCashMovements(),
       this.loadPricing(),
     ]);
-    return { products, orders, tables, categories, activeShift: activeShift ?? null, cashShiftOpen: activeShift !== undefined, cashMovements, pricing };
+    return {
+      products,
+      orders,
+      tables,
+      categories,
+      activeShift: activeShift ?? null,
+      cashShiftOpen: activeShift !== undefined,
+      cashMovements,
+      pricing,
+    };
   },
 
   async loadPricing() {
@@ -169,7 +180,11 @@ export const localSource: DataSource = {
     return db.transaction("rw", db.products, db.categories, async () => {
       const category = (await db.categories.toArray()).find((c) => sameName(c.name, item.category));
       if (!category) throw new Error("category tidak ditemukan; buat kategori terlebih dahulu.");
-      const duplicate = await db.products.where("barcode").equals(item.barcode).and((p) => p.id !== item.id).first();
+      const duplicate = await db.products
+        .where("barcode")
+        .equals(item.barcode)
+        .and((p) => p.id !== item.id)
+        .first();
       if (duplicate) throw new Error("barcode sudah digunakan produk lain.");
       await db.products.put({ ...item, category: category.name });
     });
@@ -214,7 +229,8 @@ export const localSource: DataSource = {
   async saveTable(table) {
     requireRole(CATALOG_WRITE_ROLES);
     if (table.name.trim() === "" || table.area.trim() === "") throw new Error("Nama dan area meja wajib diisi.");
-    if (!Number.isSafeInteger(table.seats) || table.seats < 1 || table.seats > 1000) throw new Error("Jumlah kursi harus bilangan bulat 1-1000.");
+    if (!Number.isSafeInteger(table.seats) || table.seats < 1 || table.seats > 1000)
+      throw new Error("Jumlah kursi harus bilangan bulat 1-1000.");
     await restaurantTables.put(table);
   },
 
@@ -445,7 +461,11 @@ export const localSource: DataSource = {
         throw new Error("Shift yang sudah ditutup hanya dapat diubah oleh admin.");
       }
       if (shift.status === "OPEN") {
-        const other = await db.shifts.where("status").equals("OPEN").and((s) => s.id !== shift.id).first();
+        const other = await db.shifts
+          .where("status")
+          .equals("OPEN")
+          .and((s) => s.id !== shift.id)
+          .first();
         if (other) throw new Error("Masih ada shift lain yang terbuka; tutup shift tersebut terlebih dahulu.");
       }
       const base: ShiftRecord = {

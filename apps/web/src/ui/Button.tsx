@@ -1,15 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "../lib/cn";
 
-type Variant =
-  | "primary"
-  | "secondary"
-  | "ink"
-  | "outline"
-  | "ghost"
-  | "danger"
-  | "danger-ghost"
-  | "success";
+type Variant = "primary" | "secondary" | "ink" | "outline" | "ghost" | "danger" | "danger-ghost" | "success";
 type Size = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -24,16 +16,13 @@ const variantClasses: Record<Variant, string> = {
     "bg-accent text-white border-accent hover:bg-accent-dark hover:border-accent-dark shadow-sm disabled:bg-accent/60 disabled:border-accent/60 disabled:text-white/70",
   secondary:
     "bg-surface text-ink border-border hover:bg-surface-muted hover:border-border-hover shadow-sm disabled:bg-surface/40 disabled:text-ink/40 disabled:border-border/40",
-  ink:
-    "bg-ink text-mineral hover:bg-ink-soft shadow-sm disabled:bg-ink/40 disabled:text-mineral/40",
+  ink: "bg-ink text-mineral hover:bg-ink-soft shadow-sm disabled:bg-ink/40 disabled:text-mineral/40",
   outline:
     "border border-border bg-surface text-ink hover:border-accent hover:bg-accent/5 disabled:border-border/40 disabled:bg-surface/30 disabled:text-ink/40",
-  ghost:
-    "text-ink/70 hover:bg-ink/5 hover:text-ink disabled:text-ink/20 disabled:bg-transparent disabled:opacity-60",
+  ghost: "text-ink/70 hover:bg-ink/5 hover:text-ink disabled:text-ink/20 disabled:bg-transparent disabled:opacity-60",
   danger:
     "bg-error text-white border-error hover:bg-error-dark hover:border-error-dark disabled:bg-error/60 disabled:border-error/60 disabled:text-white/70",
-  "danger-ghost":
-    "text-error hover:bg-error/10 hover:text-error-dark disabled:text-error/30 disabled:bg-transparent disabled:opacity-60",
+  "danger-ghost": "text-error hover:bg-error/10 hover:text-error-dark disabled:text-error/30 disabled:bg-transparent disabled:opacity-60",
   success:
     "bg-success text-ink border-success hover:bg-success-dark hover:border-success-dark hover:text-white disabled:bg-success/60 disabled:border-success/60 disabled:text-ink/60",
 };

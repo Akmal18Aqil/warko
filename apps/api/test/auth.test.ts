@@ -109,7 +109,11 @@ describe("scheduled cleanup", () => {
     const { id } = await signIn("kasir");
     const now = Date.now();
     await env.DB.batch([
-      env.DB.prepare("INSERT INTO sessions (id_hash, staff_id, created_at, expires_at) VALUES ('expired', ?, ?, ?)").bind(id, now - 100_000, now - 1),
+      env.DB.prepare("INSERT INTO sessions (id_hash, staff_id, created_at, expires_at) VALUES ('expired', ?, ?, ?)").bind(
+        id,
+        now - 100_000,
+        now - 1,
+      ),
       env.DB.prepare("INSERT INTO auth_throttle (key, failures, window_start) VALUES ('stale', 3, ?)").bind(now - 16 * 60_000),
       env.DB.prepare("INSERT INTO auth_throttle (key, failures, window_start) VALUES ('fresh', 1, ?)").bind(now),
     ]);

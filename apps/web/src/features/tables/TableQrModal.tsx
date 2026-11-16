@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
 import { Check, Copy, ExternalLink, Printer, QrCode, Wifi } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { tableOrderUrl, tableQrDataUrl } from "../../lib/tableQr";
 import { t } from "../../locales/id";
+import type { TableRow } from "../../types/domain";
 import { Button } from "../../ui/Button";
 import { Modal, ModalBody, ModalHeader } from "../../ui/Modal";
-import { tableOrderUrl, tableQrDataUrl } from "../../lib/tableQr";
-import type { TableRow } from "../../types/domain";
 
 const COPIED_FEEDBACK_MS = 2500;
 
@@ -99,11 +99,23 @@ export function TableQrModal({ table, onClose, onPrint }: TableQrModalProps) {
             {t.tables.qr.openCustomer}
           </a>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={copyLink} className="flex-1 gap-1.5 rounded-xl text-xs font-semibold">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={copyLink}
+              className="flex-1 gap-1.5 rounded-xl text-xs font-semibold"
+            >
               {copied ? <Check size={14} className="text-success-dark" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
               {copied ? t.tables.qr.copied : t.tables.qr.copyLink}
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => onPrint([table])} className="flex-1 gap-1.5 rounded-xl text-xs font-semibold">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onPrint([table])}
+              className="flex-1 gap-1.5 rounded-xl text-xs font-semibold"
+            >
               <Printer size={14} aria-hidden="true" />
               {t.tables.qr.printSticker}
             </Button>

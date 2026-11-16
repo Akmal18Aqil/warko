@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
 import { Minus, Plus } from "lucide-react";
+import type { ReactNode } from "react";
+import { cn } from "../../lib/cn";
+import { floorsOf } from "../../lib/orderStatus";
 import { t } from "../../locales/id";
 import { selectTable, setGuests, setOrderType, useCart } from "../../state/cart";
 import { useTables } from "../../state/catalog";
-import { floorsOf } from "../../lib/orderStatus";
-import { cn } from "../../lib/cn";
 import { Select } from "../../ui/Input";
 
 /** Dine-in / takeaway switch with the table picker and guest counter. */
@@ -15,11 +15,7 @@ export function OrderTypeSelector() {
   return (
     <>
       <div role="group" aria-label={t.pos.cart.orderTypeLabel} className="mt-2.5 grid grid-cols-2 gap-1.5 rounded-md bg-surface-muted p-1">
-        <TypeToggle
-          active={orderType === "bawa-pulang"}
-          label={t.pos.cart.takeaway}
-          onClick={() => setOrderType("bawa-pulang")}
-        />
+        <TypeToggle active={orderType === "bawa-pulang"} label={t.pos.cart.takeaway} onClick={() => setOrderType("bawa-pulang")} />
         <TypeToggle
           active={orderType === "meja"}
           label={selectedTable ? t.pos.cart.dineInTable(selectedTable.name) : t.pos.cart.dineIn}

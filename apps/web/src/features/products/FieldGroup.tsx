@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { cn } from "../../lib/cn";
 
 /** A captioned group of related controls (radio buttons, swatches) that has no single native label. */

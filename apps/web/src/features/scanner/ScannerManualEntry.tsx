@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { formatIDR } from "../../data/menu";
+import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
 import { useProducts } from "../../state/catalog";
-import { cn } from "../../lib/cn";
 import { Input } from "../../ui/Input";
 
 interface ScannerManualEntryProps {

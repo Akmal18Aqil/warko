@@ -1,10 +1,10 @@
-import { readBackup, writeImport, type ImportCounts, type ImportRows } from "../data/backup";
+import { type ImportCounts, type ImportRows, readBackup, writeImport } from "../data/backup";
 import type { MenuItem, MenuKind } from "../data/menu";
 import type { CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } from "../types/domain";
 import { isPaid, tableLabel } from "./orderStatus";
-import { broadcastSync } from "./syncBus";
 import { PAY_METHOD_LABEL } from "./receipt";
 import { STORE_PROFILE } from "./storeProfile";
+import { broadcastSync } from "./syncBus";
 
 function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
@@ -27,38 +27,20 @@ function csvEscape(value: string | number | undefined): string {
 }
 
 function toCsv(headers: string[], rows: Array<Array<string | number | undefined>>): string {
-  return [headers.map(csvEscape).join(";"), ...rows.map((r) => r.map(csvEscape).join(";"))].join(
-    "\r\n",
-  );
+  return [headers.map(csvEscape).join(";"), ...rows.map((r) => r.map(csvEscape).join(";"))].join("\r\n");
 }
 
 export async function exportBackupJson(): Promise<void> {
   const payload = await readBackup();
-  download(
-    new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
-    `wakro-cadangan-lengkap-${dateStamp()}.json`,
-  );
+  download(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), `wakro-cadangan-lengkap-${dateStamp()}.json`);
 }
 
 export async function exportProductsCsv(products: MenuItem[]): Promise<void> {
   const csv = toCsv(
     ["id", "barcode", "nama", "deskripsi", "harga", "kategori", "jenis", "menit", "stok"],
-    products.map((p) => [
-      p.id,
-      p.barcode,
-      p.name,
-      p.description,
-      p.price,
-      p.category,
-      p.kind,
-      p.prepMinutes,
-      p.stock ?? "",
-    ]),
+    products.map((p) => [p.id, p.barcode, p.name, p.description, p.price, p.category, p.kind, p.prepMinutes, p.stock ?? ""]),
   );
-  download(
-    new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }),
-    `wakro-produk-${dateStamp()}.csv`,
-  );
+  download(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }), `wakro-produk-${dateStamp()}.csv`);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -70,8 +52,7 @@ function rowsOf<T>(value: unknown, isValid: (row: Record<string, unknown>) => bo
   return value.filter((row): row is T & Record<string, unknown> => isRecord(row) && isValid(row)) as T[];
 }
 
-const isProduct = (p: Record<string, unknown>) =>
-  typeof p.id === "string" && typeof p.name === "string" && typeof p.price === "number";
+const isProduct = (p: Record<string, unknown>) => typeof p.id === "string" && typeof p.name === "string" && typeof p.price === "number";
 const isOrder = (o: Record<string, unknown>) => typeof o.no === "number" && typeof o.total === "number";
 const isTable = (t: Record<string, unknown>) => typeof t.id === "string" && typeof t.name === "string";
 const isCategory = (c: Record<string, unknown>) => typeof c.id === "string" && typeof c.name === "string";
@@ -296,7 +277,7 @@ const TRANSACTION_HEADERS = [
 
 export function exportTransactionsCsv(summary: SalesSummary, periodSlug: string): void {
   const csv = toCsv(TRANSACTION_HEADERS, transactionRows(summary.paid));
-  download(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `wakro-transaksi-${periodSlug}.csv`);
+  download(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }), `wakro-transaksi-${periodSlug}.csv`);
 }
 
 export async function exportReportExcel(summary: SalesSummary, periodLabel: string, periodSlug: string): Promise<void> {
@@ -317,11 +298,7 @@ export async function exportReportExcel(summary: SalesSummary, periodLabel: stri
     ]),
     "Ringkasan",
   );
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.aoa_to_sheet([TRANSACTION_HEADERS, ...transactionRows(summary.paid)]),
-    "Transaksi",
-  );
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([TRANSACTION_HEADERS, ...transactionRows(summary.paid)]), "Transaksi");
   XLSX.utils.book_append_sheet(
     wb,
     XLSX.utils.aoa_to_sheet([["Produk", "Qty", "Penjualan"], ...summary.topProducts.map((p) => [p.name, p.qty, p.sales])]),
@@ -329,7 +306,10 @@ export async function exportReportExcel(summary: SalesSummary, periodLabel: stri
   );
   XLSX.utils.book_append_sheet(
     wb,
-    XLSX.utils.aoa_to_sheet([["Periode", "Transaksi", "Item", "Omset"], ...summary.buckets.map((b) => [b.label, b.orders, b.items, b.sales])]),
+    XLSX.utils.aoa_to_sheet([
+      ["Periode", "Transaksi", "Item", "Omset"],
+      ...summary.buckets.map((b) => [b.label, b.orders, b.items, b.sales]),
+    ]),
     "Grafik",
   );
   const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });

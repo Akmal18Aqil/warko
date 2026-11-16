@@ -29,11 +29,7 @@ export function OrderSummary({ draft, isSubmitting, onSendToKitchen, onPayAtTabl
         <div>
           <h3 className="text-sm font-bold text-ink">{t.waiter.summaryTitle(draft.selectedTable?.name ?? "")}</h3>
           <p className="text-xs2 text-text-muted">
-            {t.waiter.summaryMeta(
-              draft.customerName || t.waiter.guestFallback,
-              t.waiter.guestsSummary(draft.guests),
-              currentStaff.name,
-            )}
+            {t.waiter.summaryMeta(draft.customerName || t.waiter.guestFallback, t.waiter.guestsSummary(draft.guests), currentStaff.name)}
           </p>
         </div>
         {!isEmpty && (

@@ -1,5 +1,5 @@
-import { broadcastSync, subscribeSync } from "../lib/syncBus";
 import { STORAGE_KEYS } from "../lib/storageKeys";
+import { broadcastSync, subscribeSync } from "../lib/syncBus";
 import type { ConnectedDevice } from "../types/domain";
 
 /**

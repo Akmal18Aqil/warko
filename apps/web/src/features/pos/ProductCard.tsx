@@ -1,20 +1,12 @@
 import { Check, Clock } from "lucide-react";
 import type { MenuItem } from "../../data/menu";
 import { formatIDR, isLowStock, isSoldOut } from "../../data/menu";
-import { t } from "../../locales/id";
-import { FoodImage } from "../../ui/FoodImage";
-import { Badge } from "../../ui/Badge";
 import { cn } from "../../lib/cn";
+import { t } from "../../locales/id";
+import { Badge } from "../../ui/Badge";
+import { FoodImage } from "../../ui/FoodImage";
 
-export function ProductCard({
-  item,
-  inOrder,
-  onAdd,
-}: {
-  item: MenuItem;
-  inOrder: boolean;
-  onAdd: (item: MenuItem) => void;
-}) {
+export function ProductCard({ item, inOrder, onAdd }: { item: MenuItem; inOrder: boolean; onAdd: (item: MenuItem) => void }) {
   const soldOut = isSoldOut(item);
   return (
     <button
@@ -55,16 +47,10 @@ export function ProductCard({
 
       <div className="flex flex-1 flex-col gap-1.5 p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-display text-base font-semibold leading-snug text-ink">
-            {item.name}
-          </h3>
-          <p className="shrink-0 font-display text-base font-bold tracking-tight text-ink">
-            {formatIDR(item.price)}
-          </p>
+          <h3 className="font-display text-base font-semibold leading-snug text-ink">{item.name}</h3>
+          <p className="shrink-0 font-display text-base font-bold tracking-tight text-ink">{formatIDR(item.price)}</p>
         </div>
-        <p className="line-clamp-2 flex-1 text-xs leading-relaxed text-text-muted">
-          {item.description}
-        </p>
+        <p className="line-clamp-2 flex-1 text-xs leading-relaxed text-text-muted">{item.description}</p>
         <p className="mt-1.5 flex items-center gap-1 text-xs2 font-medium text-text-muted">
           <Clock size={12} aria-hidden="true" />
           {item.kind} · {item.prepMinutes} {t.pos.catalog.minutesSuffix}

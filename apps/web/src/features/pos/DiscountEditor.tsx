@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { formatIDR } from "../../data/menu";
+import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
 import { setDiscount } from "../../state/cart";
-import { cn } from "../../lib/cn";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
@@ -50,9 +50,7 @@ export function DiscountEditor({
               onClick={() => setType(option.id)}
               className={cn(
                 "rounded-xl border py-2 text-xs font-bold transition-colors",
-                type === option.id
-                  ? "border-accent-dark bg-accent text-white shadow-xs"
-                  : "border-border text-text-muted hover:bg-ink/5",
+                type === option.id ? "border-accent-dark bg-accent text-white shadow-xs" : "border-border text-text-muted hover:bg-ink/5",
               )}
             >
               {option.label}

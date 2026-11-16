@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
 import { Search, Utensils } from "lucide-react";
-import { SegmentedTabs } from "../../ui/SegmentedTabs";
-import { Empty } from "../../ui/Empty";
+import { useMemo, useState } from "react";
 import type { MenuItem } from "../../data/menu";
-import type { CartLine, CategoryRow } from "../../types/domain";
 import { t } from "../../locales/id";
+import type { CartLine, CategoryRow } from "../../types/domain";
+import { Empty } from "../../ui/Empty";
+import { SegmentedTabs } from "../../ui/SegmentedTabs";
 import { ProductCard } from "./ProductCard";
 
 /** Tab id for "no category filter"; category ids are database ids and never empty. */

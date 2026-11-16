@@ -1,14 +1,14 @@
-import { useMemo, useState } from "react";
-import { AlertTriangle, Layers, Plus, ScanLine, Search, Tag } from "lucide-react";
-import { toast } from "sonner";
 import { CATALOG_WRITE_ROLES } from "@wakro/shared";
+import { AlertTriangle, Layers, Plus, ScanLine, Search, Tag } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { Header } from "../../app/Header";
+import { useCan } from "../../app/useCan";
 import { isLowStock, isSoldOut, LOW_STOCK_THRESHOLD, type MenuItem } from "../../data/menu";
 import { useBarcodeGunScanner } from "../../hooks/useBarcodeGunScanner";
 import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
 import { useCategories, useProducts } from "../../state/catalog";
-import { Header } from "../../app/Header";
-import { useCan } from "../../app/useCan";
 import { Button, IconButton } from "../../ui/Button";
 import { Empty } from "../../ui/Empty";
 import { Input } from "../../ui/Input";
@@ -17,8 +17,8 @@ import { BarcodeScanner } from "../scanner/BarcodeScanner";
 import { CategoryManagerModal } from "./CategoryManagerModal";
 import { ProductModal } from "./ProductModal";
 import { ProductRow } from "./ProductRow";
-import { useProductCounts } from "./useProductCounts";
 import { StockModal } from "./StockModal";
+import { useProductCounts } from "./useProductCounts";
 
 type StockFilter = "all" | "alert";
 
@@ -66,10 +66,7 @@ export default function ProductsPage() {
     const q = query.trim().toLowerCase();
     return products.filter((item) => {
       const matchQuery =
-        q.length === 0 ||
-        item.name.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q) ||
-        item.barcode.includes(q);
+        q.length === 0 || item.name.toLowerCase().includes(q) || item.category.toLowerCase().includes(q) || item.barcode.includes(q);
       const matchCategory = categoryFilter === null || item.category === categoryFilter;
       const matchStock = stockFilter === "all" || isSoldOut(item) || isLowStock(item);
       return matchQuery && matchCategory && matchStock;
@@ -149,13 +146,24 @@ export default function ProductsPage() {
         )}
 
         <div role="group" aria-label={text.categoryFilterLabel} className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          <button type="button" aria-pressed={categoryFilter === null} onClick={() => setCategoryFilter(null)} className={chipClass(categoryFilter === null)}>
+          <button
+            type="button"
+            aria-pressed={categoryFilter === null}
+            onClick={() => setCategoryFilter(null)}
+            className={chipClass(categoryFilter === null)}
+          >
             {text.filterAll(products.length)}
           </button>
           {categories.map((cat) => {
             const selected = categoryFilter === cat.name;
             return (
-              <button key={cat.id} type="button" aria-pressed={selected} onClick={() => setCategoryFilter(cat.name)} className={chipClass(selected)}>
+              <button
+                key={cat.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setCategoryFilter(cat.name)}
+                className={chipClass(selected)}
+              >
                 <span>{cat.name}</span>
                 <span className={cn("rounded-full px-1.5 text-2xs", selected ? "bg-ink/10 text-ink" : "bg-mineral text-ink/50")}>
                   {countByCategory.get(cat.name) ?? 0}

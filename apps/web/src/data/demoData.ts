@@ -1,12 +1,12 @@
-import type { Transaction } from "dexie";
 import { DEFAULT_PRICING, type KitchenStatus, type OrderSource, type PayMethod } from "@wakro/shared";
+import type { Transaction } from "dexie";
 import { expectedDrawerCash } from "../lib/cash";
 import { buildOrderRow } from "../lib/orderBuilder";
 import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
 import { DEMO_STAFF } from "../state/demoStaff";
 import type { CartDiscount, CartLine, CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } from "../types/domain";
-import { DATA_DAY_KEY } from "./meta";
 import { isSoldOut, MENU_SEED, type MenuItem } from "./menu";
+import { DATA_DAY_KEY } from "./meta";
 import { DEFAULT_CATEGORIES, DEFAULT_TABLES } from "./seed";
 
 /**
@@ -97,10 +97,28 @@ const MAINS = sellable.filter((p) => p.kind === "Makanan" && ["Favorit", "Makana
 const DRINKS = sellable.filter((p) => p.kind === "Minuman");
 const EXTRAS = sellable.filter((p) => ["Sarapan", "Camilan", "Dessert"].includes(p.category));
 
-const CUSTOMERS = ["Rina", "Pak Wijaya", "Keluarga Hartono", "Andi", "Lia", "Maya", "Bu Sari", "Dimas", "Kevin & Teman", "Pak Anton", "Nadia"];
+const CUSTOMERS = [
+  "Rina",
+  "Pak Wijaya",
+  "Keluarga Hartono",
+  "Andi",
+  "Lia",
+  "Maya",
+  "Bu Sari",
+  "Dimas",
+  "Kevin & Teman",
+  "Pak Anton",
+  "Nadia",
+];
 const NOTES = ["Pedas sedang", "Tanpa es", "Less sugar", "Tanpa bawang goreng", "Ekstra sambal", "Dipisah wadahnya"];
 const OUT_DESCRIPTIONS: Record<"bahan_baku" | "operasional", readonly string[]> = {
-  bahan_baku: ["Beli es batu kristal 2 pack", "Beli sayur dan cabai di pasar", "Beli gas LPG 3 kg", "Beli susu segar 6 liter", "Beli telur 2 tray"],
+  bahan_baku: [
+    "Beli es batu kristal 2 pack",
+    "Beli sayur dan cabai di pasar",
+    "Beli gas LPG 3 kg",
+    "Beli susu segar 6 liter",
+    "Beli telur 2 tray",
+  ],
   operasional: ["Beli tisu dan plastik takeaway", "Iuran kebersihan harian", "Beli bon kertas struk"],
 };
 
@@ -279,7 +297,12 @@ function buildClosedDay(rng: Rng, dayStart: number): DayOutput {
     cashSalesTotal: drawer.cashSales,
     cashInTotal: drawer.cashIn,
     cashOutTotal: drawer.cashOut,
-    notes: difference === 0 ? undefined : difference < 0 ? "Selisih kurang, kembalian kemungkinan keliru." : "Selisih lebih, dicatat untuk dicek ulang.",
+    notes:
+      difference === 0
+        ? undefined
+        : difference < 0
+          ? "Selisih kurang, kembalian kemungkinan keliru."
+          : "Selisih lebih, dicatat untuk dicek ulang.",
   };
   return { orders, shift, movements };
 }
@@ -320,12 +343,56 @@ function buildToday(rng: Rng, now: number): DayOutput {
 
   const active: OrderSpec[] = [
     { createdAt: ago(3), source: "pos", kitchenStatus: "draft", lines: pickLines(rng, "snack"), customerName: "Lia" },
-    { createdAt: ago(4), source: "self-order", kitchenStatus: "queued", lines: pickLines(rng, "lunch"), table: tableById("meja-03"), guests: 3, customerName: "Pak Wijaya" },
+    {
+      createdAt: ago(4),
+      source: "self-order",
+      kitchenStatus: "queued",
+      lines: pickLines(rng, "lunch"),
+      table: tableById("meja-03"),
+      guests: 3,
+      customerName: "Pak Wijaya",
+    },
     { createdAt: ago(8), source: "pos", kitchenStatus: "preparing", lines: pickLines(rng, "lunch"), customerName: "Andi" },
-    { createdAt: ago(12), source: "waiter", kitchenStatus: "preparing", lines: pickLines(rng, "lunch"), table: tableById("meja-01"), guests: 2, customerName: "Rina & Teman", waiter: waiter("staff-2") },
-    { createdAt: ago(15), source: "self-order", kitchenStatus: "preparing", lines: pickLines(rng, "lunch"), table: tableById("meja-05"), guests: 2, customerName: "Maya", payment: { method: "qris", paidAt: ago(14) } },
-    { createdAt: ago(26), source: "waiter", kitchenStatus: "ready", lines: pickLines(rng, "lunch"), table: tableById("meja-04"), guests: 4, customerName: "Keluarga Hartono", waiter: waiter("staff-3") },
-    { createdAt: ago(48), source: "waiter", kitchenStatus: "served", lines: pickLines(rng, "lunch"), table: tableById("meja-02"), guests: 4, customerName: "Bu Sari", waiter: waiter("staff-4") },
+    {
+      createdAt: ago(12),
+      source: "waiter",
+      kitchenStatus: "preparing",
+      lines: pickLines(rng, "lunch"),
+      table: tableById("meja-01"),
+      guests: 2,
+      customerName: "Rina & Teman",
+      waiter: waiter("staff-2"),
+    },
+    {
+      createdAt: ago(15),
+      source: "self-order",
+      kitchenStatus: "preparing",
+      lines: pickLines(rng, "lunch"),
+      table: tableById("meja-05"),
+      guests: 2,
+      customerName: "Maya",
+      payment: { method: "qris", paidAt: ago(14) },
+    },
+    {
+      createdAt: ago(26),
+      source: "waiter",
+      kitchenStatus: "ready",
+      lines: pickLines(rng, "lunch"),
+      table: tableById("meja-04"),
+      guests: 4,
+      customerName: "Keluarga Hartono",
+      waiter: waiter("staff-3"),
+    },
+    {
+      createdAt: ago(48),
+      source: "waiter",
+      kitchenStatus: "served",
+      lines: pickLines(rng, "lunch"),
+      table: tableById("meja-02"),
+      guests: 4,
+      customerName: "Bu Sari",
+      waiter: waiter("staff-4"),
+    },
   ];
 
   const movements = [

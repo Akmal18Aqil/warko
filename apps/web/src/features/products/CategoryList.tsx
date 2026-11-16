@@ -1,9 +1,9 @@
 import { Edit2, Trash2 } from "lucide-react";
 import { cn } from "../../lib/cn";
+import { t } from "../../locales/id";
 import type { CategoryRow } from "../../types/domain";
 import { Badge } from "../../ui/Badge";
 import { IconButton } from "../../ui/Button";
-import { t } from "../../locales/id";
 import { categoryColor } from "./categoryColors";
 import { KindIcon } from "./productKinds";
 
@@ -69,7 +69,11 @@ export function CategoryList({
                     <IconButton label={text.editAria(cat.name)} onClick={() => onEdit(cat)}>
                       <Edit2 size={14} aria-hidden="true" />
                     </IconButton>
-                    <IconButton label={text.deleteAria(cat.name)} onClick={() => onDelete(cat)} className="text-error hover:bg-error/10 hover:text-error-dark">
+                    <IconButton
+                      label={text.deleteAria(cat.name)}
+                      onClick={() => onDelete(cat)}
+                      className="text-error hover:bg-error/10 hover:text-error-dark"
+                    >
                       <Trash2 size={14} aria-hidden="true" />
                     </IconButton>
                   </div>

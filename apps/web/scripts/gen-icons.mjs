@@ -1,7 +1,7 @@
-import { deflateSync } from "node:zlib";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { deflateSync } from "node:zlib";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "public");
@@ -83,14 +83,9 @@ function drawIcon(size, { maskable = false } = {}) {
   const ry0 = off + s * 0.18;
   const rh = s * 0.64;
 
-  const inReceipt = (x, y) =>
-    x >= rx0 && x <= rx0 + rw && y >= ry0 && y <= ry0 + rh;
+  const inReceipt = (x, y) => x >= rx0 && x <= rx0 + rw && y >= ry0 && y <= ry0 + rh;
 
-  const stripe = (x, y, sy0, sy1, sx0, sx1) =>
-    y >= off + s * sy0 &&
-    y <= off + s * sy1 &&
-    x >= off + s * sx0 &&
-    x <= off + s * sx1;
+  const stripe = (x, y, sy0, sy1, sx0, sx1) => y >= off + s * sy0 && y <= off + s * sy1 && x >= off + s * sx0 && x <= off + s * sx1;
 
   return (x, y) => {
     if (!inRoundedSquare(x, y)) return CLEAR;
@@ -106,8 +101,5 @@ function drawIcon(size, { maskable = false } = {}) {
 
 writeFileSync(join(outDir, "icon-192.png"), png(192, 192, drawIcon(192)));
 writeFileSync(join(outDir, "icon-512.png"), png(512, 512, drawIcon(512)));
-writeFileSync(
-  join(outDir, "icon-maskable-512.png"),
-  png(512, 512, drawIcon(512, { maskable: true })),
-);
+writeFileSync(join(outDir, "icon-maskable-512.png"), png(512, 512, drawIcon(512, { maskable: true })));
 console.log("icons written to", outDir);

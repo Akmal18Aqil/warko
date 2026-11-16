@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Layers, Plus } from "lucide-react";
+import { useState } from "react";
+import { t } from "../../locales/id";
 import { useCategories } from "../../state/catalog";
 import type { CategoryRow } from "../../types/domain";
 import { Button } from "../../ui/Button";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { t } from "../../locales/id";
 import { CategoryForm } from "./CategoryForm";
 import { CategoryList } from "./CategoryList";
 import { DeleteCategoryModal } from "./DeleteCategoryModal";
@@ -43,7 +43,11 @@ export function CategoryManagerModal({ onClose }: { onClose: () => void }) {
               </Button>
             </div>
           ) : (
-            <CategoryForm key={form.mode === "edit" ? form.category.id : "new"} editing={form.mode === "edit" ? form.category : null} onDone={closeForm} />
+            <CategoryForm
+              key={form.mode === "edit" ? form.category.id : "new"}
+              editing={form.mode === "edit" ? form.category : null}
+              onDone={closeForm}
+            />
           )}
 
           <CategoryList

@@ -1,8 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import { formatIDR } from "../../data/menu";
-import { t } from "../../locales/id";
 import { cn } from "../../lib/cn";
 import { isHandledBy } from "../../lib/orderStatus";
+import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { useTables } from "../../state/catalog";
 import type { OrderRow } from "../../types/domain";
@@ -47,11 +47,7 @@ export function FloorMapTab({ activeOrders, onOpenTable }: FloorMapTabProps) {
               key={table.id}
               className={cn(
                 "flex flex-col justify-between rounded-2xl border p-4 shadow-clay transition-all",
-                order
-                  ? isMine
-                    ? "border-success/50 bg-success/10"
-                    : "border-warning/60 bg-warning/10"
-                  : "border-ink/10 bg-surface",
+                order ? (isMine ? "border-success/50 bg-success/10" : "border-warning/60 bg-warning/10") : "border-ink/10 bg-surface",
               )}
             >
               <div>
@@ -71,8 +67,7 @@ export function FloorMapTab({ activeOrders, onOpenTable }: FloorMapTabProps) {
                   <div className="mt-3 space-y-1 rounded-xl border border-ink/10 bg-surface p-2.5 text-xs">
                     <p className="font-bold text-ink">{t.waiter.floorOrder(order.no, order.customerName ?? t.waiter.guestFallback)}</p>
                     <p className="text-xs2 text-text-muted">
-                      {t.waiter.floorHandledBy}{" "}
-                      <strong className="text-ink">{order.waiterName || t.waiter.guestFallback}</strong>
+                      {t.waiter.floorHandledBy} <strong className="text-ink">{order.waiterName || t.waiter.guestFallback}</strong>
                     </p>
                     <p className="text-xs2 text-text-muted">{t.waiter.floorTotal(formatIDR(order.total), order.itemCount)}</p>
                   </div>

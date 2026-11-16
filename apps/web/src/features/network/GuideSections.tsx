@@ -1,4 +1,4 @@
-import { CheckCircle2, ChefHat, Laptop, Radio, Server, ShieldCheck, Smartphone, TriangleAlert, Zap, type LucideIcon } from "lucide-react";
+import { CheckCircle2, ChefHat, Laptop, type LucideIcon, Radio, Server, ShieldCheck, Smartphone, TriangleAlert, Zap } from "lucide-react";
 import type { ReactNode } from "react";
 import { t } from "../../locales/id";
 import type { NetworkHostInfo } from "../../services/networkHost";
@@ -26,8 +26,19 @@ function Card({ title, icon: Icon, children }: { title: string; icon: LucideIcon
   );
 }
 
-function Callout({ tone, icon: Icon, title, children }: { tone: "success" | "warning"; icon: LucideIcon; title: string; children: ReactNode }) {
-  const toneClass = tone === "success" ? "border-success/30 bg-success/10 text-success-dark" : "border-warning/40 bg-warning/10 text-warning-dark";
+function Callout({
+  tone,
+  icon: Icon,
+  title,
+  children,
+}: {
+  tone: "success" | "warning";
+  icon: LucideIcon;
+  title: string;
+  children: ReactNode;
+}) {
+  const toneClass =
+    tone === "success" ? "border-success/30 bg-success/10 text-success-dark" : "border-warning/40 bg-warning/10 text-warning-dark";
   return (
     <div className={`space-y-1.5 rounded-xl border p-4 ${toneClass}`}>
       <p className="flex items-center gap-1.5 font-bold">
@@ -40,7 +51,9 @@ function Callout({ tone, icon: Icon, title, children }: { tone: "success" | "war
 
 function Marker({ children }: { children: ReactNode }) {
   return (
-    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">{children}</span>
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
+      {children}
+    </span>
   );
 }
 

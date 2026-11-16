@@ -1,8 +1,8 @@
 import { CheckCircle2 } from "lucide-react";
-import { Modal, ModalHeader, ModalFooter } from "../../ui/Modal";
-import { Button } from "../../ui/Button";
 import { formatIDR } from "../../data/menu";
 import { t } from "../../locales/id";
+import { Button } from "../../ui/Button";
+import { Modal, ModalFooter, ModalHeader } from "../../ui/Modal";
 
 interface DemoQrisModalProps {
   total: number;

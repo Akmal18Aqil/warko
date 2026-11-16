@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DEFAULT_FLOORS } from "../../data/seed";
+import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
 import type { TableRow } from "../../types/domain";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { cn } from "../../lib/cn";
 
 interface TableModalProps {
   open: boolean;
@@ -62,9 +62,7 @@ export function TableModal({ open, tableToEdit, availableAreas = DEFAULT_AREAS, 
         area: area.trim() || DEFAULT_AREA,
       };
       await onSave(tableData);
-      toast.success(
-        tableToEdit ? t.tables.form.updated(tableData.name) : t.tables.form.added(tableData.name, tableData.area),
-      );
+      toast.success(tableToEdit ? t.tables.form.updated(tableData.name) : t.tables.form.added(tableData.name, tableData.area));
       onClose();
     } catch (err) {
       toast.error(t.tables.form.saveFailed, {
@@ -92,10 +90,7 @@ export function TableModal({ open, tableToEdit, availableAreas = DEFAULT_AREAS, 
 
   return (
     <Modal onClose={onClose} size="sm">
-      <ModalHeader
-        title={tableToEdit ? t.tables.form.titleEdit : t.tables.form.titleAdd}
-        subtitle={t.tables.form.subtitle}
-      />
+      <ModalHeader title={tableToEdit ? t.tables.form.titleEdit : t.tables.form.titleAdd} subtitle={t.tables.form.subtitle} />
       <ModalBody>
         <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
           <Input

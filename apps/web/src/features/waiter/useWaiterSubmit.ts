@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { formatIDR } from "../../data/menu";
 import { RemoteDataError } from "../../data/index";
-import { t } from "../../locales/id";
+import { formatIDR } from "../../data/menu";
 import { newClientRef, tableLabel } from "../../lib/orderStatus";
+import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { createWaiterOrder } from "../../state/orders";
 import type { OrderRow, TableRow } from "../../types/domain";
@@ -82,8 +82,7 @@ export function useWaiterSubmit(draft: WaiterDraft) {
     }
     const created = await place(table, t.waiter.payFailed, payment);
     if (!created) return false;
-    const change =
-      payment.method === "tunai" ? formatIDR(Math.max(0, (payment.cashReceived ?? 0) - created.total)) : null;
+    const change = payment.method === "tunai" ? formatIDR(Math.max(0, (payment.cashReceived ?? 0) - created.total)) : null;
     toast.success(t.waiter.paid, {
       description: t.waiter.paidDetail(
         created.no,
@@ -98,4 +97,3 @@ export function useWaiterSubmit(draft: WaiterDraft) {
 
   return { isSubmitting, sendToKitchen, payAtTable };
 }
-

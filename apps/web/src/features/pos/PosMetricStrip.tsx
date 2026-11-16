@@ -14,8 +14,7 @@ export function PosMetricStrip() {
   const [, setLocation] = useLocation();
   const orders = useOrders();
   const paidOrders = orders.filter(isPaid);
-  const avgOrder =
-    paidOrders.length > 0 ? Math.round(paidOrders.reduce((sum, o) => sum + o.total, 0) / paidOrders.length) : 0;
+  const avgOrder = paidOrders.length > 0 ? Math.round(paidOrders.reduce((sum, o) => sum + o.total, 0) / paidOrders.length) : 0;
 
   const handleOpenDrawerClick = () => {
     playDrawerBeep();

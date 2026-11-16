@@ -1,5 +1,5 @@
-import { hmacSign, randomToken, safeEqual, sha256Hex } from "./crypto";
 import type { StaffRole } from "@wakro/shared";
+import { hmacSign, randomToken, safeEqual, sha256Hex } from "./crypto";
 import type { Env, SessionStaff } from "./env";
 import { HttpError } from "./http";
 
@@ -139,7 +139,10 @@ export async function readSession(env: Env, request: Request, url: URL): Promise
 export async function destroySession(env: Env, request: Request, url: URL): Promise<void> {
   const token = readCookie(request, cookieName(url));
   const id = token?.split(".")[0];
-  if (id) await env.DB.prepare("DELETE FROM sessions WHERE id_hash = ?").bind(await sha256Hex(id)).run();
+  if (id)
+    await env.DB.prepare("DELETE FROM sessions WHERE id_hash = ?")
+      .bind(await sha256Hex(id))
+      .run();
 }
 
 export async function requireSession(env: Env, request: Request, url: URL): Promise<SessionStaff> {

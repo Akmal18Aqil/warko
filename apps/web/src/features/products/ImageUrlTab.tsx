@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { t } from "../../locales/id";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
-import { t } from "../../locales/id";
 
 /** Applies a pasted image address; an embedded (uploaded) photo is not shown as a giant data URL. */
 export function ImageUrlTab({ value, onApply }: { value: string; onApply: (url: string) => void }) {

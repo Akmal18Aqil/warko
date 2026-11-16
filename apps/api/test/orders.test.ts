@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
-import { placeOrder } from "../src/orders";
 import type { Env } from "../src/env";
+import { placeOrder } from "../src/orders";
 import { api, randomRef, readJson, resetDb, seedCategory, seedProduct, seedTable, signIn } from "./helpers";
 
 // Default pricing: 11% tax, no service charge. Two portions of a 10.000 menu = 20.000 + 2.200.
@@ -55,8 +55,10 @@ describe("placing orders", () => {
         if (property === "batch") {
           return async (statements: D1PreparedStatement[]) => {
             if (++batchCount === 2) {
-              await target.prepare("UPDATE products SET stock = ? WHERE barcode = 'A1'")
-                .bind(initialStock === null ? 5 : null).run();
+              await target
+                .prepare("UPDATE products SET stock = ? WHERE barcode = 'A1'")
+                .bind(initialStock === null ? 5 : null)
+                .run();
             }
             return target.batch(statements);
           };
@@ -66,10 +68,22 @@ describe("placing orders", () => {
       },
     });
     const input = {
-      lines: [{ barcode: "A1", qty: 2, note: null }], discount: 0, orderType: "bawa-pulang" as const,
-      tableId: null, tableName: null, guests: null, customerName: null, waiterId: null, waiterName: null,
-      source: "pos" as const, paymentChoice: "pay-later" as const, kitchenStatus: "queued" as const,
-      payment: null, expectedTotal: TOTAL_FOR_TWO, clientRefHash: null, staffName: null,
+      lines: [{ barcode: "A1", qty: 2, note: null }],
+      discount: 0,
+      orderType: "bawa-pulang" as const,
+      tableId: null,
+      tableName: null,
+      guests: null,
+      customerName: null,
+      waiterId: null,
+      waiterName: null,
+      source: "pos" as const,
+      paymentChoice: "pay-later" as const,
+      kitchenStatus: "queued" as const,
+      payment: null,
+      expectedTotal: TOTAL_FOR_TWO,
+      clientRefHash: null,
+      staffName: null,
     };
     await expect(placeOrder({ ...env, DB: db } as Env, input)).rejects.toMatchObject({ status: 409 });
     expect(await orderCount()).toBe(0);

@@ -1,19 +1,30 @@
 import { ADMIN_ROLES, READ_ROLES, STAFF_ROLES, type StaffRole } from "@wakro/shared";
 import {
-  clearAttempts, clearSessionCookie, consumeAttempt, createSession, destroySession, initialsOf, readSession,
-  releaseAttempt, ROLE_DEFAULTS, STAFF_COLUMNS, throttledError, toSessionStaff, type StaffRow,
+  clearAttempts,
+  clearSessionCookie,
+  consumeAttempt,
+  createSession,
+  destroySession,
+  initialsOf,
+  ROLE_DEFAULTS,
+  readSession,
+  releaseAttempt,
+  STAFF_COLUMNS,
+  type StaffRow,
+  throttledError,
+  toSessionStaff,
 } from "../auth";
 import { hashPassword, safeEqual, sha256Hex, verifyPassword } from "../crypto";
 import type { Env } from "../env";
 import { isUniqueViolation } from "../guards";
 import { conflict, HttpError, invalid, json, Reader, readJsonObject, type StringOptions } from "../http";
-import { get, publicGet, publicPost, send, type AuthedContext, type Route, type RouteContext } from "../router";
+import { type AuthedContext, get, publicGet, publicPost, type Route, type RouteContext, send } from "../router";
 
 type StaffRowFull = StaffRow & { password_hash: string; updated_at: number };
 
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,80}$/;
 const STAFF_ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
-const AVATAR_COLOR_PATTERN = /^[A-Za-z0-9:_\-/\[\]#. ]{1,80}$/;
+const AVATAR_COLOR_PATTERN = /^[A-Za-z0-9:_\-/[\]#. ]{1,80}$/;
 const MIN_PASSWORD = 12;
 const MAX_PASSWORD = 256;
 const SETUP_ATTEMPT_LIMIT = 5;
@@ -199,19 +210,35 @@ async function createStaff({ request, env }: AuthedContext): Promise<Response> {
     await env.DB.prepare(
       `INSERT INTO staff (id, username, name, role, title, description, avatar_color, initials, password_hash, active, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(id, username, name, role, title, description, avatarColor, initialsOf(name), passwordHash, active ? 1 : 0, now, now).run();
+    )
+      .bind(id, username, name, role, title, description, avatarColor, initialsOf(name), passwordHash, active ? 1 : 0, now, now)
+      .run();
   } catch (error) {
     if (isUniqueViolation(error, "staff.username")) throw usernameTaken();
     throw error;
   }
-  return json({ data: toSessionStaff({
-    id, username, name, role, title, description, avatar_color: avatarColor, initials: initialsOf(name), active: active ? 1 : 0,
-  }) }, 201);
+  return json(
+    {
+      data: toSessionStaff({
+        id,
+        username,
+        name,
+        role,
+        title,
+        description,
+        avatar_color: avatarColor,
+        initials: initialsOf(name),
+        active: active ? 1 : 0,
+      }),
+    },
+    201,
+  );
 }
 
 async function loadStaff(env: Env, id: string): Promise<StaffRowFull> {
   const row = await env.DB.prepare(`SELECT ${STAFF_COLUMNS}, password_hash, updated_at FROM staff WHERE id = ?`)
-    .bind(id).first<StaffRowFull>();
+    .bind(id)
+    .first<StaffRowFull>();
   if (!row) throw new HttpError(404, "Staf tidak ditemukan.");
   return row;
 }
@@ -252,8 +279,10 @@ async function updateStaff({ request, env, url, staff: actor, params }: AuthedCo
   const oldDefaults = ROLE_DEFAULTS[current.role];
   const newDefaults = ROLE_DEFAULTS[nextRole];
   const title = appearance.title ?? (current.title === oldDefaults.title ? newDefaults.title : current.title);
-  const description = appearance.description ?? (current.description === oldDefaults.description ? newDefaults.description : current.description);
-  const avatarColor = appearance.avatarColor ?? (current.avatar_color === oldDefaults.avatarColor ? newDefaults.avatarColor : current.avatar_color);
+  const description =
+    appearance.description ?? (current.description === oldDefaults.description ? newDefaults.description : current.description);
+  const avatarColor =
+    appearance.avatarColor ?? (current.avatar_color === oldDefaults.avatarColor ? newDefaults.avatarColor : current.avatar_color);
   const passwordHash = password !== undefined ? await hashPassword(password) : current.password_hash;
 
   const demotesAdmin = current.role === "admin" && current.active === 1 && (nextRole !== "admin" || !nextActive);
@@ -267,15 +296,26 @@ async function updateStaff({ request, env, url, staff: actor, params }: AuthedCo
         WHERE id = ? AND updated_at = ?
           AND (? = 0 OR (SELECT COUNT(*) FROM staff WHERE role = 'admin' AND active = 1 AND id <> ?) > 0)`,
     ).bind(
-      nextUsername, nextName, nextRole, title, description, avatarColor, initialsOf(nextName),
-      passwordHash, nextActive ? 1 : 0, now, id, current.updated_at, demotesAdmin ? 1 : 0, id,
+      nextUsername,
+      nextName,
+      nextRole,
+      title,
+      description,
+      avatarColor,
+      initialsOf(nextName),
+      passwordHash,
+      nextActive ? 1 : 0,
+      now,
+      id,
+      current.updated_at,
+      demotesAdmin ? 1 : 0,
+      id,
     ),
   ];
   if (revoke) {
     // Runs only when the update above applied (it is the sole writer of this updated_at value).
     statements.push(
-      env.DB.prepare("DELETE FROM sessions WHERE staff_id = ? AND (SELECT updated_at FROM staff WHERE id = ?) = ?")
-        .bind(id, id, now),
+      env.DB.prepare("DELETE FROM sessions WHERE staff_id = ? AND (SELECT updated_at FROM staff WHERE id = ?) = ?").bind(id, id, now),
     );
   }
   let changes: number;
@@ -293,8 +333,15 @@ async function updateStaff({ request, env, url, staff: actor, params }: AuthedCo
   }
 
   const updated = toSessionStaff({
-    id, username: nextUsername, name: nextName, role: nextRole, title, description,
-    avatar_color: avatarColor, initials: initialsOf(nextName), active: nextActive ? 1 : 0,
+    id,
+    username: nextUsername,
+    name: nextName,
+    role: nextRole,
+    title,
+    description,
+    avatar_color: avatarColor,
+    initials: initialsOf(nextName),
+    active: nextActive ? 1 : 0,
   });
   // Own password change revokes every session, including this one.
   const headers = isSelf && revoke ? { "Set-Cookie": clearSessionCookie(url) } : undefined;

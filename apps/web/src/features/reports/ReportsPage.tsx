@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation } from "wouter";
 import { AlertTriangle, Banknote, Calculator, FileDown, FileSpreadsheet, Printer, ReceiptText, RefreshCw, Trophy } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { formatIDR, isLowStock, isSoldOut } from "../../data/menu";
-import { t } from "../../locales/id";
+import { useLocation } from "wouter";
 import { Header } from "../../app/Header";
 import { dataSource } from "../../data/index";
+import { formatIDR, isLowStock, isSoldOut } from "../../data/menu";
+import { cn } from "../../lib/cn";
+import { exportReportExcel, exportTransactionsCsv, summarizeSales } from "../../lib/exporters";
+import { tableLabel } from "../../lib/orderStatus";
+import { PAY_METHOD_LABEL } from "../../lib/receipt";
+import { STORE_PROFILE } from "../../lib/storeProfile";
+import { t } from "../../locales/id";
 import { useProducts } from "../../state/catalog";
 import { useOrders } from "../../state/orders";
-import type { OrderRow } from "../../types/domain";
 import { usePrint } from "../../state/print";
+import type { OrderRow } from "../../types/domain";
 import { Button } from "../../ui/Button";
 import { Empty } from "../../ui/Empty";
 import { Input } from "../../ui/Input";
@@ -17,11 +22,6 @@ import { MetricCell, MetricStrip } from "../../ui/MetricStrip";
 import { PageHeader } from "../../ui/PageHeader";
 import { SegmentedTabs } from "../../ui/SegmentedTabs";
 import { LoadingText } from "../../ui/Spinner";
-import { exportReportExcel, exportTransactionsCsv, summarizeSales } from "../../lib/exporters";
-import { tableLabel } from "../../lib/orderStatus";
-import { PAY_METHOD_LABEL } from "../../lib/receipt";
-import { cn } from "../../lib/cn";
-import { STORE_PROFILE } from "../../lib/storeProfile";
 
 type Preset = keyof typeof t.reports.presets;
 
@@ -212,9 +212,22 @@ export default function ReportsPage() {
         )}
 
         <MetricStrip label={t.reports.metricsLabel}>
-          <MetricCell label={t.reports.metrics.revenue} value={formatIDR(summary.revenue)} icon={<Banknote size={18} aria-hidden="true" />} tone="accent" />
-          <MetricCell label={t.reports.metrics.transactions} value={summary.transactions} icon={<ReceiptText size={18} aria-hidden="true" />} />
-          <MetricCell label={t.reports.metrics.average} value={formatIDR(summary.average)} icon={<Calculator size={18} aria-hidden="true" />} />
+          <MetricCell
+            label={t.reports.metrics.revenue}
+            value={formatIDR(summary.revenue)}
+            icon={<Banknote size={18} aria-hidden="true" />}
+            tone="accent"
+          />
+          <MetricCell
+            label={t.reports.metrics.transactions}
+            value={summary.transactions}
+            icon={<ReceiptText size={18} aria-hidden="true" />}
+          />
+          <MetricCell
+            label={t.reports.metrics.average}
+            value={formatIDR(summary.average)}
+            icon={<Calculator size={18} aria-hidden="true" />}
+          />
           <MetricCell
             label={t.reports.metrics.topProduct}
             value={summary.topProducts[0]?.name ?? t.reports.none}
@@ -228,7 +241,11 @@ export default function ReportsPage() {
               {summary.buckets.length === HOURLY_BUCKET_COUNT ? t.reports.chart.perHour : t.reports.chart.perDay}
             </h2>
             {!hasSales ? (
-              loading ? <LoadingText className="justify-center py-12" /> : <Empty title={t.reports.empty} className="py-8" />
+              loading ? (
+                <LoadingText className="justify-center py-12" />
+              ) : (
+                <Empty title={t.reports.empty} className="py-8" />
+              )
             ) : (
               <div className="mt-4 flex h-48 items-end gap-1 overflow-x-auto rounded-lg bg-mineral/50 p-3">
                 {summary.buckets.map((b) => (
@@ -304,13 +321,27 @@ export default function ReportsPage() {
             <table className="w-full min-w-[640px] border-collapse text-left text-xs">
               <thead className="sticky top-0 bg-surface">
                 <tr className="border-b border-ink/10 text-xs2 text-ink/50">
-                  <th scope="col" className="py-2">{t.reports.history.columns.no}</th>
-                  <th scope="col" className="py-2">{t.reports.history.columns.paidAt}</th>
-                  <th scope="col" className="py-2">{t.reports.history.columns.table}</th>
-                  <th scope="col" className="py-2">{t.reports.history.columns.method}</th>
-                  <th scope="col" className="py-2">{t.reports.history.columns.cashier}</th>
-                  <th scope="col" className="py-2 text-right">{t.reports.history.columns.items}</th>
-                  <th scope="col" className="py-2 text-right">{t.reports.history.columns.total}</th>
+                  <th scope="col" className="py-2">
+                    {t.reports.history.columns.no}
+                  </th>
+                  <th scope="col" className="py-2">
+                    {t.reports.history.columns.paidAt}
+                  </th>
+                  <th scope="col" className="py-2">
+                    {t.reports.history.columns.table}
+                  </th>
+                  <th scope="col" className="py-2">
+                    {t.reports.history.columns.method}
+                  </th>
+                  <th scope="col" className="py-2">
+                    {t.reports.history.columns.cashier}
+                  </th>
+                  <th scope="col" className="py-2 text-right">
+                    {t.reports.history.columns.items}
+                  </th>
+                  <th scope="col" className="py-2 text-right">
+                    {t.reports.history.columns.total}
+                  </th>
                 </tr>
               </thead>
               <tbody>

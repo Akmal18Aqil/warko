@@ -1,9 +1,9 @@
 import { ReceiptText } from "lucide-react";
-import { Modal, ModalFooter } from "../../ui/Modal";
-import { Button } from "../../ui/Button";
-import { OrderReceiptView } from "../printing/OrderReceiptView";
 import { t } from "../../locales/id";
 import type { OrderRow } from "../../types/domain";
+import { Button } from "../../ui/Button";
+import { Modal, ModalFooter } from "../../ui/Modal";
+import { OrderReceiptView } from "../printing/OrderReceiptView";
 
 interface ReceiptModalProps {
   order: OrderRow;

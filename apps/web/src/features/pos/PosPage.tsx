@@ -1,22 +1,22 @@
-import { useEffect, useId, useMemo, useState } from "react";
 import { ScanLine, Search } from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { MenuItem } from "../../data/menu";
-import { t } from "../../locales/id";
 import { Header } from "../../app/Header";
-import { PosMetricStrip } from "./PosMetricStrip";
-import { ProductCard } from "./ProductCard";
-import { CartPanel } from "./CartPanel";
-import { PaymentModal } from "./PaymentModal";
-import { BarcodeScanner } from "../scanner/BarcodeScanner";
+import type { MenuItem } from "../../data/menu";
 import { useBarcodeGunScanner } from "../../hooks/useBarcodeGunScanner";
+import { parseTableQr, resolveTable } from "../../lib/tableQr";
+import { t } from "../../locales/id";
 import { addItem, selectTable, useCart } from "../../state/cart";
 import { useCategories, useProducts, useTables } from "../../state/catalog";
-import { parseTableQr, resolveTable } from "../../lib/tableQr";
-import { Empty } from "../../ui/Empty";
 import { IconButton } from "../../ui/Button";
+import { Empty } from "../../ui/Empty";
 import { Input } from "../../ui/Input";
 import { SegmentedTabs } from "../../ui/SegmentedTabs";
+import { BarcodeScanner } from "../scanner/BarcodeScanner";
+import { CartPanel } from "./CartPanel";
+import { PaymentModal } from "./PaymentModal";
+import { PosMetricStrip } from "./PosMetricStrip";
+import { ProductCard } from "./ProductCard";
 
 export default function PosPage() {
   const products = useProducts();
@@ -38,18 +38,8 @@ export default function PosPage() {
       }
       const el = document.activeElement;
       const typing =
-        el instanceof HTMLInputElement ||
-        el instanceof HTMLTextAreaElement ||
-        (el instanceof HTMLElement && el.isContentEditable);
-      if (
-        !payOpen &&
-        !scanOpen &&
-        !typing &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        !e.altKey &&
-        e.key.toLowerCase() === "p"
-      ) {
+        el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el instanceof HTMLElement && el.isContentEditable);
+      if (!payOpen && !scanOpen && !typing && !e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === "p") {
         e.preventDefault();
         window.print();
       }
@@ -61,21 +51,14 @@ export default function PosPage() {
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((item) => {
-      const inCategory =
-        category === ALL_CATEGORIES || item.category === category;
+      const inCategory = category === ALL_CATEGORIES || item.category === category;
       const matchesQuery =
-        q.length === 0 ||
-        item.name.toLowerCase().includes(q) ||
-        item.description.toLowerCase().includes(q) ||
-        item.barcode.includes(q);
+        q.length === 0 || item.name.toLowerCase().includes(q) || item.description.toLowerCase().includes(q) || item.barcode.includes(q);
       return inCategory && matchesQuery;
     });
   }, [products, query, category]);
 
-  const inOrderIds = useMemo(
-    () => new Set(lines.map((line) => line.itemId)),
-    [lines],
-  );
+  const inOrderIds = useMemo(() => new Set(lines.map((line) => line.itemId)), [lines]);
 
   const handleAdd = (item: MenuItem) => {
     addItem(item.id);
@@ -129,9 +112,7 @@ export default function PosPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="label-caps text-2xs font-bold text-text-muted">{t.pos.catalog.eyebrow}</p>
-                <h2 className="font-display text-lg font-bold tracking-tight text-ink">
-                  {t.pos.catalog.title}
-                </h2>
+                <h2 className="font-display text-lg font-bold tracking-tight text-ink">{t.pos.catalog.title}</h2>
               </div>
               <div className="flex w-full max-w-md items-center gap-2">
                 <div className="relative min-w-0 flex-1">
@@ -186,12 +167,7 @@ export default function PosPage() {
             ) : (
               <div className="grid grid-cols-1 gap-5 pb-3 sm:grid-cols-2 min-[1500px]:grid-cols-3">
                 {filteredItems.map((item) => (
-                  <ProductCard
-                    key={item.id}
-                    item={item}
-                    inOrder={inOrderIds.has(item.id)}
-                    onAdd={handleAdd}
-                  />
+                  <ProductCard key={item.id} item={item} inOrder={inOrderIds.has(item.id)} onAdd={handleAdd} />
                 ))}
               </div>
             )}
@@ -204,12 +180,7 @@ export default function PosPage() {
       </div>
 
       <PaymentModal open={payOpen} onClose={() => setPayOpen(false)} />
-      <BarcodeScanner
-        open={scanOpen}
-        onClose={() => setScanOpen(false)}
-        onProduct={handleScanProduct}
-        onScanCode={handleScanCode}
-      />
+      <BarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onProduct={handleScanProduct} onScanCode={handleScanCode} />
     </div>
   );
 }

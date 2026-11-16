@@ -1,8 +1,7 @@
 export const products = {
   title: "Produk",
   subtitle: "Katalog menu yang tampil di layar kasir.",
-  summary: (productCount: number, categoryCount: number) =>
-    `Total: ${productCount} produk terdaftar • ${categoryCount} kategori aktif`,
+  summary: (productCount: number, categoryCount: number) => `Total: ${productCount} produk terdaftar • ${categoryCount} kategori aktif`,
   searchPlaceholder: "Cari produk",
   scanBarcode: "Pindai barcode produk",
   manageCategories: "Kelola Kategori",
@@ -208,8 +207,7 @@ export const products = {
       impactTitle: "Dampak data terkait:",
       registeredProducts: "Jumlah produk terdaftar:",
       productsCount: (count: number) => `${count} produk`,
-      sampleProducts: (names: readonly string[], hasMore: boolean) =>
-        `Contoh produk: ${names.join(", ")}${hasMore ? "..." : ""}`,
+      sampleProducts: (names: readonly string[], hasMore: boolean) => `Contoh produk: ${names.join(", ")}${hasMore ? "..." : ""}`,
       reassignLabel: (count: number) => `Pindahkan ${count} produk ini ke kategori lain`,
       reassignOption: (name: string, kind: string) => `Pindahkan ke: ${name} (${kind})`,
       toStep2: "Lanjut ke verifikasi",

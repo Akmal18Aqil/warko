@@ -1,4 +1,4 @@
-import { Coffee, Cookie, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { Coffee, Cookie, type LucideIcon, UtensilsCrossed } from "lucide-react";
 import type { MenuKind } from "../../data/menu";
 import { cn } from "../../lib/cn";
 import { FieldGroup } from "./FieldGroup";
@@ -19,15 +19,7 @@ export function KindIcon({ kind, size = 12 }: { kind: MenuKind; size?: number })
   return <Icon size={size} aria-hidden="true" />;
 }
 
-export function KindPicker({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: MenuKind;
-  onChange: (kind: MenuKind) => void;
-}) {
+export function KindPicker({ label, value, onChange }: { label: string; value: MenuKind; onChange: (kind: MenuKind) => void }) {
   return (
     <FieldGroup label={label} role="radiogroup">
       <div className="grid grid-cols-3 gap-1.5">
@@ -40,9 +32,7 @@ export function KindPicker({
             onClick={() => onChange(kind)}
             className={cn(
               "flex min-h-9 items-center justify-center gap-1 rounded-lg border px-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-              value === kind
-                ? "border-ink bg-ink text-mineral shadow-sm"
-                : "border-border bg-surface text-text-muted hover:text-ink",
+              value === kind ? "border-ink bg-ink text-mineral shadow-sm" : "border-border bg-surface text-text-muted hover:text-ink",
             )}
           >
             <KindIcon kind={kind} />

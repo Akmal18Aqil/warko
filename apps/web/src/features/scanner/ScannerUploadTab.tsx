@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import { RefreshCw, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { t } from "../../locales/id";
 
 interface ScannerUploadTabProps {

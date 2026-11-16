@@ -17,10 +17,10 @@ import { DEMO_STAFF } from "../state/demoStaff";
 import type { CartDiscount, CartLine, OrderItemLine, OrderRow, ShiftRecord } from "../types/domain";
 import { db } from "./db";
 import { startOfDay } from "./demoData";
-import { localSource, setLocalActor, type LocalActor } from "./local";
+import { type LocalActor, localSource, setLocalActor } from "./local";
 import { priceOrder } from "./localOrder";
+import { isLowStock, isSoldOut, MENU_SEED } from "./menu";
 import { DATA_DAY_KEY } from "./meta";
-import { MENU_SEED, isLowStock, isSoldOut } from "./menu";
 import { redateToToday } from "./redate";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -55,7 +55,13 @@ type OrderOptions = {
 };
 
 /** An order exactly like the cart builds it: priced from the menu with the stored pricing. */
-function cartOrder({ source = "pos", method, tableId, lines = [{ itemId: "kopi-susu", qty: 2 }], discount = NO_DISCOUNT }: OrderOptions = {}): OrderRow {
+function cartOrder({
+  source = "pos",
+  method,
+  tableId,
+  lines = [{ itemId: "kopi-susu", qty: 2 }],
+  discount = NO_DISCOUNT,
+}: OrderOptions = {}): OrderRow {
   const totals = computeTotals(lines, MENU_SEED, discount, DEFAULT_PRICING);
   return buildOrderRow(lines, MENU_SEED, totals, {
     source,
@@ -242,7 +248,9 @@ describe("saving orders", () => {
     await expect(localSource.saveOrder(cartOrder({ tableId: "meja-99" }), { clientRef: ref() })).rejects.toThrow("Meja tidak ditemukan");
     const noTable = { ...cartOrder({ tableId: "meja-01" }), tableId: undefined };
     await expect(localSource.saveOrder(noTable, { clientRef: ref() })).rejects.toThrow("Pilih meja");
-    await expect(localSource.saveOrder(cartOrder({ lines: [{ itemId: "kopi-susu", qty: 1000 }] }), { clientRef: ref() })).rejects.toThrow("1-999");
+    await expect(localSource.saveOrder(cartOrder({ lines: [{ itemId: "kopi-susu", qty: 1000 }] }), { clientRef: ref() })).rejects.toThrow(
+      "1-999",
+    );
   });
 
   it("caps a discount at the subtotal and rejects cash below the total", async () => {
@@ -277,7 +285,11 @@ describe("saving orders", () => {
   it("records the waiter from the acting staff member", async () => {
     setLocalActor(WAITER);
     const order = { ...cartOrder({ source: "waiter", tableId: "meja-01" }), waiterId: "forged", waiterName: "Forged" };
-    expect(await localSource.saveOrder(order, { clientRef: ref() })).toMatchObject({ waiterId: "staff-2", waiterName: "Budi Santoso", tableName: "Meja 01" });
+    expect(await localSource.saveOrder(order, { clientRef: ref() })).toMatchObject({
+      waiterId: "staff-2",
+      waiterName: "Budi Santoso",
+      tableName: "Meja 01",
+    });
   });
 
   it("accepts cash only while a shift is open, like the API", async () => {
@@ -320,7 +332,9 @@ describe("role policy", () => {
     setLocalActor(WAITER);
     await expect(localSource.saveProduct(product)).rejects.toThrow(ACCESS_DENIED_MESSAGE);
     await expect(localSource.deleteTable("meja-01")).rejects.toThrow(ACCESS_DENIED_MESSAGE);
-    await expect(localSource.saveShift({ id: "x", openedAt: 1, cashierName: "x", startingCash: 0, status: "OPEN" })).rejects.toThrow(ACCESS_DENIED_MESSAGE);
+    await expect(localSource.saveShift({ id: "x", openedAt: 1, cashierName: "x", startingCash: 0, status: "OPEN" })).rejects.toThrow(
+      ACCESS_DENIED_MESSAGE,
+    );
     const unpaid = (await localSource.loadOrders()).find((o) => o.paymentStatus === "unpaid" && o.source === "pos")!;
     await expect(localSource.settleOrder(unpaid.no, "qris", "x")).rejects.toThrow(ACCESS_DENIED_MESSAGE);
     const discounted = { ...cartOrder(), discount: 1_000 };
@@ -333,7 +347,9 @@ describe("role policy", () => {
     expect((await localSource.updateKitchenStatus(queued.no, "preparing")).kitchenStatus).toBe("preparing");
 
     setLocalActor(MANAGER);
-    await expect(localSource.saveCategory({ id: "c", name: "Baru", kind: "Makanan", sortOrder: 9, createdAt: 1 })).rejects.toThrow(ACCESS_DENIED_MESSAGE);
+    await expect(localSource.saveCategory({ id: "c", name: "Baru", kind: "Makanan", sortOrder: 9, createdAt: 1 })).rejects.toThrow(
+      ACCESS_DENIED_MESSAGE,
+    );
     await expect(localSource.savePricing({ ...DEFAULT_PRICING })).rejects.toThrow(ACCESS_DENIED_MESSAGE);
     expect((await localSource.adjustStock(MENU_SEED.find((p) => p.id === "kentang-goreng")!, "add", 1)).stock).toBe(41);
 
@@ -355,19 +371,36 @@ describe("shifts", () => {
   it("allows one open shift, validates the closing time and freezes closed shifts for non-admins", async () => {
     setLocalActor(KASIR);
     const open = await openShift();
-    await expect(localSource.saveShift({ id: "second", openedAt: Date.now(), cashierName: "x", startingCash: 0, status: "OPEN" })).rejects.toThrow("shift lain yang terbuka");
-    await expect(localSource.saveShift({ ...open, closedAt: open.openedAt - 1, actualCash: 0, status: "CLOSED" })).rejects.toThrow("tidak boleh sebelum openedAt");
+    await expect(
+      localSource.saveShift({ id: "second", openedAt: Date.now(), cashierName: "x", startingCash: 0, status: "OPEN" }),
+    ).rejects.toThrow("shift lain yang terbuka");
+    await expect(localSource.saveShift({ ...open, closedAt: open.openedAt - 1, actualCash: 0, status: "CLOSED" })).rejects.toThrow(
+      "tidak boleh sebelum openedAt",
+    );
 
     const closed = await closeOpenShift(250_000);
-    const drawer = expectedDrawerCash(closed, await db.orders.where("cashShiftId").equals(open.id).toArray(), await db.cash_movements.where("shiftId").equals(open.id).toArray());
-    expect(closed).toMatchObject({ status: "CLOSED", expectedCash: drawer.expected, cashDifference: 250_000 - drawer.expected, cashierName: "Jamie Morgan" });
+    const drawer = expectedDrawerCash(
+      closed,
+      await db.orders.where("cashShiftId").equals(open.id).toArray(),
+      await db.cash_movements.where("shiftId").equals(open.id).toArray(),
+    );
+    expect(closed).toMatchObject({
+      status: "CLOSED",
+      expectedCash: drawer.expected,
+      cashDifference: 250_000 - drawer.expected,
+      cashierName: "Jamie Morgan",
+    });
 
     await expect(localSource.saveShift({ ...closed, notes: "ubah", status: "CLOSED" })).rejects.toThrow("hanya dapat diubah oleh admin");
-    await expect(localSource.saveShift({ ...closed, status: "OPEN", closedAt: undefined })).rejects.toThrow("hanya dapat diubah oleh admin");
+    await expect(localSource.saveShift({ ...closed, status: "OPEN", closedAt: undefined })).rejects.toThrow(
+      "hanya dapat diubah oleh admin",
+    );
 
     setLocalActor(ADMIN);
     expect((await localSource.saveShift({ ...closed, notes: "dikoreksi admin" })).notes).toBe("dikoreksi admin");
-    expect((await localSource.saveShift({ id: "second", openedAt: Date.now(), cashierName: "x", startingCash: 0, status: "OPEN" })).cashierName).toBe("Dewi Lestari");
+    expect(
+      (await localSource.saveShift({ id: "second", openedAt: Date.now(), cashierName: "x", startingCash: 0, status: "OPEN" })).cashierName,
+    ).toBe("Dewi Lestari");
   });
 
   it("freezes the cash movements of a closed shift and validates movements", async () => {
@@ -379,7 +412,16 @@ describe("shifts", () => {
     expect(await localSource.loadCashMovements(closedShift.id)).toContainEqual(frozen);
 
     const open = await openShift();
-    const movement = { id: "mov-new", shiftId: open.id, type: "CASH_OUT" as const, category: "operasional" as const, amount: 5_000, description: "Tisu", cashierName: "x", createdAt: Date.now() };
+    const movement = {
+      id: "mov-new",
+      shiftId: open.id,
+      type: "CASH_OUT" as const,
+      category: "operasional" as const,
+      amount: 5_000,
+      description: "Tisu",
+      cashierName: "x",
+      createdAt: Date.now(),
+    };
     expect((await localSource.saveCashMovement(movement)).cashierName).toBe("Jamie Morgan");
     await expect(localSource.saveCashMovement({ ...movement, amount: -1 })).rejects.toThrow("Nominal");
     await expect(localSource.saveCashMovement({ ...movement, category: "bukan" as never })).rejects.toThrow("Kategori");
@@ -407,7 +449,9 @@ describe("catalog rules", () => {
   });
 
   it("keeps category names unique, ignoring case", async () => {
-    await expect(localSource.saveCategory({ id: "dup", name: " favorit ", kind: "Makanan", sortOrder: 9, createdAt: 1 })).rejects.toThrow("sudah digunakan");
+    await expect(localSource.saveCategory({ id: "dup", name: " favorit ", kind: "Makanan", sortOrder: 9, createdAt: 1 })).rejects.toThrow(
+      "sudah digunakan",
+    );
     const sarapan = (await localSource.loadCategories()).find((c) => c.name === "Sarapan")!;
     await expect(localSource.updateCategory(sarapan.id, { name: "MINUMAN" }, "Sarapan")).rejects.toThrow("sudah digunakan");
   });

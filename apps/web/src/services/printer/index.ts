@@ -1,6 +1,6 @@
+import { STORAGE_KEYS } from "../../lib/storageKeys";
 import { BrowserPrintDriver } from "./BrowserPrintDriver";
 import { EscPosBluetoothDriver } from "./EscPosBluetoothDriver";
-import { STORAGE_KEYS } from "../../lib/storageKeys";
 import type { PrinterDriver, ReceiptPayload } from "./types";
 
 export type { PrinterDriver, ReceiptPayload };

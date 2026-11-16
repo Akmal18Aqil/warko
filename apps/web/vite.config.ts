@@ -1,6 +1,6 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import { STORE_PROFILE, STORE_TITLE } from "./src/lib/storeProfile";
 
@@ -26,8 +26,7 @@ export default defineConfig({
       manifest: {
         name: STORE_TITLE,
         short_name: STORE_PROFILE.brand.split(" ")[0].toUpperCase(),
-        description:
-          `POS, layar dapur, dan self-order QR ${STORE_PROFILE.outlet}.`,
+        description: `POS, layar dapur, dan self-order QR ${STORE_PROFILE.outlet}.`,
         lang: "id",
         start_url: "/",
         scope: "/",

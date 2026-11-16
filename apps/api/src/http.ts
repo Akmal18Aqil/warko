@@ -36,11 +36,7 @@ export function conflict(message: string): HttpError {
 }
 
 export function errorResponse(error: HttpError): Response {
-  return json(
-    error.errors ? { message: error.message, errors: error.errors } : { message: error.message },
-    error.status,
-    error.headers,
-  );
+  return json(error.errors ? { message: error.message, errors: error.errors } : { message: error.message }, error.status, error.headers);
 }
 
 const MAX_BODY_BYTES = 256 * 1024;

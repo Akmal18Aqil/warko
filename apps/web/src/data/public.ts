@@ -1,7 +1,7 @@
 import type { PricingSettings } from "@wakro/shared";
-import type { MenuItem } from "./menu";
 import type { OrderRow, TableRow } from "../types/domain";
 import { jsonBody, request } from "./api";
+import type { MenuItem } from "./menu";
 
 /** Endpoints used by the signed-out customer self-order page (remote mode only). */
 

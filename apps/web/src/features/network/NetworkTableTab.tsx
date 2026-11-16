@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { t } from "../../locales/id";
-import { tableOrderUrl } from "../../lib/tableQr";
-import { useTables } from "../../state/catalog";
 import { cn } from "../../lib/cn";
+import { tableOrderUrl } from "../../lib/tableQr";
+import { t } from "../../locales/id";
+import { useTables } from "../../state/catalog";
 import { Empty } from "../../ui/Empty";
 import { LinkRow } from "./LinkRow";
 import { QrCard } from "./QrCard";
@@ -61,7 +61,9 @@ export function NetworkTableTab({ baseUrl, copiedUrl, onCopy }: NetworkTableTabP
                 >
                   <span>{row.name}</span>
                   {row.area && (
-                    <span className={cn("rounded px-1.5 py-0.5 text-2xs font-medium", selected ? "bg-white/15" : "bg-ink/10 text-text-muted")}>
+                    <span
+                      className={cn("rounded px-1.5 py-0.5 text-2xs font-medium", selected ? "bg-white/15" : "bg-ink/10 text-text-muted")}
+                    >
                       {row.area}
                     </span>
                   )}

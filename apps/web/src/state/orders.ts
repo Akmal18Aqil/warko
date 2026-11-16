@@ -1,15 +1,15 @@
 import type { KitchenStatus, PayMethod } from "@wakro/shared";
 import { dataSource } from "../data/index";
 import { createPublicOrder } from "../data/public";
-import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
 import { buildOrderRow } from "../lib/orderBuilder";
+import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
 import { broadcastSync } from "../lib/syncBus";
+import { t } from "../locales/id";
 import type { CartLine, OrderRow, OrderSubmitOptions, SettleResult } from "../types/domain";
 import { refreshProductsAfterOrder } from "./catalog";
 import { resyncAfterConflict } from "./conflict";
 import { useStore } from "./store";
 import { catalogStore, ordersStore, pricingStore, sessionStore } from "./stores";
-import { t } from "../locales/id";
 
 export const useOrders = () => useStore(ordersStore, (s) => s.orders);
 
@@ -132,12 +132,7 @@ export async function createWaiterOrder(input: WaiterOrderInput): Promise<OrderR
 type SettleOutcome = SettleResult & { change: number | null };
 
 /** Settles an existing unpaid order (self-order / waiter order paid at the register). */
-export async function settleOrder(
-  no: number,
-  method: PayMethod,
-  paidBy: string,
-  cashReceived?: number,
-): Promise<SettleOutcome> {
+export async function settleOrder(no: number, method: PayMethod, paidBy: string, cashReceived?: number): Promise<SettleOutcome> {
   const result = await dataSource.settleOrder(no, method, paidBy, cashReceived);
   upsertOrder(result.order);
   broadcastSync({ type: "ORDER_STATUS_CHANGED", payload: { no } });

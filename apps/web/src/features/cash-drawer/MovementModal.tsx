@@ -1,9 +1,9 @@
 import type { CashMovementCategory, CashMovementType } from "@wakro/shared";
-import { useState, type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { formatIDR } from "../../data/menu";
-import { cn } from "../../lib/cn";
 import { playDrawerBeep } from "../../lib/audioFeedback";
+import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { addCashMovement } from "../../state/shift";
@@ -66,7 +66,11 @@ export function MovementModal({ initialType, onClose }: MovementModalProps) {
       <ModalHeader title={incoming ? text.titleIn : text.titleOut} subtitle={incoming ? text.subtitleIn : text.subtitleOut} />
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
         <ModalBody className="space-y-4">
-          <div role="radiogroup" aria-label={text.typeLabel} className="grid grid-cols-2 gap-2 rounded-xl border border-ink/10 bg-mineral/80 p-1">
+          <div
+            role="radiogroup"
+            aria-label={text.typeLabel}
+            className="grid grid-cols-2 gap-2 rounded-xl border border-ink/10 bg-mineral/80 p-1"
+          >
             {MOVEMENT_TYPES.map((option) => (
               <button
                 key={option}

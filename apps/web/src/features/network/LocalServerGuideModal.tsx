@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { BookOpen, HelpCircle, Radio, Server, Smartphone, Zap } from "lucide-react";
+import { useState } from "react";
 import { t } from "../../locales/id";
 import { getNetworkHostInfo } from "../../services/networkHost";
 import { Button } from "../../ui/Button";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
+import { type SegmentedTab, SegmentedTabs } from "../../ui/SegmentedTabs";
 import { GuideSection, type GuideTab } from "./GuideSections";
 
 interface LocalServerGuideModalProps {

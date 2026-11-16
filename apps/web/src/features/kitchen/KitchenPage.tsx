@@ -1,18 +1,18 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { Bell, BellOff, CheckCircle2, ChefHat, Clock, Flame } from "lucide-react";
-import { toast } from "sonner";
 import type { KitchenStatus } from "@wakro/shared";
+import { Bell, BellOff, CheckCircle2, ChefHat, Clock, Flame } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { FocusModeHeader } from "../../app/FocusModeHeader";
+import { isAudioReady, playKitchenBell, unlockAudio } from "../../lib/audioFeedback";
+import { cn } from "../../lib/cn";
+import { isKitchenActive, isPaid, kitchenStatusOf, NEXT_KITCHEN_STATUS, tableLabel } from "../../lib/orderStatus";
 import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { updateKitchenStatus, useOrders } from "../../state/orders";
 import { useDataReady } from "../../state/session";
-import { Empty } from "../../ui/Empty";
-import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
 import type { OrderRow } from "../../types/domain";
-import { cn } from "../../lib/cn";
-import { isAudioReady, playKitchenBell, unlockAudio } from "../../lib/audioFeedback";
-import { isKitchenActive, isPaid, kitchenStatusOf, NEXT_KITCHEN_STATUS, tableLabel } from "../../lib/orderStatus";
+import { Empty } from "../../ui/Empty";
+import { type SegmentedTab, SegmentedTabs } from "../../ui/SegmentedTabs";
 import { KitchenTicket } from "./KitchenTicket";
 
 type KdsFilter = "all" | KitchenStatus;
@@ -28,10 +28,7 @@ export default function KitchenPage() {
   const seenOrders = useRef<Set<number> | null>(null);
 
   // Strict FIFO: oldest ticket first.
-  const kitchenOrders = useMemo(
-    () => orders.filter(isKitchenActive).sort((a, b) => a.createdAt - b.createdAt),
-    [orders],
-  );
+  const kitchenOrders = useMemo(() => orders.filter(isKitchenActive).sort((a, b) => a.createdAt - b.createdAt), [orders]);
 
   // Bell + toast for every ticket that arrives after the screen loaded.
   useEffect(() => {

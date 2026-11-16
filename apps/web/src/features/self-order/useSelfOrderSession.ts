@@ -1,23 +1,23 @@
+import type { PricingSettings } from "@wakro/shared";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { RemoteDataError } from "../../data/index";
+import { isSoldOut, type MenuItem } from "../../data/menu";
 import { useCartLines } from "../../hooks/useCartLines";
 import { usePublicCustomer } from "../../hooks/usePublicCustomer";
+import { newClientRef } from "../../lib/orderStatus";
+import { STORAGE_KEYS } from "../../lib/storageKeys";
+import { t } from "../../locales/id";
 import { useCategories, useProducts } from "../../state/catalog";
 import { createSelfOrder, settleOrder } from "../../state/orders";
 import { usePricing } from "../../state/pricing";
-import { useDataReady, useDataSourceError } from "../../state/session";
 import { usePrint } from "../../state/print";
-import { isSoldOut, type MenuItem } from "../../data/menu";
-import { RemoteDataError } from "../../data/index";
-import { STORAGE_KEYS } from "../../lib/storageKeys";
-import { newClientRef } from "../../lib/orderStatus";
-import { t } from "../../locales/id";
+import { useDataReady, useDataSourceError } from "../../state/session";
 import type { CartLine, CategoryRow, OrderRow, OrderTotals } from "../../types/domain";
-import type { PricingSettings } from "@wakro/shared";
+import { cartUnchanged, type PendingOrder, readPendingOrder } from "./pendingOrder";
 import { useLiveOrders } from "./useLiveOrders";
-import { useQrisPayment, type QrisPayment } from "./useQrisPayment";
-import { useSelfTable, type SelfTable } from "./useSelfTable";
-import { readPendingOrder, cartUnchanged, type PendingOrder } from "./pendingOrder";
+import { type QrisPayment, useQrisPayment } from "./useQrisPayment";
+import { type SelfTable, useSelfTable } from "./useSelfTable";
 
 type PaymentChoice = "paid-now" | "pay-later";
 
@@ -114,7 +114,10 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
    * `new` submits the cart; `recover` re-sends the stored payload of an order whose outcome is unknown.
    * While such an order exists, new submissions are blocked so the customer cannot order twice by accident.
    */
-  const submitOrder = async (paymentChoice: PaymentChoice, mode: "new" | "recover" = "new"): Promise<{ order: OrderRow; key: string } | null> => {
+  const submitOrder = async (
+    paymentChoice: PaymentChoice,
+    mode: "new" | "recover" = "new",
+  ): Promise<{ order: OrderRow; key: string } | null> => {
     if (submittingRef.current) return null;
     if (mode === "recover" && !pendingRef.current) return null;
     if (mode === "new" && pendingRef.current) {
@@ -132,14 +135,16 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
     }
     const submittedLines = cart.lines;
     const key = pendingRef.current?.clientRef ?? newClientRef();
-    const pending: PendingOrder | null = isPublicCustomer ? pendingRef.current ?? {
-      tableId: currentTable!.id,
-      customerName: customerName.trim() || t.selfOrder.guestAt(currentTable!.name),
-      lines: cart.lines.map((line) => ({ ...line })),
-      clientRef: key,
-      paymentChoice: "pay-later",
-      expectedTotal: cart.totals.total,
-    } : null;
+    const pending: PendingOrder | null = isPublicCustomer
+      ? (pendingRef.current ?? {
+          tableId: currentTable!.id,
+          customerName: customerName.trim() || t.selfOrder.guestAt(currentTable!.name),
+          lines: cart.lines.map((line) => ({ ...line })),
+          clientRef: key,
+          paymentChoice: "pay-later",
+          expectedTotal: cart.totals.total,
+        })
+      : null;
     if (pending) {
       localStorage.setItem(STORAGE_KEYS.selfPendingOrder, JSON.stringify(pending));
       pendingRef.current = pending;
@@ -148,13 +153,15 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const created = await createSelfOrder(pending ?? {
-        tableId: currentTable!.id,
-        customerName: customerName.trim() || t.selfOrder.guestAt(currentTable!.name),
-        lines: cart.lines,
-        clientRef: key,
-        paymentChoice,
-      });
+      const created = await createSelfOrder(
+        pending ?? {
+          tableId: currentTable!.id,
+          customerName: customerName.trim() || t.selfOrder.guestAt(currentTable!.name),
+          lines: cart.lines,
+          clientRef: key,
+          paymentChoice,
+        },
+      );
       track({ no: created.no, key, tableId: pending?.tableId ?? currentTable!.id, createdAt: Date.now() }, created);
       pendingRef.current = null;
       setPendingOrder(null);
@@ -163,7 +170,13 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
       setCartOpen(false);
       return { order: created, key };
     } catch (err) {
-      const final = err instanceof RemoteDataError && err.status !== undefined && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429;
+      const final =
+        err instanceof RemoteDataError &&
+        err.status !== undefined &&
+        err.status >= 400 &&
+        err.status < 500 &&
+        err.status !== 408 &&
+        err.status !== 429;
       if (final) {
         pendingRef.current = null;
         setPendingOrder(null);
@@ -245,7 +258,12 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
   };
 
   const demoQris: DemoQris | null = demoPayOrder
-    ? { total: demoPayOrder.total, submitting: settlingDemo, confirm: () => confirmDemoPlacedQris(demoPayOrder), close: () => setDemoPayOrder(null) }
+    ? {
+        total: demoPayOrder.total,
+        submitting: settlingDemo,
+        confirm: () => confirmDemoPlacedQris(demoPayOrder),
+        close: () => setDemoPayOrder(null),
+      }
     : demoQrisOpen
       ? { total: cart.totals.total, submitting, confirm: confirmDemoQris, close: () => setDemoQrisOpen(false) }
       : null;

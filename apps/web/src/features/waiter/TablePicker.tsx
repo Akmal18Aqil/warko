@@ -1,9 +1,9 @@
-import { useId } from "react";
 import { AlertCircle, Users } from "lucide-react";
+import { useId } from "react";
 import { formatIDR } from "../../data/menu";
-import { t } from "../../locales/id";
 import { cn } from "../../lib/cn";
 import { isHandledBy, isPaid, KITCHEN_LABEL, kitchenStatusOf } from "../../lib/orderStatus";
+import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { useTables } from "../../state/catalog";
 import type { OrderRow } from "../../types/domain";
@@ -52,9 +52,7 @@ export function TablePicker({ draft, activeOrders }: TablePickerProps) {
                 onClick={() => draft.setGuests(count)}
                 className={cn(
                   "h-7 w-7 rounded-lg text-xs font-bold transition-all",
-                  draft.guests === count
-                    ? "bg-accent text-white shadow-xs"
-                    : "bg-surface-muted text-text-muted hover:bg-border",
+                  draft.guests === count ? "bg-accent text-white shadow-xs" : "bg-surface-muted text-text-muted hover:bg-border",
                 )}
               >
                 {count}
@@ -95,11 +93,7 @@ export function TablePicker({ draft, activeOrders }: TablePickerProps) {
                   <span
                     className={cn(
                       "line-clamp-1 rounded px-1.5 py-0.5 text-2xs font-bold",
-                      isSelected
-                        ? "bg-accent text-white"
-                        : isMine
-                          ? "bg-success/30 text-success-dark"
-                          : "bg-warning/30 text-warning-dark",
+                      isSelected ? "bg-accent text-white" : isMine ? "bg-success/30 text-success-dark" : "bg-warning/30 text-warning-dark",
                     )}
                   >
                     {isMine ? t.waiter.occupiedByMe(order.no) : t.waiter.occupiedByOther(waiterFirstName(order), order.no)}

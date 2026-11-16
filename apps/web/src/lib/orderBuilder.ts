@@ -31,12 +31,7 @@ export function orderItems(lines: readonly CartLine[], products: readonly MenuIt
  * The single place an `OrderRow` is assembled before it is submitted. The data source assigns the
  * order number and, on the server, re-prices and sets payment fields; `total` is what the customer saw.
  */
-export function buildOrderRow(
-  lines: readonly CartLine[],
-  products: readonly MenuItem[],
-  totals: OrderTotals,
-  meta: OrderMeta,
-): OrderRow {
+export function buildOrderRow(lines: readonly CartLine[], products: readonly MenuItem[], totals: OrderTotals, meta: OrderMeta): OrderRow {
   const paid = meta.paymentChoice === "paid-now";
   const kitchenStatus = meta.kitchenStatus ?? "queued";
   const dineIn = meta.orderType === "meja";

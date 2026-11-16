@@ -28,8 +28,7 @@ export const waiter = {
   defaultCustomer: (tableName: string) => `Tamu ${tableName}`,
 
   noticeMine: (table: string, no: number) => `Anda sedang menangani pesanan aktif di ${table} (Order #${no})`,
-  noticeOther: (table: string, who: string, no: number) =>
-    `Perhatian: ${table} sedang aktif ditangani oleh ${who} (Order #${no})`,
+  noticeOther: (table: string, who: string, no: number) => `Perhatian: ${table} sedang aktif ditangani oleh ${who} (Order #${no})`,
   noticeKitchen: "Status Dapur:",
   noticePaid: "Lunas",
   noticeUnpaid: "Belum bayar",

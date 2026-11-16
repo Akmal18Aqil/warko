@@ -205,9 +205,7 @@ export const network = {
         },
         {
           title: "3. Ingin mengganti IP server utama saat berpindah router?",
-          lines: [
-            `Buka **Pengaturan**, klik **Pusat Jaringan**, lalu klik **${EDIT_IP}** dan masukkan IP baru dari router.`,
-          ],
+          lines: [`Buka **Pengaturan**, klik **Pusat Jaringan**, lalu klik **${EDIT_IP}** dan masukkan IP baru dari router.`],
         },
       ],
     },

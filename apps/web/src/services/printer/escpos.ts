@@ -1,5 +1,5 @@
-import type { ReceiptPayload } from "./types";
 import { STORE_PROFILE } from "../../lib/storeProfile";
+import type { ReceiptPayload } from "./types";
 
 /**
  * Standard ESC/POS Command Byte Sequences
@@ -59,7 +59,7 @@ export function generateEscPosReceipt(payload: ReceiptPayload, paperWidth: 58 | 
   append(ESC_POS_COMMANDS.BOLD_OFF);
 
   // 3. Divider
-  appendText("-".repeat(maxChars) + "\n");
+  appendText(`${"-".repeat(maxChars)}\n`);
 
   // 4. Order Info
   append(ESC_POS_COMMANDS.ALIGN_LEFT);
@@ -69,7 +69,7 @@ export function generateEscPosReceipt(payload: ReceiptPayload, paperWidth: 58 | 
   } else {
     appendText("UJI COBA CETAK STRUK\n");
   }
-  appendText("-".repeat(maxChars) + "\n");
+  appendText(`${"-".repeat(maxChars)}\n`);
 
   // 5. Item Lines
   if (payload.lines.length === 0) {
@@ -82,7 +82,7 @@ export function generateEscPosReceipt(payload: ReceiptPayload, paperWidth: 58 | 
   }
 
   // 6. Divider & Total
-  appendText("-".repeat(maxChars) + "\n");
+  appendText(`${"-".repeat(maxChars)}\n`);
   for (const row of payload.summary ?? []) appendText(formatTwoColumns(row.label, row.amount, maxChars));
   if (payload.total) {
     append(ESC_POS_COMMANDS.BOLD_ON);

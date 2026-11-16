@@ -1,11 +1,11 @@
-import { useId, useState, type FormEvent } from "react";
 import type { PricingSettings } from "@wakro/shared";
+import { type FormEvent, useId, useState } from "react";
 import { toast } from "sonner";
 import { t } from "../../locales/id";
+import { savePricing } from "../../state/pricing";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { savePricing } from "../../state/pricing";
 
 const TAX_RATE_PRESETS = [0, 10, 11, 12] as const;
 const SERVICE_RATE_PRESETS = [0, 5, 7, 10] as const;

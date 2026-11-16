@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { t } from "../../locales/id";
 import { compressImageFile } from "./imageCompression";

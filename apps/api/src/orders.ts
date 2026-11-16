@@ -1,11 +1,11 @@
-import { calculateCharges, KITCHEN_STATUSES, MAX_MONEY, type KitchenStatus, type OrderSource, type PayMethod } from "@wakro/shared";
-import { sha256Hex, randomToken } from "./crypto";
+import { calculateCharges, KITCHEN_STATUSES, type KitchenStatus, MAX_MONEY, type OrderSource, type PayMethod } from "@wakro/shared";
+import { randomToken, sha256Hex } from "./crypto";
 import { batchTyped } from "./db";
 import type { Env } from "./env";
 import { changes, isCheckViolation, isNotNullViolation } from "./guards";
 import { conflict, HttpError } from "./http";
 import type { CursorKey } from "./pagination";
-import { assertExpectedTotal, parsePricing, pricingStatement, type PricingRow } from "./pricing";
+import { assertExpectedTotal, type PricingRow, parsePricing, pricingStatement } from "./pricing";
 
 /**
  * Order lifecycle shared by staff (POS / waiter) and public (self-order) endpoints.
@@ -108,7 +108,9 @@ export function operationalOrderStatements(env: Env, now = Date.now()): [D1Prepa
   const cutoff = now - OPERATIONAL_WINDOW_MS;
   return [
     env.DB.prepare(`${ORDER_SELECT} WHERE ${where} ORDER BY o.no DESC`).bind(cutoff),
-    env.DB.prepare(`${ITEM_SELECT} WHERE oi.order_no IN (SELECT o.no FROM orders o WHERE ${where}) ORDER BY oi.order_no DESC, oi.id ASC`).bind(cutoff),
+    env.DB.prepare(
+      `${ITEM_SELECT} WHERE oi.order_no IN (SELECT o.no FROM orders o WHERE ${where}) ORDER BY oi.order_no DESC, oi.id ASC`,
+    ).bind(cutoff),
   ];
 }
 
@@ -123,13 +125,14 @@ export function reportOrderStatements(
   after: CursorKey | null,
   limit: number,
 ): [D1PreparedStatement, D1PreparedStatement] {
-  const where =
-    "((o.created_at >= ?1 AND o.created_at < ?2) OR (o.paid_at >= ?1 AND o.paid_at < ?2)) AND (o.created_at, o.no) > (?3, ?4)";
+  const where = "((o.created_at >= ?1 AND o.created_at < ?2) OR (o.paid_at >= ?1 AND o.paid_at < ?2)) AND (o.created_at, o.no) > (?3, ?4)";
   const page = `ORDER BY o.created_at, o.no LIMIT ?5`;
   const binds = [from, to, after?.[0] ?? -1, after?.[1] ?? -1, limit] as const;
   return [
     env.DB.prepare(`${ORDER_SELECT} WHERE ${where} ${page}`).bind(...binds),
-    env.DB.prepare(`${ITEM_SELECT} WHERE oi.order_no IN (SELECT o.no FROM orders o WHERE ${where} ${page}) ORDER BY oi.order_no, oi.id`).bind(...binds),
+    env.DB.prepare(
+      `${ITEM_SELECT} WHERE oi.order_no IN (SELECT o.no FROM orders o WHERE ${where} ${page}) ORDER BY oi.order_no, oi.id`,
+    ).bind(...binds),
   ];
 }
 
@@ -282,7 +285,9 @@ export async function placeOrder(env: Env, input: PlaceOrderInput): Promise<Plac
   const placeholders = barcodes.map(() => "?").join(", ");
   // One batch = one consistent snapshot of products, pricing and the table.
   const [productRows, pricingRows, tableRows] = await batchTyped<[ProductStockRow, PricingRow, { id: string; name: string }]>(env.DB, [
-    env.DB.prepare(`SELECT id, barcode, name, price, stock FROM products WHERE is_active = 1 AND barcode IN (${placeholders})`).bind(...barcodes),
+    env.DB.prepare(`SELECT id, barcode, name, price, stock FROM products WHERE is_active = 1 AND barcode IN (${placeholders})`).bind(
+      ...barcodes,
+    ),
     pricingStatement(env),
     env.DB.prepare("SELECT id, name FROM restaurant_tables WHERE id = ? AND active = 1").bind(input.tableId ?? ""),
   ]);
@@ -329,7 +334,8 @@ export async function placeOrder(env: Env, input: PlaceOrderInput): Promise<Plac
   const now = Date.now();
   const tableName = table?.name ?? (input.orderType === "meja" ? input.tableName : null);
   const tableDigits = tableName ? /\d+/.exec(tableName)?.[0] : undefined;
-  const tableNumber = tableDigits !== undefined && Number(tableDigits) >= 1 && Number.isSafeInteger(Number(tableDigits)) ? Number(tableDigits) : null;
+  const tableNumber =
+    tableDigits !== undefined && Number(tableDigits) >= 1 && Number.isSafeInteger(Number(tableDigits)) ? Number(tableDigits) : null;
   const paid = input.payment !== null;
   // Every order carries a reference: the caller's idempotency key, or a random one that only links
   // the item and stock rows of this batch to the order SQLite numbers.
@@ -372,10 +378,9 @@ export async function placeOrder(env: Env, input: PlaceOrderInput): Promise<Plac
   const statements: D1PreparedStatement[] = [
     table
       ? // Zero rows (and a failing item insert below) if the table was deactivated meanwhile.
-        env.DB.prepare(`INSERT INTO orders (${orderColumns}) SELECT ${valueSlots} FROM restaurant_tables WHERE id = ? AND active = 1 AND ${cashGuard}`).bind(
-          ...orderValues,
-          table.id,
-        )
+        env.DB.prepare(
+          `INSERT INTO orders (${orderColumns}) SELECT ${valueSlots} FROM restaurant_tables WHERE id = ? AND active = 1 AND ${cashGuard}`,
+        ).bind(...orderValues, table.id)
       : env.DB.prepare(`INSERT INTO orders (${orderColumns}) SELECT ${valueSlots} WHERE ${cashGuard}`).bind(...orderValues),
     // NULL subselects (order missing, product deactivated or repriced since the read) violate NOT NULL
     // and roll the whole batch back.
@@ -385,7 +390,18 @@ export async function placeOrder(env: Env, input: PlaceOrderInput): Promise<Plac
          VALUES ((SELECT no FROM orders WHERE client_ref = ?), ?,
            (SELECT name FROM products WHERE id = ? AND is_active = 1 AND price = ? AND (stock IS NULL) = ?),
            (SELECT price FROM products WHERE id = ? AND is_active = 1 AND price = ? AND (stock IS NULL) = ?), ?, ?)`,
-      ).bind(ref, product.id, product.id, product.price, product.stock === null ? 1 : 0, product.id, product.price, product.stock === null ? 1 : 0, line.qty, line.note),
+      ).bind(
+        ref,
+        product.id,
+        product.id,
+        product.price,
+        product.stock === null ? 1 : 0,
+        product.id,
+        product.price,
+        product.stock === null ? 1 : 0,
+        line.qty,
+        line.note,
+      ),
     ),
   ];
   for (const { product, qty } of qtyByProduct.values()) {
@@ -443,7 +459,9 @@ export type SettleInput = { method: PayMethod; cashReceived: number | null; paid
  * it with `alreadyPaid: true` and changes nothing (no double cash entry on retries or double clicks).
  */
 export async function settleOrder(env: Env, no: number, input: SettleInput): Promise<{ order: OrderJson; alreadyPaid: boolean }> {
-  const current = await env.DB.prepare("SELECT payment_status, total FROM orders WHERE no = ?").bind(no).first<{ payment_status: string; total: number }>();
+  const current = await env.DB.prepare("SELECT payment_status, total FROM orders WHERE no = ?")
+    .bind(no)
+    .first<{ payment_status: string; total: number }>();
   if (!current) throw new HttpError(404, "Pesanan tidak ditemukan.");
   if (current.payment_status === "paid") return { order: (await loadOrder(env, no))!, alreadyPaid: true };
   if (current.payment_status !== "unpaid") throw new HttpError(409, "Pesanan sudah direfund dan tidak dapat dibayar.");
@@ -458,7 +476,18 @@ export async function settleOrder(env: Env, no: number, input: SettleInput): Pro
      WHERE no = ? AND payment_status = 'unpaid' AND total = ?
        AND (? <> 'tunai' OR EXISTS (SELECT 1 FROM shifts WHERE status = 'OPEN'))`,
   )
-    .bind(input.method, Date.now(), input.cashReceived, input.paidBy, input.paymentRef, Date.now(), input.method, no, current.total, input.method)
+    .bind(
+      input.method,
+      Date.now(),
+      input.cashReceived,
+      input.paidBy,
+      input.paymentRef,
+      Date.now(),
+      input.method,
+      no,
+      current.total,
+      input.method,
+    )
     .run();
   const order = (await loadOrder(env, no))!;
   if ((result.meta.changes ?? 0) === 0) {
@@ -491,7 +520,9 @@ export async function setKitchenStatus(env: Env, no: number, kitchen: KitchenSta
 /** Self-order customers read their own order with the secret key they generated when ordering. */
 export async function loadPublicOrder(env: Env, no: number, key: string): Promise<OrderJson> {
   const hash = await hashClientRef("key", key);
-  const row = await env.DB.prepare("SELECT no FROM orders WHERE no = ? AND client_ref = ? AND source = 'self-order'").bind(no, hash).first();
+  const row = await env.DB.prepare("SELECT no FROM orders WHERE no = ? AND client_ref = ? AND source = 'self-order'")
+    .bind(no, hash)
+    .first();
   if (!row) throw new HttpError(404, "Pesanan tidak ditemukan.");
   const order = (await loadOrder(env, no))!;
   // Staff-only details are not part of the customer view.

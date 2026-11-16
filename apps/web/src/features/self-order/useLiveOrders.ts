@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useOrders } from "../../state/orders";
 import { loadPublicOrder } from "../../data/public";
+import { useOrders } from "../../state/orders";
 import type { OrderRow, TableRow } from "../../types/domain";
-import { readTracked, writeTracked, type TrackedOrder } from "./trackedOrders";
+import { readTracked, type TrackedOrder, writeTracked } from "./trackedOrders";
 
 const POLL_MS = 5000;
 

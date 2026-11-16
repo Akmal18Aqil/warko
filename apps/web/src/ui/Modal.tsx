@@ -1,15 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  type ReactNode,
-  type RefObject,
-} from "react";
-import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { createContext, type ReactNode, type RefObject, useContext, useEffect, useId, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "../lib/cn";
 import { t } from "../locales/id";
 
@@ -33,7 +24,9 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 function focusableIn(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null || el === document.activeElement);
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (el) => el.offsetParent !== null || el === document.activeElement,
+  );
 }
 
 interface ModalProps {

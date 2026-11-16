@@ -1,6 +1,6 @@
 import { Store } from "lucide-react";
-import { t } from "../../locales/id";
 import { STORE_TITLE } from "../../lib/storeProfile";
+import { t } from "../../locales/id";
 import { SettingsCard } from "./SettingsCard";
 
 export function StoreCard() {

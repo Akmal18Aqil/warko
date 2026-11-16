@@ -1,9 +1,9 @@
 import { Plus, Utensils } from "lucide-react";
-import { Button } from "../../ui/Button";
-import { Badge } from "../../ui/Badge";
 import { formatIDR, isLowStock, isSoldOut, type MenuItem } from "../../data/menu";
 import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
+import { Badge } from "../../ui/Badge";
+import { Button } from "../../ui/Button";
 import { QtyStepper } from "./QtyStepper";
 
 interface ProductCardProps {
@@ -17,10 +17,7 @@ export function ProductCard({ product, qty, onAdd, onDecrease }: ProductCardProp
   const soldOut = isSoldOut(product);
   return (
     <article
-      className={cn(
-        "flex flex-col justify-between rounded-2xl border border-border bg-surface p-3.5 shadow-clay",
-        soldOut && "opacity-60",
-      )}
+      className={cn("flex flex-col justify-between rounded-2xl border border-border bg-surface p-3.5 shadow-clay", soldOut && "opacity-60")}
     >
       <div className="flex gap-3">
         <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-muted">

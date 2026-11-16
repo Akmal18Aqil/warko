@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect, useMemo, type ReactNode, useCallback } from "react";
 import type { StaffRole } from "@wakro/shared";
-import { useLocation } from "wouter";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 import { STORAGE_KEYS } from "../lib/storageKeys";
 import { t } from "../locales/id";
 import { isDemoMode } from "./demo";
@@ -99,7 +99,9 @@ function roleAllows(role: StaffRole, path: string): boolean {
 }
 
 export function AuthProvider({ children, remoteStaff }: { children: ReactNode; remoteStaff?: StaffUser }) {
-  const [staffList] = useState<StaffUser[]>(() => (remoteStaff ? [withNormalizedAvatar(remoteStaff)] : DEMO_STAFF.map(withNormalizedAvatar)));
+  const [staffList] = useState<StaffUser[]>(() =>
+    remoteStaff ? [withNormalizedAvatar(remoteStaff)] : DEMO_STAFF.map(withNormalizedAvatar),
+  );
   const [currentStaff, setCurrentStaff] = useState<StaffUser>(() =>
     remoteStaff ? withNormalizedAvatar(remoteStaff) : getInitialCurrentStaff(staffList),
   );
@@ -150,9 +152,7 @@ export function AuthProvider({ children, remoteStaff }: { children: ReactNode; r
 
   const switchStaffByPin = useCallback(
     (pin: string, targetStaffId?: string) => {
-      const matched = targetStaffId
-        ? staffList.find((s) => s.id === targetStaffId && s.pin === pin)
-        : staffList.find((s) => s.pin === pin);
+      const matched = targetStaffId ? staffList.find((s) => s.id === targetStaffId && s.pin === pin) : staffList.find((s) => s.pin === pin);
       if (!matched) return { success: false, error: t.app.auth.wrongPin };
       enter(matched);
       toast.success(t.app.auth.loginSuccess(matched.name, matched.title));

@@ -1,10 +1,11 @@
 // Captures the screenshots used by the README and the product brochure into <repo>/docs/images.
 // Start the app first (`pnpm --filter @wakro/web dev`), then run:
 //   node apps/web/scripts/capture-screenshots.mjs            (BASE_URL defaults to http://localhost:5173)
-import puppeteer from "puppeteer";
+
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import puppeteer from "puppeteer";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.resolve(scriptDir, "../../../docs/images");
@@ -82,7 +83,7 @@ async function clickButton(page, labels, { matchTitle = false, exact = false } =
       const lowered = wanted.map((label) => label.toLowerCase());
       const candidates = [...document.querySelectorAll("button, [role='tab']")];
       const matches = candidates.filter((el) => {
-        const raw = byTitle ? el.getAttribute("aria-label") ?? el.getAttribute("title") ?? "" : el.textContent ?? "";
+        const raw = byTitle ? (el.getAttribute("aria-label") ?? el.getAttribute("title") ?? "") : (el.textContent ?? "");
         const text = raw.trim().toLowerCase();
         return lowered.some((label) => (whole ? text === label : text.includes(label)));
       });

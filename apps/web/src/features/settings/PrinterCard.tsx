@@ -1,11 +1,11 @@
-import { useState } from "react";
 import { Printer } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { formatIDR } from "../../data/menu";
-import { t } from "../../locales/id";
-import { Button } from "../../ui/Button";
-import { getAvailablePrinterDrivers, getPrinterDriver, setPrinterDriver } from "../../services/printer/index";
 import { STORE_PROFILE } from "../../lib/storeProfile";
+import { t } from "../../locales/id";
+import { getAvailablePrinterDrivers, getPrinterDriver, setPrinterDriver } from "../../services/printer/index";
+import { Button } from "../../ui/Button";
 import { SettingsCard } from "./SettingsCard";
 
 const TEST_PRINT_AMOUNT = 25_000;

@@ -1,5 +1,5 @@
-import { Input } from "../../ui/Input";
 import { t } from "../../locales/id";
+import { Input } from "../../ui/Input";
 
 interface CustomerNameCardProps {
   name: string;

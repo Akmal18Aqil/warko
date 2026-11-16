@@ -1,16 +1,16 @@
-import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { Plus, ScanLine, Sparkles, Trash2 } from "lucide-react";
+import { type FormEvent, type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
 import type { MenuItem, MenuKind } from "../../data/menu";
+import { t } from "../../locales/id";
 import { deleteProduct, saveProduct, useCategories } from "../../state/catalog";
 import { Button } from "../../ui/Button";
 import { Input, Select } from "../../ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { t } from "../../locales/id";
 import { BarcodeScanner } from "../scanner/BarcodeScanner";
 import { InlineCategoryForm } from "./InlineCategoryForm";
-import { DEFAULT_PRODUCT_KIND } from "./productKinds";
 import { ProductImagePicker } from "./ProductImagePicker";
+import { DEFAULT_PRODUCT_KIND } from "./productKinds";
 
 const FORM_ID = "product-form";
 const DEFAULT_PREP_MINUTES = 5;
@@ -25,7 +25,10 @@ function generateRandomBarcode(): string {
 
 const required = (label: string): ReactNode => (
   <>
-    {label} <span aria-hidden="true" className="text-error-dark">*</span>
+    {label}{" "}
+    <span aria-hidden="true" className="text-error-dark">
+      *
+    </span>
   </>
 );
 

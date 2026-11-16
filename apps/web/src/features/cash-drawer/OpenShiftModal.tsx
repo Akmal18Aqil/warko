@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { isRemoteDataSource } from "../../data/index";
 import { formatIDR } from "../../data/menu";
@@ -24,7 +24,10 @@ export function OpenShiftModal({ onClose }: { onClose: () => void }) {
     setSaving(true);
     try {
       // The server records the signed-in staff member as cashier, so the name is only asked for locally.
-      const saved = await openShift(isRemoteDataSource ? currentStaff.name : cashierName.trim() || currentStaff.name, parseAmount(startingCash));
+      const saved = await openShift(
+        isRemoteDataSource ? currentStaff.name : cashierName.trim() || currentStaff.name,
+        parseAmount(startingCash),
+      );
       playDrawerBeep();
       toast.success(t.cashDrawer.toast.shiftOpened(saved.cashierName, formatIDR(saved.startingCash)));
       onClose();

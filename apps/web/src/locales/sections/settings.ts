@@ -44,7 +44,8 @@ export const settings = {
     guide: "Panduan penerapan",
     pairing: "Pairing HP pelayan & dapur",
     demoValue: "Mode demo · hanya browser ini",
-    demoNote: "Demo tidak memakai server lokal: data tersimpan di browser ini dan hanya tab di browser yang sama yang tersinkron. Panduan penerapan menjelaskan cara menjalankan sistem sungguhan.",
+    demoNote:
+      "Demo tidak memakai server lokal: data tersimpan di browser ini dan hanya tab di browser yang sama yang tersinkron. Panduan penerapan menjelaskan cara menjalankan sistem sungguhan.",
     demoPairing: "Sinkronisasi antar tab",
   },
   data: {
@@ -52,7 +53,8 @@ export const settings = {
     summaryRemote: (n: number) => `${n} produk di server`,
     summaryLocal: (n: number) => `${n} produk tersimpan lokal`,
     noteRemote: "Ekspor daftar produk ke CSV. Pencadangan dan pemulihan data dikelola di server.",
-    noteLocal: "Cadangkan produk, pesanan, meja, kategori, dan mutasi kas ke berkas JSON/CSV, impor data baru, atau kembalikan seluruh data demo ke kondisi awal.",
+    noteLocal:
+      "Cadangkan produk, pesanan, meja, kategori, dan mutasi kas ke berkas JSON/CSV, impor data baru, atau kembalikan seluruh data demo ke kondisi awal.",
     exportCsv: "Daftar produk (CSV)",
     exportJson: "Cadangkan semua (JSON)",
     importFile: "Impor (JSON / CSV)",
@@ -62,12 +64,20 @@ export const settings = {
     exportedBody: "Simpan berkas di folder aman.",
     exportFailed: "Gagal membuat berkas ekspor.",
     importSuccess: "Data berhasil dipulihkan",
-    importSuccessBody: (n: { products: number; orders: number; tables: number; categories: number; cashMovements: number; shifts: number }) =>
+    importSuccessBody: (n: {
+      products: number;
+      orders: number;
+      tables: number;
+      categories: number;
+      cashMovements: number;
+      shifts: number;
+    }) =>
       `Memulihkan ${n.products} produk, ${n.orders} pesanan, ${n.tables} meja, ${n.categories} kategori, ${n.shifts} shift, dan ${n.cashMovements} mutasi kas.`,
     importError: "Impor gagal",
     importErrorBody: "Berkas cadangan tidak dikenali.",
     resetTitle: "Reset semua data demo?",
-    resetBody: "Produk, meja, kategori, pesanan, shift, kas, pajak, dan daftar staf demo dikembalikan ke kondisi awal dengan tanggal terbaru. Semua perubahan Anda di browser ini hilang, dan tab lain ikut dimuat ulang.",
+    resetBody:
+      "Produk, meja, kategori, pesanan, shift, kas, pajak, dan daftar staf demo dikembalikan ke kondisi awal dengan tanggal terbaru. Semua perubahan Anda di browser ini hilang, dan tab lain ikut dimuat ulang.",
     resetConfirm: "Reset semua data demo",
     resetFailed: "Gagal mereset data demo.",
   },

@@ -1,4 +1,4 @@
-import { DEFAULT_PRICING, calculateCharges } from "@wakro/shared";
+import { calculateCharges, DEFAULT_PRICING } from "@wakro/shared";
 import { describe, expect, it } from "vitest";
 import type { MenuItem } from "../data/menu";
 import { computeTotals, NO_DISCOUNT } from "./pricing";
@@ -20,12 +20,28 @@ const noCharges = { ...DEFAULT_PRICING, taxEnabled: false, serviceChargeEnabled:
 
 describe("computeTotals", () => {
   it("sums lines and counts portions", () => {
-    const totals = computeTotals([{ itemId: "nasi", qty: 2 }, { itemId: "teh", qty: 3 }], products, NO_DISCOUNT, noCharges);
+    const totals = computeTotals(
+      [
+        { itemId: "nasi", qty: 2 },
+        { itemId: "teh", qty: 3 },
+      ],
+      products,
+      NO_DISCOUNT,
+      noCharges,
+    );
     expect(totals).toMatchObject({ rawSubtotal: 55_000, discountAmount: 0, subtotal: 55_000, total: 55_000, count: 5 });
   });
 
   it("ignores lines whose product no longer exists", () => {
-    const totals = computeTotals([{ itemId: "hilang", qty: 4 }, { itemId: "teh", qty: 1 }], products, NO_DISCOUNT, noCharges);
+    const totals = computeTotals(
+      [
+        { itemId: "hilang", qty: 4 },
+        { itemId: "teh", qty: 1 },
+      ],
+      products,
+      NO_DISCOUNT,
+      noCharges,
+    );
     expect(totals).toMatchObject({ rawSubtotal: 5_000, count: 1 });
   });
 

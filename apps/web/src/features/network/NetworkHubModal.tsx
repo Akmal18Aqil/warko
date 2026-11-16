@@ -1,16 +1,16 @@
+import { ChefHat, Info, QrCode, Radio, Smartphone, TriangleAlert, Wifi } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ChefHat, Info, QrCode, Radio, Smartphone, TriangleAlert, Wifi } from "lucide-react";
 import { STORAGE_KEYS } from "../../lib/storageKeys";
-import { isDemoMode } from "../../state/demo";
 import { t } from "../../locales/id";
 import { getNetworkHostInfo, getSavedServerIp, type NetworkHostInfo } from "../../services/networkHost";
 import { subscribeTabPeers } from "../../services/tabPresence";
+import { isDemoMode } from "../../state/demo";
 import type { ConnectedDevice } from "../../types/domain";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
+import { type SegmentedTab, SegmentedTabs } from "../../ui/SegmentedTabs";
 import { AccessLinkTab } from "./AccessLinkTab";
 import { NetworkDemoHub } from "./NetworkDemoHub";
 import { NetworkDevicesTab } from "./NetworkDevicesTab";
@@ -29,7 +29,10 @@ type HubTab = "pelayan" | "dapur" | "meja" | "perangkat";
 
 /** Base URL other devices should use: the manually entered server address, else the detected one. */
 function resolveBaseUrl(savedIp: string, info: NetworkHostInfo): string {
-  const address = savedIp.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const address = savedIp
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "");
   if (!address) return info.baseUrl;
   return `${info.protocol}//${address.includes(":") ? address : `${address}:${info.port}`}`;
 }
@@ -178,9 +181,7 @@ function NetworkHub({ onClose }: { onClose: () => void }) {
           />
         )}
 
-        {tab === "meja" && (
-          <NetworkTableTab baseUrl={baseUrl} copiedUrl={copiedUrl} onCopy={(url, label) => void copy(url, label)} />
-        )}
+        {tab === "meja" && <NetworkTableTab baseUrl={baseUrl} copiedUrl={copiedUrl} onCopy={(url, label) => void copy(url, label)} />}
 
         {tab === "perangkat" && <NetworkDevicesTab peers={peers} onRefresh={setPeers} />}
       </ModalBody>

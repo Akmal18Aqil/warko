@@ -1,10 +1,10 @@
 import type { CashMovementCategory, CashMovementType } from "@wakro/shared";
 import { dataSource } from "../data/index";
 import { broadcastSync } from "../lib/syncBus";
+import { t } from "../locales/id";
 import type { CashMovementRow, ShiftRecord } from "../types/domain";
 import { useStore } from "./store";
 import { shiftStore } from "./stores";
-import { t } from "../locales/id";
 
 export const useActiveShift = () => useStore(shiftStore, (s) => s.activeShift);
 export const useCashMovements = () => useStore(shiftStore, (s) => s.cashMovements);
@@ -40,11 +40,7 @@ export async function openShift(cashierName: string, startingCash: number): Prom
 }
 
 /** Closes the open shift. The data source computes expected cash and the difference; the stored record is returned. */
-export async function closeShift(
-  actualCash: number,
-  notes?: string,
-  denominations?: Record<string, number>,
-): Promise<ShiftRecord> {
+export async function closeShift(actualCash: number, notes?: string, denominations?: Record<string, number>): Promise<ShiftRecord> {
   const { activeShift } = shiftStore.get();
   if (!activeShift) throw new Error(t.state.noActiveShift);
   const closed = await dataSource.saveShift({

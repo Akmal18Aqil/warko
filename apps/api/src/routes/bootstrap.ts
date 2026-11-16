@@ -2,13 +2,24 @@ import { FINANCE_ROLES, READ_ROLES } from "@wakro/shared";
 import { sha256Hex } from "../crypto";
 import { batchTyped } from "../db";
 import { jsonText } from "../http";
-import { operationalOrderStatements, serializeOrders, type OrderDbRow, type OrderItemDbRow } from "../orders";
-import { parsePricing, pricingStatement, type PricingRow } from "../pricing";
+import { type OrderDbRow, type OrderItemDbRow, operationalOrderStatements, serializeOrders } from "../orders";
+import { type PricingRow, parsePricing, pricingStatement } from "../pricing";
+import { type AuthedContext, get, type Route } from "../router";
 import {
-  CATEGORY_LIST_SQL, PRODUCT_LIST_SQL, serializeCashMovement, serializeCategory, serializeProduct, serializeShift,
-  serializeTable, TABLE_LIST_SQL, type CashMovementRow, type CategoryRow, type ProductRow, type ShiftRow, type TableRow,
+  CATEGORY_LIST_SQL,
+  type CashMovementRow,
+  type CategoryRow,
+  PRODUCT_LIST_SQL,
+  type ProductRow,
+  type ShiftRow,
+  serializeCashMovement,
+  serializeCategory,
+  serializeProduct,
+  serializeShift,
+  serializeTable,
+  TABLE_LIST_SQL,
+  type TableRow,
 } from "../rows";
-import { get, type AuthedContext, type Route } from "../router";
 import { BOOTSTRAP_LIMITS, recentMovementsStatement, recentShiftsStatement } from "./cash";
 
 /** True when `If-None-Match` lists `etag` (weak validators and `*` included). */

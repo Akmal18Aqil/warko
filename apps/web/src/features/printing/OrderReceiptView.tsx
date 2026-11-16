@@ -1,8 +1,8 @@
-import type { OrderRow } from "../../types/domain";
-import { receiptFromOrder } from "../../lib/receipt";
 import { cn } from "../../lib/cn";
+import { receiptFromOrder } from "../../lib/receipt";
 import { STORE_PROFILE } from "../../lib/storeProfile";
 import { t } from "../../locales/id";
+import type { OrderRow } from "../../types/domain";
 
 /** On-screen e-receipt (customer digital receipt and cashier preview). */
 export function OrderReceiptView({ order, className }: { order: OrderRow; className?: string }) {
@@ -50,9 +50,7 @@ export function OrderReceiptView({ order, className }: { order: OrderRow; classN
         </p>
       ))}
       <div className="my-2 border-t border-dashed border-ink/25" />
-      <p className="text-center text-2xs text-ink/55">
-        {r.paid ? t.printing.receipt.keepReceipt : t.printing.receipt.payAtCashier}
-      </p>
+      <p className="text-center text-2xs text-ink/55">{r.paid ? t.printing.receipt.keepReceipt : t.printing.receipt.payAtCashier}</p>
     </div>
   );
 }

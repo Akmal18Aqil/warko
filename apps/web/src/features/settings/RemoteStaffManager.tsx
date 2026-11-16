@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { STAFF_ROLES, type StaffRole } from "@wakro/shared";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { jsonBody, request } from "../../data/api";
 import { t } from "../../locales/id";
 import { Badge } from "../../ui/Badge";
@@ -146,7 +146,13 @@ export function RemoteStaffManager({ currentStaffId }: { currentStaffId: string 
       )}
       <form onSubmit={(event) => void submit(event)} className="mt-5 grid gap-3 border-t border-ink/10 pt-4 sm:grid-cols-2">
         <h3 className="font-semibold text-ink sm:col-span-2">{editing ? t.settings.staff.formEdit : t.settings.staff.formAdd}</h3>
-        <Input label={t.settings.staff.name} required maxLength={NAME_MAX_LENGTH} value={name} onChange={(event) => setName(event.target.value)} />
+        <Input
+          label={t.settings.staff.name}
+          required
+          maxLength={NAME_MAX_LENGTH}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
         <Input
           label={t.settings.staff.username}
           required

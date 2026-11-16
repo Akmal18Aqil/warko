@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Percent } from "lucide-react";
 import { CATALOG_WRITE_ROLES } from "@wakro/shared";
+import { Percent } from "lucide-react";
+import { useState } from "react";
 import { useCan } from "../../app/useCan";
 import { t } from "../../locales/id";
-import { Button } from "../../ui/Button";
 import { usePricing } from "../../state/pricing";
+import { Button } from "../../ui/Button";
 import { PricingModal } from "./PricingModal";
 import { SettingsCard } from "./SettingsCard";
 

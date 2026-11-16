@@ -4,9 +4,9 @@ import { sha256Hex } from "../crypto";
 import { batchTyped } from "../db";
 import { HttpError, json, Reader, readJsonObject } from "../http";
 import { hashClientRef, loadPublicOrder, placeOrder } from "../orders";
-import { parsePricing, pricingStatement, type PricingRow } from "../pricing";
-import { ACTIVE_TABLE_LIST_SQL, PRODUCT_LIST_SQL, serializeProduct, serializeTable, type ProductRow, type TableRow } from "../rows";
+import { type PricingRow, parsePricing, pricingStatement } from "../pricing";
 import { publicGet, publicPost, type Route, type RouteContext } from "../router";
+import { ACTIVE_TABLE_LIST_SQL, PRODUCT_LIST_SQL, type ProductRow, serializeProduct, serializeTable, type TableRow } from "../rows";
 
 // Self-order limits (server-owned; the client cannot change them). Counters are atomic upserts in
 // `auth_throttle`, so parallel requests cannot all pass the check.
@@ -125,4 +125,3 @@ export const publicRoutes: Route[] = [
   publicPost("/api/public/orders", createPublicOrder),
   publicGet("/api/public/orders/:no(\\d{1,15})", getPublicOrder),
 ];
-

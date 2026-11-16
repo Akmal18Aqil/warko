@@ -1,5 +1,5 @@
 import { Calculator, Coins, Minus, Plus, ReceiptText } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { formatIDR } from "../../data/menu";
 import { cn } from "../../lib/cn";
@@ -94,7 +94,12 @@ export function CloseShiftModal({ expectedCash, onClose, onClosed }: CloseShiftM
               <p className="text-xs font-semibold text-ink-soft">{text.denominationsHint}</p>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {DENOMINATIONS.map((d) => (
-                  <DenominationRow key={d.value} denomination={d} count={counts[d.value] ?? 0} onChange={(next) => setCount(d.value, next)} />
+                  <DenominationRow
+                    key={d.value}
+                    denomination={d}
+                    count={counts[d.value] ?? 0}
+                    onChange={(next) => setCount(d.value, next)}
+                  />
                 ))}
               </div>
             </div>

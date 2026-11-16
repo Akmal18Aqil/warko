@@ -1,4 +1,4 @@
-import { toBase64Url, fromBase64Url } from "./crypto";
+import { fromBase64Url, toBase64Url } from "./crypto";
 import { invalid } from "./http";
 
 /** `(sort key, tie-breaker)` of the last row of a page. */

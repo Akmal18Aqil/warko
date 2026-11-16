@@ -1,8 +1,8 @@
 import { Vault } from "lucide-react";
 import { useLocation } from "wouter";
 import { t } from "../../locales/id";
-import { Button } from "../../ui/Button";
 import { useActiveShift } from "../../state/shift";
+import { Button } from "../../ui/Button";
 import { SettingsCard } from "./SettingsCard";
 
 /** Shift and drawer handling lives in the Laci Kas module; Settings only points to it. */

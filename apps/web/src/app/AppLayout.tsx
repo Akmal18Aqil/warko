@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { Sidebar, MobileNav } from "./Sidebar";
+import { cn } from "../lib/cn";
 import { isDemoMode } from "../state/demo";
 import { useDataSourceError } from "../state/session";
-import { cn } from "../lib/cn";
 import { DemoBanner } from "./DemoBanner";
+import { MobileNav, Sidebar } from "./Sidebar";
+
 interface AppLayoutProps {
   children?: ReactNode;
   className?: string;

@@ -1,26 +1,26 @@
-import { useMemo, useState } from "react";
-import { useLocation } from "wouter";
-import { Armchair, Banknote, Coffee, Edit, Plus, Printer, QrCode, UtensilsCrossed } from "lucide-react";
-import { toast } from "sonner";
 import { CATALOG_WRITE_ROLES, SETTLE_ROLES } from "@wakro/shared";
-import { formatIDR } from "../../data/menu";
-import { t } from "../../locales/id";
+import { Armchair, Banknote, Coffee, Edit, Plus, Printer, QrCode, UtensilsCrossed } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
 import { Header } from "../../app/Header";
 import { useCan } from "../../app/useCan";
-import { Badge } from "../../ui/Badge";
-import { Button } from "../../ui/Button";
-import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
-import { TableModal } from "./TableModal";
-import { TableQrModal } from "./TableQrModal";
-import { PaymentModal } from "../pos/PaymentModal";
+import { formatIDR } from "../../data/menu";
+import { cn } from "../../lib/cn";
+import { floorsOf, isPaid, KITCHEN_LABEL, kitchenStatusOf, openOrdersForTable } from "../../lib/orderStatus";
+import { printTableQrSheets } from "../../lib/tableQr";
+import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { selectTable, useCart } from "../../state/cart";
 import { deleteTable, saveTable, useTables } from "../../state/catalog";
 import { useOrders } from "../../state/orders";
 import type { OrderRow, TableRow } from "../../types/domain";
-import { cn } from "../../lib/cn";
-import { floorsOf, isPaid, KITCHEN_LABEL, kitchenStatusOf, openOrdersForTable } from "../../lib/orderStatus";
-import { printTableQrSheets } from "../../lib/tableQr";
+import { Badge } from "../../ui/Badge";
+import { Button } from "../../ui/Button";
+import { type SegmentedTab, SegmentedTabs } from "../../ui/SegmentedTabs";
+import { PaymentModal } from "../pos/PaymentModal";
+import { TableModal } from "./TableModal";
+import { TableQrModal } from "./TableQrModal";
 
 const ALL_AREAS = "__all__";
 const MAX_ORDERS_SHOWN = 3;
@@ -93,9 +93,7 @@ export default function TablesPage() {
   };
 
   const printQr = (list: TableRow[]) => {
-    printTableQrSheets(list).catch((err: unknown) =>
-      toast.error(err instanceof Error ? err.message : t.tables.printFailed),
-    );
+    printTableQrSheets(list).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t.tables.printFailed));
   };
 
   return (
@@ -246,9 +244,7 @@ export default function TablesPage() {
                     {openOrders.length > MAX_ORDERS_SHOWN && (
                       <p className="text-xs2 text-text-muted">{t.tables.moreOrders(openOrders.length - MAX_ORDERS_SHOWN)}</p>
                     )}
-                    {unpaid.length > 0 && (
-                      <p className="text-xs2 font-bold text-error">{t.tables.unpaidTotal(formatIDR(unpaidTotal))}</p>
-                    )}
+                    {unpaid.length > 0 && <p className="text-xs2 font-bold text-error">{t.tables.unpaidTotal(formatIDR(unpaidTotal))}</p>}
                   </div>
                 ) : (
                   <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs text-text-muted">

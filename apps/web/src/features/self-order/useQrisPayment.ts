@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { loadPublicPaymentOptions, startPublicQris, type QrisCharge } from "../../data/public";
+import { loadPublicPaymentOptions, type QrisCharge, startPublicQris } from "../../data/public";
 import { isPaid } from "../../lib/orderStatus";
 import { qrDataUrl } from "../../lib/qr";
 import { t } from "../../locales/id";

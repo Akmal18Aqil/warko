@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { dataSource } from "../data/index";
 import type { MenuItem } from "../data/menu";
-import { playScanSuccessBeep, playScanErrorBeep } from "../lib/audioFeedback";
+import { playScanErrorBeep, playScanSuccessBeep } from "../lib/audioFeedback";
 
 export interface BarcodeScanResult {
   code: string;

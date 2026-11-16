@@ -9,35 +9,16 @@ interface EmptyProps {
   className?: string;
 }
 
-export function Empty({
-  icon,
-  title,
-  subtitle,
-  action,
-  className,
-}: EmptyProps) {
+export function Empty({ icon, title, subtitle, action, className }: EmptyProps) {
   return (
-    <div
-      className={cn(
-        "flex flex-1 min-h-0 flex-col items-center justify-center gap-3 p-8 text-center",
-        className,
-      )}
-    >
+    <div className={cn("flex flex-1 min-h-0 flex-col items-center justify-center gap-3 p-8 text-center", className)}>
       {icon && (
         <div className="w-16 h-16 shrink-0 rounded-2xl bg-surface-muted border border-border flex items-center justify-center text-text-muted shadow-sm">
           {icon}
         </div>
       )}
-      {title && (
-        <h3 className="font-display text-base font-bold text-ink">
-          {title}
-        </h3>
-      )}
-      {subtitle && (
-        <p className="text-xs2 text-text-muted max-w-xs leading-relaxed">
-          {subtitle}
-        </p>
-      )}
+      {title && <h3 className="font-display text-base font-bold text-ink">{title}</h3>}
+      {subtitle && <p className="text-xs2 text-text-muted max-w-xs leading-relaxed">{subtitle}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );

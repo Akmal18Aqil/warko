@@ -1,18 +1,18 @@
-import { useMemo } from "react";
 import type { OrderType, PayMethod } from "@wakro/shared";
+import { useMemo } from "react";
 import { toast } from "sonner";
-import { addLine, decreaseLine, increaseLine, removeLine, setLineNote, stockLimitMessage } from "../lib/cart";
-import { newClientRef } from "../lib/orderStatus";
-import { buildOrderRow } from "../lib/orderBuilder";
-import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
 import { RemoteDataError } from "../data/index";
+import { addLine, decreaseLine, increaseLine, removeLine, setLineNote, stockLimitMessage } from "../lib/cart";
+import { buildOrderRow } from "../lib/orderBuilder";
+import { newClientRef } from "../lib/orderStatus";
+import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
+import { t } from "../locales/id";
 import type { CartDiscount, CartLine, OrderRow, TableRow } from "../types/domain";
 import { useProducts, useTables } from "./catalog";
 import { persistNewOrder } from "./orders";
 import { usePricing } from "./pricing";
 import { useStore } from "./store";
-import { cartStore, catalogStore, pricingStore, type CartEntry } from "./stores";
-import { t } from "../locales/id";
+import { type CartEntry, cartStore, catalogStore, pricingStore } from "./stores";
 
 const EMPTY_CART: CartEntry = { lines: [], discount: NO_DISCOUNT };
 

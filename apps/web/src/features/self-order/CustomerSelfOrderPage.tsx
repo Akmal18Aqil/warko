@@ -1,7 +1,7 @@
 import { useParams } from "wouter";
+import { t } from "../../locales/id";
 import { Button } from "../../ui/Button";
 import { LoadingText } from "../../ui/Spinner";
-import { t } from "../../locales/id";
 import { CartBar } from "./CartBar";
 import { CartSheet } from "./CartSheet";
 import { CustomerNameCard } from "./CustomerNameCard";
@@ -62,22 +62,11 @@ export default function CustomerSelfOrderPage() {
           </section>
         )}
 
-        <MenuSection
-          products={s.products}
-          categories={s.categories}
-          lines={cart.lines}
-          onAdd={cart.add}
-          onDecrease={cart.decrease}
-        />
+        <MenuSection products={s.products} categories={s.categories} lines={cart.lines} onAdd={cart.add} onDecrease={cart.decrease} />
       </main>
 
       {cart.totals.count > 0 && (
-        <CartBar
-          count={cart.totals.count}
-          total={cart.totals.total}
-          tableName={table.current?.name}
-          onOpen={() => s.setCartOpen(true)}
-        />
+        <CartBar count={cart.totals.count} total={cart.totals.total} tableName={table.current?.name} onOpen={() => s.setCartOpen(true)} />
       )}
 
       {s.cartOpen && (
@@ -109,9 +98,7 @@ export default function CustomerSelfOrderPage() {
         />
       )}
 
-      {s.qris.orderNo !== null && (
-        <QrisModal orderNo={s.qris.orderNo} charge={s.qris.charge} image={s.qris.image} onClose={s.qris.close} />
-      )}
+      {s.qris.orderNo !== null && <QrisModal orderNo={s.qris.orderNo} charge={s.qris.charge} image={s.qris.image} onClose={s.qris.close} />}
 
       {s.receipt && <ReceiptModal order={s.receipt.order} onClose={s.receipt.close} onPrint={s.receipt.print} />}
 

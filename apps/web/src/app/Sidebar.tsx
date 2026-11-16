@@ -1,5 +1,4 @@
-import { useState, useMemo } from "react";
-import { Link, useLocation } from "wouter";
+import type { LucideIcon } from "lucide-react";
 import {
   Armchair,
   BarChart3,
@@ -7,22 +6,23 @@ import {
   ChevronLeft,
   ChevronRight,
   CirclePlus,
+  KeyRound,
   Package,
   ReceiptText,
   Settings,
   UtensilsCrossed,
   Vault,
-  KeyRound,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { KasaLogoBlock, StatusDot } from "../ui/KasaLogo";
-import { useOrders } from "../state/orders";
-import { useAuth } from "../state/auth";
+import { useMemo, useState } from "react";
+import { Link, useLocation } from "wouter";
 import { formatIDR } from "../data/menu";
-import { t } from "../locales/id";
 import { cn } from "../lib/cn";
 import { kitchenStatusOf, runningOrdersCount, salesToday } from "../lib/orderStatus";
 import { STORAGE_KEYS } from "../lib/storageKeys";
+import { t } from "../locales/id";
+import { useAuth } from "../state/auth";
+import { useOrders } from "../state/orders";
+import { KasaLogoBlock, StatusDot } from "../ui/KasaLogo";
 
 type NavEntry = { href: string; label: string; icon: LucideIcon; badge?: number };
 
@@ -115,17 +115,9 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav
-        aria-label={t.app.nav.mainLabel}
-        className={cn("mt-7 space-y-1", collapsed ? "px-2" : "px-3")}
-      >
+      <nav aria-label={t.app.nav.mainLabel} className={cn("mt-7 space-y-1", collapsed ? "px-2" : "px-3")}>
         {navEntries.map((entry) => (
-          <NavItem
-            key={entry.href}
-            entry={entry}
-            active={location === entry.href}
-            collapsed={collapsed}
-          />
+          <NavItem key={entry.href} entry={entry} active={location === entry.href} collapsed={collapsed} />
         ))}
       </nav>
 
@@ -133,15 +125,10 @@ export function Sidebar() {
         <>
           {!collapsed && (
             <div className="mt-6 px-5">
-              <p className="label-caps text-xs2 font-medium text-text-light">
-                {t.app.controlSection}
-              </p>
+              <p className="label-caps text-xs2 font-medium text-text-light">{t.app.controlSection}</p>
             </div>
           )}
-          <nav
-            aria-label={t.app.controlSection}
-            className={cn("mt-2 space-y-1", collapsed ? "px-2" : "px-3")}
-          >
+          <nav aria-label={t.app.controlSection} className={cn("mt-2 space-y-1", collapsed ? "px-2" : "px-3")}>
             <NavItem
               entry={{ href: "/pengaturan", label: t.app.nav.settings, icon: Settings }}
               active={location === "/pengaturan"}
@@ -156,12 +143,8 @@ export function Sidebar() {
       {/* Metrics (Shown for Admin/Kasir/Manager) */}
       {!collapsed && (currentStaff.role === "kasir" || currentStaff.role === "admin" || currentStaff.role === "manajer") && (
         <div className="mx-4 mb-4 rounded-xl bg-mineral p-4 border border-border">
-          <p className="label-caps text-xs2 font-medium text-text-light">
-            {t.pos.metrics.todaySales}
-          </p>
-          <p className="mt-1 font-display text-lg font-bold tracking-tight text-accent">
-            {formatIDR(salesToday(orders))}
-          </p>
+          <p className="label-caps text-xs2 font-medium text-text-light">{t.pos.metrics.todaySales}</p>
+          <p className="mt-1 font-display text-lg font-bold tracking-tight text-accent">{formatIDR(salesToday(orders))}</p>
         </div>
       )}
 
@@ -277,12 +260,7 @@ export function MobileNav() {
         className="pressable flex min-h-14 min-w-[64px] flex-none flex-col items-center justify-center gap-1 px-1 py-2 text-xs2 text-ink-soft hover:text-accent"
         title={t.app.sidebar.switchRole}
       >
-        <span
-          className={cn(
-            "h-5 w-5 rounded-full flex items-center justify-center font-bold text-2xs",
-            currentStaff.avatarColor,
-          )}
-        >
+        <span className={cn("h-5 w-5 rounded-full flex items-center justify-center font-bold text-2xs", currentStaff.avatarColor)}>
           {currentStaff.initials}
         </span>
         <span className="max-w-full truncate">{t.app.sidebar.switchShort}</span>
@@ -291,15 +269,7 @@ export function MobileNav() {
   );
 }
 
-function NavItem({
-  entry,
-  active,
-  collapsed,
-}: {
-  entry: NavEntry;
-  active: boolean;
-  collapsed: boolean;
-}) {
+function NavItem({ entry, active, collapsed }: { entry: NavEntry; active: boolean; collapsed: boolean }) {
   const Icon = entry.icon;
   return (
     <Link
@@ -310,9 +280,7 @@ function NavItem({
       className={cn(
         "pressable relative flex h-11 items-center gap-3 rounded-lg text-sm",
         collapsed ? "justify-center px-0" : "px-3",
-        active
-          ? "bg-accent text-white shadow-xs"
-          : "font-medium text-ink-soft hover:bg-ink/5 hover:text-ink",
+        active ? "bg-accent text-white shadow-xs" : "font-medium text-ink-soft hover:bg-ink/5 hover:text-ink",
       )}
     >
       <Icon size={19} strokeWidth={active ? 2.3 : 1.9} />
@@ -320,12 +288,7 @@ function NavItem({
         <>
           <span className="flex-1">{entry.label}</span>
           {entry.badge !== undefined && entry.badge > 0 && (
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-xs2 font-bold",
-                active ? "bg-ink text-mineral" : "bg-error text-white",
-              )}
-            >
+            <span className={cn("rounded-full px-2 py-0.5 text-xs2 font-bold", active ? "bg-ink text-mineral" : "bg-error text-white")}>
               {String(entry.badge).padStart(2, "0")}
             </span>
           )}

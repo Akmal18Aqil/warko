@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
+import { useEffect, useState } from "react";
 import { t } from "../../locales/id";
 import { ELAPSED_TICK_MS, MS_PER_MINUTE } from "./constants";
 

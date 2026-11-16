@@ -1,21 +1,21 @@
-import { useId, useState, type ReactNode } from "react";
+import type { PayMethod } from "@wakro/shared";
 import { Banknote, CreditCard, QrCode, Wallet } from "lucide-react";
+import { type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
 import { formatIDR } from "../../data/menu";
-import { t } from "../../locales/id";
-import type { PayMethod } from "@wakro/shared";
-import type { OrderRow } from "../../types/domain";
+import { cn } from "../../lib/cn";
 import { tableLabel } from "../../lib/orderStatus";
+import { STORE_PROFILE } from "../../lib/storeProfile";
+import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { payOrder, useCart } from "../../state/cart";
 import { settleOrder, useNextOrderNo } from "../../state/orders";
 import { usePrint } from "../../state/print";
 import { useCashShiftOpen } from "../../state/shift";
-import { STORE_PROFILE } from "../../lib/storeProfile";
+import type { OrderRow } from "../../types/domain";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Modal, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { cn } from "../../lib/cn";
 
 /**
  * Takes payment either for the current cart (new order) or, when `order` is given, for an existing
@@ -55,9 +55,7 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
       const printAction = {
         label: t.pos.payment.printReceipt,
         onClick: () => {
-          printOrderReceipt(paid).catch((err: unknown) =>
-            toast.error(err instanceof Error ? err.message : t.pos.payment.printFailed),
-          );
+          printOrderReceipt(paid).catch((err: unknown) => toast.error(err instanceof Error ? err.message : t.pos.payment.printFailed));
         },
       };
       if (result.alreadyPaid) {
@@ -213,7 +211,9 @@ function MethodCard({
     >
       <span className={disabled ? "text-text-muted" : "text-ink"}>{icon}</span>
       <span className={cn("mt-2 block text-sm font-semibold", disabled ? "text-text-muted" : "text-ink")}>{title}</span>
-      <span className={cn("mt-0.5 block text-xs2 leading-snug", disabled ? "font-semibold text-warning-dark" : "text-text-muted")}>{hint}</span>
+      <span className={cn("mt-0.5 block text-xs2 leading-snug", disabled ? "font-semibold text-warning-dark" : "text-text-muted")}>
+        {hint}
+      </span>
     </button>
   );
 }

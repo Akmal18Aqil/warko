@@ -1,26 +1,20 @@
+import { Bell, ChevronDown, LogOut, Radio, Smartphone, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Bell, Radio, Smartphone, ChevronDown, LogOut, Users } from "lucide-react";
 import { toast } from "sonner";
-import { IconButton } from "../ui/Button";
-import { StatusDot } from "../ui/KasaLogo";
-import { t } from "../locales/id";
-import { NetworkHubModal } from "../features/network/NetworkHubModal";
-import { getNetworkHostInfo } from "../services/networkHost";
 import { useLocation } from "wouter";
 import { isRemoteDataSource } from "../data/index";
-import { useAuth } from "../state/auth";
+import { NetworkHubModal } from "../features/network/NetworkHubModal";
 import { cn } from "../lib/cn";
+import { t } from "../locales/id";
+import { getNetworkHostInfo } from "../services/networkHost";
+import { useAuth } from "../state/auth";
 import { isDemoMode } from "../state/demo";
+import { IconButton } from "../ui/Button";
+import { StatusDot } from "../ui/KasaLogo";
 import { DemoModeBadge } from "./DemoModeBadge";
 import { REMOTE_LOGOUT_EVENT } from "./RemoteAuthGate";
 
-export function Header({
-  title,
-  showSavedStatus = false,
-}: {
-  title: string;
-  showSavedStatus?: boolean;
-}) {
+export function Header({ title, showSavedStatus = false }: { title: string; showSavedStatus?: boolean }) {
   const [networkModalOpen, setNetworkModalOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -56,13 +50,9 @@ export function Header({
     <>
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-5 py-3.5 md:px-8 shrink-0 bg-surface text-ink">
         <div>
-          <p className="label-caps text-2xs font-medium text-text-muted">
-            {t.app.header.today(new Date())}
-          </p>
+          <p className="label-caps text-2xs font-medium text-text-muted">{t.app.header.today(new Date())}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-            <h1 className="font-display text-xl font-bold tracking-tight text-ink md:text-2xl">
-              {title}
-            </h1>
+            <h1 className="font-display text-xl font-bold tracking-tight text-ink md:text-2xl">{title}</h1>
             {showSavedStatus && (
               <span className="flex items-center gap-1.5 text-xs text-text-muted">
                 <StatusDot />
@@ -87,7 +77,9 @@ export function Header({
               <span className="flex items-center gap-1.5 text-ink-soft">
                 <Radio size={14} className="text-success-dark" />
                 <span className="hidden sm:inline">{t.app.header.localServer}</span>
-                <span className="font-mono text-xs2 font-extrabold text-ink">{hostInfo.host}:{hostInfo.port}</span>
+                <span className="font-mono text-xs2 font-extrabold text-ink">
+                  {hostInfo.host}:{hostInfo.port}
+                </span>
               </span>
               <span className="hidden md:inline-flex items-center gap-1 bg-accent px-1.5 py-0.5 rounded ml-0.5 text-2xs font-extrabold text-white">
                 <Smartphone size={11} />
@@ -104,7 +96,7 @@ export function Header({
             <button
               ref={accountButtonRef}
               type="button"
-              onClick={() => isRemoteDataSource ? setAccountMenuOpen((open) => !open) : openSwitchModal()}
+              onClick={() => (isRemoteDataSource ? setAccountMenuOpen((open) => !open) : openSwitchModal())}
               aria-expanded={isRemoteDataSource ? accountMenuOpen : undefined}
               aria-controls={isRemoteDataSource ? "account-menu" : undefined}
               aria-label={t.app.header.accountMenu(currentStaff.name)}
@@ -120,20 +112,35 @@ export function Header({
               </span>
               <div className="text-left hidden sm:block">
                 <p className="text-xs font-bold leading-none text-ink">{currentStaff.name.split(" ")[0]}</p>
-                <p className="text-2xs font-semibold uppercase text-text-muted leading-tight mt-0.5">
-                  {currentStaff.role}
-                </p>
+                <p className="text-2xs font-semibold uppercase text-text-muted leading-tight mt-0.5">{currentStaff.role}</p>
               </div>
               <ChevronDown size={14} className="text-text-light transition-colors group-hover:text-ink ml-0.5" />
             </button>
             {isRemoteDataSource && accountMenuOpen && (
-              <div id="account-menu" className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-border bg-surface p-1.5 text-ink shadow-lg">
+              <div
+                id="account-menu"
+                className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-border bg-surface p-1.5 text-ink shadow-lg"
+              >
                 {currentStaff.role === "admin" && (
-                  <button type="button" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent" onClick={() => { setAccountMenuOpen(false); setLocation("/pengaturan"); }}>
+                  <button
+                    type="button"
+                    className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent"
+                    onClick={() => {
+                      setAccountMenuOpen(false);
+                      setLocation("/pengaturan");
+                    }}
+                  >
                     <Users size={16} aria-hidden="true" /> {t.app.header.manageStaff}
                   </button>
                 )}
-                <button type="button" className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent" onClick={() => { setAccountMenuOpen(false); window.dispatchEvent(new Event(REMOTE_LOGOUT_EVENT)); }}>
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent"
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    window.dispatchEvent(new Event(REMOTE_LOGOUT_EVENT));
+                  }}
+                >
                   <LogOut size={16} aria-hidden="true" /> {t.app.header.logout}
                 </button>
               </div>
@@ -143,10 +150,7 @@ export function Header({
       </header>
 
       {/* Network & Pairing Hub Modal */}
-      <NetworkHubModal
-        open={networkModalOpen}
-        onClose={() => setNetworkModalOpen(false)}
-      />
+      <NetworkHubModal open={networkModalOpen} onClose={() => setNetworkModalOpen(false)} />
     </>
   );
 }

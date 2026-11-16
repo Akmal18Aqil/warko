@@ -35,7 +35,11 @@ describe("GET /api/bootstrap", () => {
 
   it("leaves cash data out for roles that cannot see it", async () => {
     const cashier = await signIn("kasir");
-    await api("/api/resources/shifts/s1", { session: cashier.session, method: "PUT", body: { id: "s1", openedAt: Date.now(), status: "OPEN" } });
+    await api("/api/resources/shifts/s1", {
+      session: cashier.session,
+      method: "PUT",
+      body: { id: "s1", openedAt: Date.now(), status: "OPEN" },
+    });
     const waiter = await signIn("pelayan");
     const { data } = await readJson(await api("/api/bootstrap", { session: waiter.session }));
     expect(data.shifts).toEqual([]);

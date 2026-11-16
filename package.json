@@ -15,5 +15,8 @@
       "esbuild",
       "workerd"
     ]
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8"
   }
 }

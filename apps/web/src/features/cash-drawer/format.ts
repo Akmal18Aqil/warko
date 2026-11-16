@@ -7,8 +7,7 @@ export const formatShortDate = (ms: number) => new Date(ms).toLocaleDateString("
 export const formatLongDate = (ms: number) =>
   new Date(ms).toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
-export const formatDateTime = (ms: number) =>
-  new Date(ms).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
+export const formatDateTime = (ms: number) => new Date(ms).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
 
 /** Digits typed into a rupiah field, as a whole number (0 when empty). */
 export function parseAmount(input: string): number {

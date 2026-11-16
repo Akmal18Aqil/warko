@@ -1,14 +1,14 @@
-import { useMemo, useState } from "react";
 import { ClipboardList, LayoutGrid, Sparkles, UtensilsCrossed } from "lucide-react";
+import { useMemo, useState } from "react";
 import { FocusModeHeader } from "../../app/FocusModeHeader";
-import { t } from "../../locales/id";
 import { cn } from "../../lib/cn";
 import { isHandledBy, kitchenStatusOf } from "../../lib/orderStatus";
+import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { useTables } from "../../state/catalog";
 import { useOrders } from "../../state/orders";
 import { Badge } from "../../ui/Badge";
-import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
+import { type SegmentedTab, SegmentedTabs } from "../../ui/SegmentedTabs";
 import { FloorMapTab } from "./FloorMapTab";
 import { MyOrdersTab } from "./MyOrdersTab";
 import { OrderEntryTab } from "./OrderEntryTab";
@@ -74,10 +74,7 @@ export default function WaiterOrderPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-surface p-3.5 shadow-clay">
           <div className="flex items-center gap-3">
             <div
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl text-xs font-bold shadow-xs",
-                currentStaff.avatarColor,
-              )}
+              className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-xs font-bold shadow-xs", currentStaff.avatarColor)}
               aria-hidden="true"
             >
               {currentStaff.initials}

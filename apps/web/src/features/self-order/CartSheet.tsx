@@ -1,10 +1,10 @@
-import { Banknote, QrCode } from "lucide-react";
 import type { PricingSettings } from "@wakro/shared";
-import { Modal, ModalHeader } from "../../ui/Modal";
-import { Button } from "../../ui/Button";
+import { Banknote, QrCode } from "lucide-react";
 import { formatIDR, type MenuItem } from "../../data/menu";
 import { t } from "../../locales/id";
 import type { CartLine, OrderTotals, TableRow } from "../../types/domain";
+import { Button } from "../../ui/Button";
+import { Modal, ModalHeader } from "../../ui/Modal";
 import { QtyStepper } from "./QtyStepper";
 
 interface CartSheetProps {

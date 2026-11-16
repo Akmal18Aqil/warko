@@ -19,14 +19,7 @@ interface SegmentedTabsProps<T extends string> {
 }
 
 /** Pill-style tab strip shared by the cash drawer, waiter, scanner, network and image-picker screens. */
-export function SegmentedTabs<T extends string>({
-  tabs,
-  value,
-  onChange,
-  label,
-  tone = "light",
-  className,
-}: SegmentedTabsProps<T>) {
+export function SegmentedTabs<T extends string>({ tabs, value, onChange, label, tone = "light", className }: SegmentedTabsProps<T>) {
   const dark = tone === "dark";
   return (
     <div

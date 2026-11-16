@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { t } from "../../locales/id";
 import { parseTableQr, resolveTable } from "../../lib/tableQr";
-import { useTables } from "../../state/catalog";
+import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
+import { useTables } from "../../state/catalog";
 import type { OrderRow } from "../../types/domain";
 import { BarcodeScanner } from "../scanner/BarcodeScanner";
 import { MenuGrid } from "./MenuGrid";

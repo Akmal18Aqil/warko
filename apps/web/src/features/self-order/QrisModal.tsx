@@ -1,8 +1,8 @@
-import { Modal, ModalHeader, ModalFooter } from "../../ui/Modal";
-import { Button } from "../../ui/Button";
 import { formatIDR } from "../../data/menu";
 import type { QrisCharge } from "../../data/public";
 import { t } from "../../locales/id";
+import { Button } from "../../ui/Button";
+import { Modal, ModalFooter, ModalHeader } from "../../ui/Modal";
 
 interface QrisModalProps {
   orderNo: number;
@@ -30,9 +30,7 @@ export function QrisModal({ orderNo, charge, image, onClose }: QrisModalProps) {
           <>
             <p className="mt-4 font-display text-xl font-bold text-ink">{formatIDR(charge.amount)}</p>
             <p className="mt-1 text-xs2 text-text-muted">
-              {t.selfOrder.qris.validUntil(
-                new Date(charge.expiresAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-              )}
+              {t.selfOrder.qris.validUntil(new Date(charge.expiresAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }))}
             </p>
           </>
         )}

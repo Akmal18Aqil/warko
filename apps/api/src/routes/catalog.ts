@@ -4,10 +4,20 @@ import { assertBodyId, changes, decodeId, isCheckViolation, isUniqueViolation, v
 import { conflict, HttpError, invalid, json, Reader, readJsonObject } from "../http";
 import { KINDS } from "../policy";
 import { loadPricing, parsePricingInput, savePricing } from "../pricing";
-import { get, send, type AuthedContext, type Route } from "../router";
+import { type AuthedContext, get, type Route, send } from "../router";
 import {
-  CATEGORY_COLUMNS, CATEGORY_LIST_SQL, PRODUCT_LIST_SQL, PRODUCT_SELECT, serializeCategory, serializeProduct,
-  serializeTable, TABLE_COLUMNS, TABLE_LIST_SQL, type CategoryRow, type ProductRow, type TableRow,
+  CATEGORY_COLUMNS,
+  CATEGORY_LIST_SQL,
+  type CategoryRow,
+  PRODUCT_LIST_SQL,
+  PRODUCT_SELECT,
+  type ProductRow,
+  serializeCategory,
+  serializeProduct,
+  serializeTable,
+  TABLE_COLUMNS,
+  TABLE_LIST_SQL,
+  type TableRow,
 } from "../rows";
 import { resourceRoutes } from "./resources";
 
@@ -60,7 +70,9 @@ async function upsertProduct({ env }: AuthedContext, id: string, body: Record<st
     existing = await env.DB.prepare("SELECT id FROM products WHERE barcode = ?").bind(barcode).first<{ id: string }>();
   }
 
-  const category = await env.DB.prepare("SELECT id FROM categories WHERE name = ? COLLATE NOCASE").bind(categoryName).first<{ id: string }>();
+  const category = await env.DB.prepare("SELECT id FROM categories WHERE name = ? COLLATE NOCASE")
+    .bind(categoryName)
+    .first<{ id: string }>();
   if (!category) throw invalid("category", "category tidak ditemukan; buat kategori terlebih dahulu.");
 
   const now = Date.now();
@@ -72,7 +84,20 @@ async function upsertProduct({ env }: AuthedContext, id: string, body: Record<st
              prep_minutes = ?, badge = ?, image = ?, is_active = 1, updated_at = ?
            WHERE id = ? AND EXISTS (SELECT 1 FROM categories WHERE id = ?)`,
         )
-          .bind(barcode, name, description ?? "", price, category.id, kind, prepMinutes ?? 5, badge, image ?? "", now, existing.id, category.id)
+          .bind(
+            barcode,
+            name,
+            description ?? "",
+            price,
+            category.id,
+            kind,
+            prepMinutes ?? 5,
+            badge,
+            image ?? "",
+            now,
+            existing.id,
+            category.id,
+          )
           .run()
       : await env.DB.prepare(
           `INSERT INTO products (id, barcode, name, description, price, category_id, kind, prep_minutes, badge, image,
@@ -80,7 +105,21 @@ async function upsertProduct({ env }: AuthedContext, id: string, body: Record<st
            SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?
            WHERE EXISTS (SELECT 1 FROM categories WHERE id = ?)`,
         )
-          .bind(crypto.randomUUID(), barcode, name, description ?? "", price, category.id, kind, prepMinutes ?? 5, badge, image ?? "", now, now, category.id)
+          .bind(
+            crypto.randomUUID(),
+            barcode,
+            name,
+            description ?? "",
+            price,
+            category.id,
+            kind,
+            prepMinutes ?? 5,
+            badge,
+            image ?? "",
+            now,
+            now,
+            category.id,
+          )
           .run();
     if (changes(result) === 0) throw conflict("Produk atau kategori berubah saat disimpan; muat ulang lalu coba lagi.");
   } catch (error) {
@@ -101,9 +140,10 @@ async function removeProduct({ env }: AuthedContext, id: string): Promise<void> 
     env.DB.prepare(
       "UPDATE products SET is_active = 0, updated_at = ? WHERE id = ? AND EXISTS (SELECT 1 FROM order_items WHERE product_id = ?)",
     ).bind(Date.now(), row.id, row.id),
-    env.DB.prepare(
-      "DELETE FROM products WHERE id = ? AND NOT EXISTS (SELECT 1 FROM order_items WHERE product_id = ?)",
-    ).bind(row.id, row.id),
+    env.DB.prepare("DELETE FROM products WHERE id = ? AND NOT EXISTS (SELECT 1 FROM order_items WHERE product_id = ?)").bind(
+      row.id,
+      row.id,
+    ),
   ]);
 }
 
@@ -139,7 +179,12 @@ async function adjustStock({ request, env, params, staff }: AuthedContext): Prom
     ];
   } else if (mode === "set") {
     statements = [
-      log("SELECT id, ?1 - COALESCE(stock, 0), ?1, 'adjust', NULL, ?2, ?3 FROM products WHERE id = ?4").bind(qty, staff.name, now, product.id),
+      log("SELECT id, ?1 - COALESCE(stock, 0), ?1, 'adjust', NULL, ?2, ?3 FROM products WHERE id = ?4").bind(
+        qty,
+        staff.name,
+        now,
+        product.id,
+      ),
       env.DB.prepare("UPDATE products SET stock = ?, updated_at = ? WHERE id = ?").bind(qty, now, product.id),
     ];
   } else {
@@ -285,7 +330,9 @@ async function removeCategory({ env, url }: AuthedContext, id: string): Promise<
       ).bind(target.id, Date.now(), id, target.id),
     );
   }
-  statements.push(env.DB.prepare("DELETE FROM categories WHERE id = ? AND NOT EXISTS (SELECT 1 FROM products WHERE category_id = ?)").bind(id, id));
+  statements.push(
+    env.DB.prepare("DELETE FROM categories WHERE id = ? AND NOT EXISTS (SELECT 1 FROM products WHERE category_id = ?)").bind(id, id),
+  );
 
   const results = await env.DB.batch(statements);
   if (changes(results[results.length - 1]) === 0) {

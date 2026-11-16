@@ -1,11 +1,11 @@
-import { useState } from "react";
 import { MapPin } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { Modal, ModalHeader } from "../../ui/Modal";
-import { SegmentedTabs } from "../../ui/SegmentedTabs";
 import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
 import type { TableRow } from "../../types/domain";
+import { Modal, ModalHeader } from "../../ui/Modal";
+import { SegmentedTabs } from "../../ui/SegmentedTabs";
 
 interface TablePickerModalProps {
   tables: TableRow[];

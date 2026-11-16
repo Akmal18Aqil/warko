@@ -1,16 +1,16 @@
-import { lazy, Suspense, type ComponentType, type LazyExoticComponent, type ReactNode } from "react";
-import { Route, Switch } from "wouter";
+import { type ComponentType, type LazyExoticComponent, lazy, type ReactNode, Suspense } from "react";
 import { Toaster } from "sonner";
-import { QuickSwitchRoleModal } from "./QuickSwitchRoleModal";
-import { RemoteAuthGate } from "./RemoteAuthGate";
-import { RouteFallback } from "./RouteFallback";
-import { RouteGuard } from "./RouteGuard";
-import { AppLayout } from "./AppLayout";
+import { Route, Switch } from "wouter";
 import { PrintLayer } from "../features/printing/PrintLayer";
 import { t } from "../locales/id";
 import { AuthProvider } from "../state/auth";
 import { DataSync } from "../state/DataSync";
 import { PrintProvider } from "../state/print";
+import { AppLayout } from "./AppLayout";
+import { QuickSwitchRoleModal } from "./QuickSwitchRoleModal";
+import { RemoteAuthGate } from "./RemoteAuthGate";
+import { RouteFallback } from "./RouteFallback";
+import { RouteGuard } from "./RouteGuard";
 
 // Each screen is its own chunk: the public /order page never downloads the staff app.
 const PosPage = lazy(() => import("../features/pos/PosPage"));

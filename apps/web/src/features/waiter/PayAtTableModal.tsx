@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { Banknote, QrCode } from "lucide-react";
+import { useState } from "react";
 import { formatIDR } from "../../data/menu";
-import { t } from "../../locales/id";
 import { cn } from "../../lib/cn";
+import { t } from "../../locales/id";
 import { useCashShiftOpen } from "../../state/shift";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
@@ -87,9 +87,7 @@ export function PayAtTableModal({ tableName, waiterName, total, isSubmitting, on
             className="font-bold"
           />
         ) : (
-          <p className="rounded-xl bg-warning/10 p-2.5 text-xs2 font-semibold text-warning-dark">
-            {t.waiter.payQrisNotice}
-          </p>
+          <p className="rounded-xl bg-warning/10 p-2.5 text-xs2 font-semibold text-warning-dark">{t.waiter.payQrisNotice}</p>
         )}
       </ModalBody>
       <ModalFooter>

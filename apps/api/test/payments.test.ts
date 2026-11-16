@@ -44,7 +44,9 @@ const charge = async () =>
   (await env.DB.prepare("SELECT status, transaction_id FROM payment_charges WHERE gateway_order_id = ?").bind(GATEWAY_ID).first<Charge>())!;
 
 const order = (no: number) =>
-  env.DB.prepare("SELECT payment_status, method, payment_ref FROM orders WHERE no = ?").bind(no).first<{ payment_status: string; method: string | null; payment_ref: string | null }>();
+  env.DB.prepare("SELECT payment_status, method, payment_ref FROM orders WHERE no = ?")
+    .bind(no)
+    .first<{ payment_status: string; method: string | null; payment_ref: string | null }>();
 
 beforeEach(async () => {
   await resetDb();
@@ -92,7 +94,15 @@ describe("Midtrans notification", () => {
 
   it("keeps a QRIS payment for an order a cashier already settled as paid_duplicate", async () => {
     const { no, staffSession } = await createUnpaidOrder();
-    expect((await api("/api/resources/shifts/cash-shift", { session: staffSession, method: "PUT", body: { id: "cash-shift", openedAt: Date.now(), status: "OPEN" } })).status).toBe(200);
+    expect(
+      (
+        await api("/api/resources/shifts/cash-shift", {
+          session: staffSession,
+          method: "PUT",
+          body: { id: "cash-shift", openedAt: Date.now(), status: "OPEN" },
+        })
+      ).status,
+    ).toBe(200);
     const cash = await api(`/api/orders/${no}/payment`, { session: staffSession, body: { method: "tunai", cashReceived: 20_000 } });
     expect(cash.status).toBe(200);
     mockMidtransStatus({});
@@ -146,9 +156,11 @@ describe("self-order QRIS", () => {
     expect(placed.status).toBe(201);
     const { data } = await readJson(placed);
 
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
-      Response.json({ status_code: "201", qr_string: "000201-QR", transaction_id: "tx-9" }, { status: 201 }),
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async () =>
+        Response.json({ status_code: "201", qr_string: "000201-QR", transaction_id: "tx-9" }, { status: 201 }),
+      );
     const first = await api(`/api/public/orders/${data.no}/qris`, { body: { key } });
     expect(first.status).toBe(201);
     expect((await readJson(first)).data).toMatchObject({ qrString: "000201-QR", amount: 11_100 });
@@ -170,12 +182,15 @@ describe("self-order QRIS", () => {
       const request = JSON.parse(String(init?.body)) as { transaction_details: { order_id: string } };
       gatewayId = request.transaction_details.order_id;
       const row = await env.DB.prepare("SELECT status, qr_string FROM payment_charges WHERE gateway_order_id = ?")
-        .bind(request.transaction_details.order_id).first<{ status: string; qr_string: string }>();
+        .bind(request.transaction_details.order_id)
+        .first<{ status: string; qr_string: string }>();
       expect(row).toEqual({ status: "pending", qr_string: "" });
       throw new Error("timeout");
     });
     expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(500);
-    await env.DB.prepare("UPDATE payment_charges SET expires_at = 1, created_at = ? WHERE order_no = ?").bind(Date.now() - 600_000, data.no).run();
+    await env.DB.prepare("UPDATE payment_charges SET expires_at = 1, created_at = ? WHERE order_no = ?")
+      .bind(Date.now() - 600_000, data.no)
+      .run();
     expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(503);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
@@ -194,13 +209,23 @@ describe("self-order QRIS", () => {
         gatewayId = body.transaction_details.order_id;
         throw new Error("response lost");
       }
-      return Response.json({ order_id: gatewayId, gross_amount: "11100.00", transaction_status: "settlement", transaction_id: "tx-recovered", fraud_status: "accept" });
+      return Response.json({
+        order_id: gatewayId,
+        gross_amount: "11100.00",
+        transaction_status: "settlement",
+        transaction_id: "tx-recovered",
+        fraud_status: "accept",
+      });
     });
     expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(500);
-    await env.DB.prepare("UPDATE payment_charges SET created_at = ? WHERE order_no = ?").bind(Date.now() - 600_000, data.no).run();
+    await env.DB.prepare("UPDATE payment_charges SET created_at = ? WHERE order_no = ?")
+      .bind(Date.now() - 600_000, data.no)
+      .run();
     expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(409);
     expect(await order(data.no)).toMatchObject({ payment_status: "paid", method: "qris", payment_ref: "tx-recovered" });
-    expect(await env.DB.prepare("SELECT status FROM payment_charges WHERE gateway_order_id = ?").bind(gatewayId).first()).toEqual({ status: "paid" });
+    expect(await env.DB.prepare("SELECT status FROM payment_charges WHERE gateway_order_id = ?").bind(gatewayId).first()).toEqual({
+      status: "paid",
+    });
   });
 
   it("recovers a lost QRIS response using the same Midtrans idempotency key and request", async () => {
@@ -237,8 +262,10 @@ describe("self-order QRIS", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 202 }));
     const response = await api(`/api/public/orders/${data.no}/qris`, { body: { key } });
     expect(response.status).toBe(503);
-    expect(await env.DB.prepare("SELECT status, qr_string FROM payment_charges WHERE order_no = ?").bind(data.no).first())
-      .toEqual({ status: "pending", qr_string: "" });
+    expect(await env.DB.prepare("SELECT status, qr_string FROM payment_charges WHERE order_no = ?").bind(data.no).first()).toEqual({
+      status: "pending",
+      qr_string: "",
+    });
   });
 
   it("records a notification received before the charge request returns", async () => {
@@ -256,8 +283,15 @@ describe("self-order QRIS", () => {
         return Response.json({ status_code: "201", qr_string: "qr", transaction_id: "tx-early" }, { status: 201 });
       }
       const gatewayId = await env.DB.prepare("SELECT gateway_order_id FROM payment_charges WHERE order_no = ?")
-        .bind(data.no).first<{ gateway_order_id: string }>();
-      return Response.json({ order_id: gatewayId!.gateway_order_id, transaction_status: "settlement", transaction_id: "tx-early", gross_amount: "11100.00", fraud_status: "accept" });
+        .bind(data.no)
+        .first<{ gateway_order_id: string }>();
+      return Response.json({
+        order_id: gatewayId!.gateway_order_id,
+        transaction_status: "settlement",
+        transaction_id: "tx-early",
+        gross_amount: "11100.00",
+        fraud_status: "accept",
+      });
     });
     expect((await api(`/api/public/orders/${data.no}/qris`, { body: { key } })).status).toBe(201);
     expect(await order(data.no)).toMatchObject({ payment_status: "paid", method: "qris", payment_ref: "tx-early" });

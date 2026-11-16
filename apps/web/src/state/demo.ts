@@ -1,6 +1,6 @@
 import { isRemoteDataSource } from "../data/api";
-import { broadcastSync } from "../lib/syncBus";
 import { demoStorageKeys } from "../lib/storageKeys";
+import { broadcastSync } from "../lib/syncBus";
 
 /** True in the browser-only build, where all data is a demo stored in this browser. */
 export const isDemoMode: boolean = !isRemoteDataSource;

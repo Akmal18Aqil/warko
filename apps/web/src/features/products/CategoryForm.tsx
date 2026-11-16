@@ -1,12 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import type { MenuKind } from "../../data/menu";
 import { cn } from "../../lib/cn";
+import { t } from "../../locales/id";
 import { addCategory, updateCategory } from "../../state/catalog";
 import type { CategoryRow } from "../../types/domain";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
-import { t } from "../../locales/id";
 import { CATEGORY_COLORS, DEFAULT_CATEGORY_COLOR } from "./categoryColors";
 import { FieldGroup } from "./FieldGroup";
 import { DEFAULT_PRODUCT_KIND, KindPicker } from "./productKinds";

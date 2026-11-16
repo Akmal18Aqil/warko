@@ -2,10 +2,10 @@ import { dataSource } from "../data/index";
 import type { MenuItem } from "../data/menu";
 import { loadPublicMenu } from "../data/public";
 import { broadcastSync } from "../lib/syncBus";
-import type { CategoryRow, TableRow } from "../types/domain";
-import { catalogStore, sessionStore } from "./stores";
-import { useStore } from "./store";
 import { t } from "../locales/id";
+import type { CategoryRow, TableRow } from "../types/domain";
+import { useStore } from "./store";
+import { catalogStore, sessionStore } from "./stores";
 
 export const useProducts = () => useStore(catalogStore, (s) => s.products);
 export const useCategories = () => useStore(catalogStore, (s) => s.categories);

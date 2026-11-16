@@ -23,11 +23,22 @@ describe("cart lines", () => {
   });
 
   it("drops a line when its quantity reaches zero", () => {
-    expect(decreaseLine([{ itemId: "a", qty: 1 }, { itemId: "b", qty: 2 }], "a")).toEqual([{ itemId: "b", qty: 2 }]);
+    expect(
+      decreaseLine(
+        [
+          { itemId: "a", qty: 1 },
+          { itemId: "b", qty: 2 },
+        ],
+        "a",
+      ),
+    ).toEqual([{ itemId: "b", qty: 2 }]);
   });
 
   it("sets notes and removes lines without touching others", () => {
-    const lines = [{ itemId: "a", qty: 1 }, { itemId: "b", qty: 1 }];
+    const lines = [
+      { itemId: "a", qty: 1 },
+      { itemId: "b", qty: 1 },
+    ];
     expect(setLineNote(lines, "b", "pedas")[1].note).toBe("pedas");
     expect(removeLine(lines, "a")).toEqual([{ itemId: "b", qty: 1 }]);
   });

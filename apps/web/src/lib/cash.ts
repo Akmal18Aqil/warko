@@ -20,11 +20,7 @@ type ShiftWindow = Pick<ShiftRecord, "id" | "openedAt" | "closedAt" | "startingC
  * `startingCash + cash sales + cash in - cash out` (cash in excludes `modal_awal`), where cash sales are paid cash
  * orders whose `cashShiftId` is this shift and movements are the ones recorded against this shift.
  */
-export function expectedDrawerCash(
-  shift: ShiftWindow,
-  orders: readonly OrderRow[],
-  movements: readonly CashMovementRow[],
-): DrawerCash {
+export function expectedDrawerCash(shift: ShiftWindow, orders: readonly OrderRow[], movements: readonly CashMovementRow[]): DrawerCash {
   const end = shift.closedAt ?? Number.POSITIVE_INFINITY;
   const paidOrders = orders.filter((o) => isPaid(o) && o.paidAt !== undefined && o.paidAt >= shift.openedAt && o.paidAt <= end);
   const cashSales = orders

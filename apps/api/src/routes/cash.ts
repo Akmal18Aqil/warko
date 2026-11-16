@@ -4,9 +4,7 @@ import { assertBodyId, changes, validId } from "../guards";
 import { conflict, HttpError, invalid, json, Reader } from "../http";
 import { readCursor, readLimit, toPage } from "../pagination";
 import type { AuthedContext, Route } from "../router";
-import {
-  MOVEMENT_COLUMNS, SHIFT_COLUMNS, serializeCashMovement, serializeShift, type CashMovementRow, type ShiftRow,
-} from "../rows";
+import { type CashMovementRow, MOVEMENT_COLUMNS, SHIFT_COLUMNS, type ShiftRow, serializeCashMovement, serializeShift } from "../rows";
 import { resourceRoutes } from "./resources";
 
 const SHIFT_STATUSES = ["OPEN", "CLOSED"] as const;
@@ -160,7 +158,19 @@ async function upsertShift({ env, staff }: AuthedContext, id: string, body: Reco
        status = excluded.status, notes = excluded.notes, updated_at = excluded.updated_at
      WHERE (?11 = 1 OR shifts.status = 'OPEN')`,
   )
-    .bind(id, openedAt, closedAt ?? null, staff.name, startingCash ?? 0, actualCash ?? null, denominations, status, notes ?? null, Date.now(), isAdmin)
+    .bind(
+      id,
+      openedAt,
+      closedAt ?? null,
+      staff.name,
+      startingCash ?? 0,
+      actualCash ?? null,
+      denominations,
+      status,
+      notes ?? null,
+      Date.now(),
+      isAdmin,
+    )
     .run();
   if (changes(result) === 0) throw conflict("Shift berubah saat disimpan; muat ulang lalu coba lagi.");
 
@@ -178,8 +188,9 @@ async function removeShift({ env, staff }: AuthedContext, id: string): Promise<v
   // Movements of a deleted shift are soft-deleted with it so the audit trail survives.
   await env.DB.batch([
     env.DB.prepare("DELETE FROM shifts WHERE id = ? AND (? = 1 OR status = 'OPEN')").bind(id, isAdmin),
-    env.DB.prepare("UPDATE cash_movements SET deleted_at = ? WHERE shift_id = ? AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM shifts WHERE id = ?)")
-      .bind(Date.now(), id, id),
+    env.DB.prepare(
+      "UPDATE cash_movements SET deleted_at = ? WHERE shift_id = ? AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM shifts WHERE id = ?)",
+    ).bind(Date.now(), id, id),
   ]);
 }
 

@@ -1,15 +1,15 @@
-import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft, ArrowRight, KeyRound, ShieldAlert, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { deleteCategory, useCategories, useProducts } from "../../state/catalog";
+import { t } from "../../locales/id";
 import { FULL_ACCESS_ROLES, useAuth } from "../../state/auth";
+import { deleteCategory, useCategories, useProducts } from "../../state/catalog";
 import { isDemoMode } from "../../state/demo";
 import type { CategoryRow } from "../../types/domain";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { Input, Select } from "../../ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { t } from "../../locales/id";
 
 const PIN_MAX_LENGTH = 6;
 /** Product names listed as an example of what the deletion affects. */
@@ -98,14 +98,21 @@ export function DeleteCategoryModal({ category, onClose }: { category: CategoryR
                 </div>
                 {affected.length > 0 && (
                   <p className="line-clamp-2 text-xs2 text-text-muted">
-                    {text.sampleProducts(affected.slice(0, SAMPLE_PRODUCT_COUNT).map((p) => p.name), affected.length > SAMPLE_PRODUCT_COUNT)}
+                    {text.sampleProducts(
+                      affected.slice(0, SAMPLE_PRODUCT_COUNT).map((p) => p.name),
+                      affected.length > SAMPLE_PRODUCT_COUNT,
+                    )}
                   </p>
                 )}
               </div>
             </div>
 
             {affected.length > 0 && (
-              <Select label={text.reassignLabel(affected.length)} value={reassignTo} onChange={(event) => setReassignTo(event.target.value)}>
+              <Select
+                label={text.reassignLabel(affected.length)}
+                value={reassignTo}
+                onChange={(event) => setReassignTo(event.target.value)}
+              >
                 {fallbacks.map((c) => (
                   <option key={c.id} value={c.name}>
                     {text.reassignOption(c.name, c.kind)}
@@ -172,7 +179,14 @@ export function DeleteCategoryModal({ category, onClose }: { category: CategoryR
               <ArrowLeft size={14} aria-hidden="true" />
               {text.toStep1}
             </Button>
-            <Button variant="danger" size="sm" loading={deleting} disabled={!isRemote && !pin.trim()} onClick={() => void handleConfirm()} className="font-bold">
+            <Button
+              variant="danger"
+              size="sm"
+              loading={deleting}
+              disabled={!isRemote && !pin.trim()}
+              onClick={() => void handleConfirm()}
+              className="font-bold"
+            >
               <Trash2 size={15} aria-hidden="true" />
               {text.confirm}
             </Button>

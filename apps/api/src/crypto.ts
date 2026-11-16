@@ -26,10 +26,7 @@ export async function sha256Hex(text: string): Promise<string> {
 
 /** Constant-time equality for two strings of any length (compares fixed-size digests). */
 export async function safeEqual(a: string, b: string): Promise<boolean> {
-  const [da, db] = await Promise.all([
-    crypto.subtle.digest("SHA-256", enc.encode(a)),
-    crypto.subtle.digest("SHA-256", enc.encode(b)),
-  ]);
+  const [da, db] = await Promise.all([crypto.subtle.digest("SHA-256", enc.encode(a)), crypto.subtle.digest("SHA-256", enc.encode(b))]);
   return crypto.subtle.timingSafeEqual(da, db);
 }
 
@@ -40,11 +37,7 @@ export async function hmacSign(secret: string, message: string): Promise<string>
 
 async function pbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt, iterations },
-    key,
-    256,
-  );
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, 256);
   return new Uint8Array(bits);
 }
 

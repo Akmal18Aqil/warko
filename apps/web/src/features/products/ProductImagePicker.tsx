@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
 import { Image as ImageIcon, Link2, Search, Sparkles, Upload } from "lucide-react";
+import { useMemo, useState } from "react";
 import { filterGallery } from "../../data/gallery";
+import { t } from "../../locales/id";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { FoodImage } from "../../ui/FoodImage";
-import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
-import { t } from "../../locales/id";
+import { type SegmentedTab, SegmentedTabs } from "../../ui/SegmentedTabs";
 import { ImageGalleryTab } from "./ImageGalleryTab";
 import { ImageSearchTab } from "./ImageSearchTab";
 import { ImageUploadTab } from "./ImageUploadTab";
@@ -94,7 +94,11 @@ export function ProductImagePicker({ value, onChange, productName = "" }: Produc
 
       <div role="tabpanel">
         {tab === "upload" && (
-          <ImageUploadTab processing={upload.processing} onOpenDialog={upload.openDialog} onFile={(file) => void upload.processFile(file)} />
+          <ImageUploadTab
+            processing={upload.processing}
+            onOpenDialog={upload.openDialog}
+            onFile={(file) => void upload.processFile(file)}
+          />
         )}
         {tab === "search" && (
           <ImageSearchTab

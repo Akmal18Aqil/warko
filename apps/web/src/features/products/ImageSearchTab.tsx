@@ -1,8 +1,8 @@
 import { ExternalLink, RefreshCw, Search } from "lucide-react";
 import type { GalleryImage } from "../../data/gallery";
+import { t } from "../../locales/id";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
-import { t } from "../../locales/id";
 import { GalleryGrid } from "./GalleryGrid";
 
 const FALLBACK_SEARCH_TERM = "menu kuliner makanan minuman";
@@ -32,11 +32,7 @@ export function ImageSearchTab({
     <div className="space-y-2.5">
       <div className="flex items-start gap-1.5">
         <div className="relative flex-1">
-          <Search
-            size={13}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-light"
-          />
+          <Search size={13} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-light" />
           <Input
             type="search"
             size="sm"

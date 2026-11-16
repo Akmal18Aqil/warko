@@ -1,11 +1,11 @@
-import { useState } from "react";
 import { Check } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import type { MenuKind } from "../../data/menu";
+import { t } from "../../locales/id";
 import { addCategory } from "../../state/catalog";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
-import { t } from "../../locales/id";
 import { DEFAULT_PRODUCT_KIND, KindPicker } from "./productKinds";
 
 /** Quick "new category" form shown in place of the category select inside the product form. */

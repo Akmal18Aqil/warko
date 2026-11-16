@@ -1,9 +1,9 @@
 import { Printer } from "lucide-react";
 import { useMemo } from "react";
-import { t } from "../../locales/id";
-import { STORE_PROFILE } from "../../lib/storeProfile";
 import { cn } from "../../lib/cn";
-import { usePrint, type ReportRow } from "../../state/print";
+import { STORE_PROFILE } from "../../lib/storeProfile";
+import { t } from "../../locales/id";
+import { type ReportRow, usePrint } from "../../state/print";
 import type { ShiftRecord } from "../../types/domain";
 import { Button } from "../../ui/Button";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
@@ -39,10 +39,7 @@ export function ZReportPreview({ shift, onClose }: ZReportPreviewProps) {
 
   return (
     <Modal onClose={onClose} size="md">
-      <ModalHeader
-        title={text.title}
-        icon={<Printer size={20} className="shrink-0 text-accent-dark" aria-hidden="true" />}
-      />
+      <ModalHeader title={text.title} icon={<Printer size={20} className="shrink-0 text-accent-dark" aria-hidden="true" />} />
       <ModalBody>
         <div className="select-text space-y-2 rounded-xl border border-ink/15 bg-mineral/40 p-4 font-mono text-xs text-ink shadow-inner">
           <div className="text-center text-sm font-bold tracking-wide">{STORE_PROFILE.brand.toUpperCase()}</div>

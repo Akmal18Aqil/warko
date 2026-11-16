@@ -31,7 +31,11 @@ async function errorFor(response: Response): Promise<RemoteDataError> {
   let message = `Server data mengembalikan HTTP ${response.status}.`;
   try {
     const body = (await response.json()) as { message?: unknown; errors?: Record<string, unknown> };
-    const firstFieldError = body.errors ? Object.values(body.errors).flat().find((e) => typeof e === "string") : undefined;
+    const firstFieldError = body.errors
+      ? Object.values(body.errors)
+          .flat()
+          .find((e) => typeof e === "string")
+      : undefined;
     if (typeof body.message === "string") {
       message = body.message === "Data yang dikirim tidak valid." && typeof firstFieldError === "string" ? firstFieldError : body.message;
     }

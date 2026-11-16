@@ -2,11 +2,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { MenuItem } from "../../data/menu";
 import { cn } from "../../lib/cn";
+import { t } from "../../locales/id";
 import { adjustStock } from "../../state/catalog";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { t } from "../../locales/id";
 
 type StockMode = "set" | "add";
 
@@ -52,7 +52,13 @@ export function StockModal({ item, onClose }: { item: MenuItem; onClose: () => v
         <p className="text-xs text-text-muted">{text.explain}</p>
 
         <div role="group" aria-label={text.modeLabel} className="grid grid-cols-2 gap-2">
-          <button type="button" disabled={!tracked} aria-pressed={mode === "add"} onClick={() => setMode("add")} className={modeClass(mode === "add")}>
+          <button
+            type="button"
+            disabled={!tracked}
+            aria-pressed={mode === "add"}
+            onClick={() => setMode("add")}
+            className={modeClass(mode === "add")}
+          >
             {text.modeAdd}
           </button>
           <button type="button" aria-pressed={mode === "set"} onClick={() => setMode("set")} className={modeClass(mode === "set")}>
@@ -87,7 +93,12 @@ export function StockModal({ item, onClose }: { item: MenuItem; onClose: () => v
           <Button variant="outline" size="sm" onClick={onClose}>
             {t.common.cancel}
           </Button>
-          <Button size="sm" loading={saving} disabled={!valid || (preview ?? 0) < 0} onClick={() => void run(mode, qty, text.updated(item.name))}>
+          <Button
+            size="sm"
+            loading={saving}
+            disabled={!valid || (preview ?? 0) < 0}
+            onClick={() => void run(mode, qty, text.updated(item.name))}
+          >
             {t.common.save}
           </Button>
         </div>

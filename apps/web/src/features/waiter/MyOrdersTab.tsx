@@ -1,9 +1,9 @@
-import { Check, ClipboardList, Flame, Plus, Sparkles, Clock } from "lucide-react";
+import { Check, ClipboardList, Clock, Flame, Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { formatIDR } from "../../data/menu";
-import { t } from "../../locales/id";
 import { cn } from "../../lib/cn";
 import { kitchenStatusOf, tableLabel } from "../../lib/orderStatus";
+import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { updateKitchenStatus } from "../../state/orders";
 import type { OrderRow } from "../../types/domain";

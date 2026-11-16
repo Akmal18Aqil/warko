@@ -24,9 +24,15 @@ export function DemoStaffCard() {
         <table className="w-full min-w-[22rem] text-left text-sm">
           <thead>
             <tr className="label-caps text-xs2 font-semibold text-ink/50">
-              <th scope="col" className="py-2 pr-3 font-semibold">{text.name}</th>
-              <th scope="col" className="py-2 pr-3 font-semibold">{text.role}</th>
-              <th scope="col" className="py-2 font-semibold">{text.pin}</th>
+              <th scope="col" className="py-2 pr-3 font-semibold">
+                {text.name}
+              </th>
+              <th scope="col" className="py-2 pr-3 font-semibold">
+                {text.role}
+              </th>
+              <th scope="col" className="py-2 font-semibold">
+                {text.pin}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">

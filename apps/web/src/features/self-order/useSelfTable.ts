@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useTables } from "../../state/catalog";
+import { floorsOf } from "../../lib/orderStatus";
 import { STORAGE_KEYS } from "../../lib/storageKeys";
 import { resolveTable } from "../../lib/tableQr";
-import { floorsOf } from "../../lib/orderStatus";
 import { t } from "../../locales/id";
+import { useTables } from "../../state/catalog";
 import type { TableRow } from "../../types/domain";
 
 export interface SelfTable {

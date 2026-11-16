@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
 import { Minus, Plus, ScanLine, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { formatIDR } from "../../data/menu";
-import { t } from "../../locales/id";
 import { cn } from "../../lib/cn";
+import { t } from "../../locales/id";
 import { useCategories, useProducts } from "../../state/catalog";
 import { Empty } from "../../ui/Empty";
 import type { WaiterDraft } from "./useWaiterDraft";
@@ -78,10 +78,7 @@ export function MenuGrid({ cart, onScan }: { cart: WaiterDraft["cart"]; onScan: 
           {visible.map((p) => {
             const qty = qtyById.get(p.id);
             return (
-              <div
-                key={p.id}
-                className="flex flex-col justify-between rounded-2xl border border-ink/10 bg-surface p-3 shadow-clay"
-              >
+              <div key={p.id} className="flex flex-col justify-between rounded-2xl border border-ink/10 bg-surface p-3 shadow-clay">
                 <div>
                   {p.image && (
                     <div className="mb-2 h-24 w-full overflow-hidden rounded-xl bg-surface-muted">

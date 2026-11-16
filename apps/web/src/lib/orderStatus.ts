@@ -87,9 +87,7 @@ export const NEXT_KITCHEN_STATUS: Partial<Record<KitchenStatus, KitchenStatus>> 
  * table ids were recorded.
  */
 export function ordersForTable(orders: OrderRow[], table: TableRow): OrderRow[] {
-  return orders.filter(
-    (o) => o.orderType === "meja" && (o.tableId ? o.tableId === table.id : o.tableName === table.name),
-  );
+  return orders.filter((o) => o.orderType === "meja" && (o.tableId ? o.tableId === table.id : o.tableName === table.name));
 }
 
 export function isOrderOpen(order: OrderRow): boolean {

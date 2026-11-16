@@ -1,6 +1,6 @@
 import { AlertCircle, Zap, ZapOff } from "lucide-react";
-import { t } from "../../locales/id";
 import { cn } from "../../lib/cn";
+import { t } from "../../locales/id";
 import type { ScannerCamera } from "./useScannerCamera";
 
 interface ScannerCameraViewProps {

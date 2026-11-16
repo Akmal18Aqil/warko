@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCartLines } from "../../hooks/useCartLines";
-import { t } from "../../locales/id";
 import { waiterCartKey, waiterTableKey } from "../../lib/storageKeys";
+import { t } from "../../locales/id";
 import { useAuth } from "../../state/auth";
 import { useProducts, useTables } from "../../state/catalog";
 import { usePricing } from "../../state/pricing";
@@ -15,8 +15,7 @@ function readDraftLines(key: string): CartLine[] {
     const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
-      (l): l is CartLine =>
-        typeof l === "object" && l !== null && typeof l.itemId === "string" && typeof l.qty === "number" && l.qty > 0,
+      (l): l is CartLine => typeof l === "object" && l !== null && typeof l.itemId === "string" && typeof l.qty === "number" && l.qty > 0,
     );
   } catch {
     return [];
@@ -37,9 +36,7 @@ export function useWaiterDraft() {
   const tableKey = waiterTableKey(currentStaff.id);
 
   const cart = useCartLines({ products, pricing, initialLines: () => readDraftLines(cartKey) });
-  const [selectedTableId, setSelectedTableId] = useState<string>(
-    () => localStorage.getItem(tableKey) || tables[0]?.id || "",
-  );
+  const [selectedTableId, setSelectedTableId] = useState<string>(() => localStorage.getItem(tableKey) || tables[0]?.id || "");
   const [customerName, setCustomerName] = useState("");
   const [guests, setGuests] = useState(DEFAULT_GUESTS);
 
@@ -67,10 +64,7 @@ export function useWaiterDraft() {
     localStorage.setItem(tableKey, selectedTableId);
   }, [selectedTableId, tableKey]);
 
-  const selectedTable = useMemo(
-    () => tables.find((table) => table.id === selectedTableId) ?? tables[0],
-    [selectedTableId, tables],
-  );
+  const selectedTable = useMemo(() => tables.find((table) => table.id === selectedTableId) ?? tables[0], [selectedTableId, tables]);
 
   const clearCart = () => {
     cart.clear();

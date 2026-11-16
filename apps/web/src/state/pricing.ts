@@ -1,8 +1,8 @@
 import type { PricingSettings } from "@wakro/shared";
 import { dataSource } from "../data/index";
 import { broadcastSync } from "../lib/syncBus";
-import { pricingStore } from "./stores";
 import { useStore } from "./store";
+import { pricingStore } from "./stores";
 
 export const usePricing = () => useStore(pricingStore, (s) => s.pricing);
 

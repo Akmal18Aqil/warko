@@ -1,15 +1,7 @@
 import type { PricingSettings } from "@wakro/shared";
-import type { MenuItem } from "./menu";
-import type {
-  CashMovementRow,
-  CategoryRow,
-  OrderRow,
-  SettleResult,
-  ShiftRecord,
-  Snapshot,
-  TableRow,
-} from "../types/domain";
+import type { CashMovementRow, CategoryRow, OrderRow, SettleResult, ShiftRecord, Snapshot, TableRow } from "../types/domain";
 import { jsonBody, request, requestAllPages, requestConditional, requestEnvelope } from "./api";
+import type { MenuItem } from "./menu";
 import type { DataSource } from "./source";
 
 const POLL_INTERVAL_MS = 5000;
@@ -41,7 +33,6 @@ function toSnapshot(payload: BootstrapPayload): Snapshot {
   const { shifts, ...rest } = payload;
   return { ...rest, activeShift: shifts.find((shift) => shift.status === "OPEN") ?? null };
 }
-
 
 export const remoteSource: DataSource = {
   kind: "remote",

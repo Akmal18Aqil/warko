@@ -57,7 +57,12 @@ function text(body: Record<string, unknown>, field: string): string | undefined 
   return typeof value === "string" ? value : undefined;
 }
 
-type MidtransCharge = { statusCode: string | undefined; statusMessage: string | undefined; qrString: string | undefined; transactionId: string | undefined };
+type MidtransCharge = {
+  statusCode: string | undefined;
+  statusMessage: string | undefined;
+  qrString: string | undefined;
+  transactionId: string | undefined;
+};
 
 function parseCharge(body: Record<string, unknown>): MidtransCharge {
   return {
@@ -98,16 +103,18 @@ async function sha512Hex(value: string): Promise<string> {
 
 async function requestCharge(env: Env, key: string, no: number, amount: number, gatewayOrderId: string): Promise<MidtransCharge> {
   const idempotencyKey = (await sha256Hex(`qris-charge:${gatewayOrderId}`)).slice(0, 40);
-  const charge = parseCharge(await midtrans(env, key, "/v2/charge", {
-    method: "POST",
-    headers: { "Idempotency-Key": idempotencyKey },
-    body: JSON.stringify({
-      payment_type: "qris",
-      transaction_details: { order_id: gatewayOrderId, gross_amount: amount },
-      item_details: [{ id: `order-${no}`, price: amount, quantity: 1, name: `Pesanan #${no} WAKRO` }],
-      custom_expiry: { expiry_duration: CHARGE_TTL_MINUTES, unit: "minute" },
+  const charge = parseCharge(
+    await midtrans(env, key, "/v2/charge", {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify({
+        payment_type: "qris",
+        transaction_details: { order_id: gatewayOrderId, gross_amount: amount },
+        item_details: [{ id: `order-${no}`, price: amount, quantity: 1, name: `Pesanan #${no} WAKRO` }],
+        custom_expiry: { expiry_duration: CHARGE_TTL_MINUTES, unit: "minute" },
+      }),
     }),
-  }));
+  );
   if (charge.statusCode === "202") throw new HttpError(503, "QRIS sedang diproses. Coba lagi sebentar.");
   if (charge.statusCode !== "201" || !charge.qrString) {
     console.error("Midtrans QRIS charge rejected", charge.statusCode, charge.statusMessage);
@@ -115,7 +122,9 @@ async function requestCharge(env: Env, key: string, no: number, amount: number, 
   }
   await env.DB.prepare(
     "UPDATE payment_charges SET qr_string = ?, transaction_id = COALESCE(transaction_id, ?), updated_at = ? WHERE gateway_order_id = ?",
-  ).bind(charge.qrString, charge.transactionId ?? null, Date.now(), gatewayOrderId).run();
+  )
+    .bind(charge.qrString, charge.transactionId ?? null, Date.now(), gatewayOrderId)
+    .run();
   return charge;
 }
 
@@ -148,13 +157,17 @@ async function startQris({ request, env, params }: RouteContext): Promise<Respon
       if (status.orderId !== pending.gateway_order_id || Number(status.grossAmount) !== pending.amount) throw badGateway();
       if (PAID_STATUSES[status.transactionStatus] && status.fraudStatus !== "deny") {
         const outcome = await settleCharge(env, no, status.transactionId ?? pending.gateway_order_id);
-        await env.DB.prepare("UPDATE payment_charges SET status = ?, transaction_id = ?, updated_at = ? WHERE gateway_order_id = ? AND status = 'pending'")
-          .bind(outcome, status.transactionId ?? null, Date.now(), pending.gateway_order_id).run();
+        await env.DB.prepare(
+          "UPDATE payment_charges SET status = ?, transaction_id = ?, updated_at = ? WHERE gateway_order_id = ? AND status = 'pending'",
+        )
+          .bind(outcome, status.transactionId ?? null, Date.now(), pending.gateway_order_id)
+          .run();
         throw new HttpError(409, outcome === "paid" ? "Pesanan ini sudah lunas." : "Pembayaran QRIS ganda terdeteksi. Hubungi kasir.");
       }
       if (FAILED_STATUSES[status.transactionStatus]) {
         await env.DB.prepare("UPDATE payment_charges SET status = ?, updated_at = ? WHERE gateway_order_id = ? AND status = 'pending'")
-          .bind(status.transactionStatus === "expire" ? "expired" : "failed", Date.now(), pending.gateway_order_id).run();
+          .bind(status.transactionStatus === "expire" ? "expired" : "failed", Date.now(), pending.gateway_order_id)
+          .run();
         throw new HttpError(409, "QRIS sebelumnya gagal atau kedaluwarsa. Coba buat QRIS baru.");
       }
       throw new HttpError(503, "QRIS sedang diproses. Coba lagi nanti atau bayar di kasir.");
@@ -170,7 +183,9 @@ async function startQris({ request, env, params }: RouteContext): Promise<Respon
      WHERE NOT EXISTS (
        SELECT 1 FROM payment_charges WHERE order_no = ? AND status = 'pending' AND (expires_at > ? OR qr_string = '')
      )`,
-  ).bind(gatewayOrderId, no, order.total, expiresAt, now, now, no, now).run();
+  )
+    .bind(gatewayOrderId, no, order.total, expiresAt, now, now, no, now)
+    .run();
   if (!intent.meta.changes) throw new HttpError(503, "QRIS sedang diproses. Coba lagi nanti atau bayar di kasir.");
   const charge = await requestCharge(env, key, no, order.total, gatewayOrderId);
   return json({ data: { qrString: charge.qrString, amount: order.total, expiresAt } }, 201);

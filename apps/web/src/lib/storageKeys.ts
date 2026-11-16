@@ -84,12 +84,7 @@ export function migrateLegacyStorage(storage: Storage = localStorage): void {
       if (Number.isFinite(parsedService)) partial.serviceChargeRate = parsedService;
       storage.setItem(STORAGE_KEYS.pricing, JSON.stringify(partial));
     }
-    for (const key of [
-      LEGACY_KEYS.taxEnabled,
-      LEGACY_KEYS.taxRate,
-      LEGACY_KEYS.serviceChargeEnabled,
-      LEGACY_KEYS.serviceChargeRate,
-    ]) {
+    for (const key of [LEGACY_KEYS.taxEnabled, LEGACY_KEYS.taxRate, LEGACY_KEYS.serviceChargeEnabled, LEGACY_KEYS.serviceChargeRate]) {
       storage.removeItem(key);
     }
   } catch (error) {

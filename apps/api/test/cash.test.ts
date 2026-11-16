@@ -9,7 +9,11 @@ function putShift(session: string, id: string, body: Record<string, unknown>) {
 }
 
 function putMovement(session: string, id: string, body: Record<string, unknown>) {
-  return api(`/api/resources/cashMovements/${id}`, { session, method: "PUT", body: { id, type: "CASH_IN", category: "lainnya", amount: 1_000, ...body } });
+  return api(`/api/resources/cashMovements/${id}`, {
+    session,
+    method: "PUT",
+    body: { id, type: "CASH_IN", category: "lainnya", amount: 1_000, ...body },
+  });
 }
 
 beforeEach(async () => {
@@ -73,7 +77,13 @@ describe("closing a shift", () => {
     const [payment, closed] = await Promise.all([
       api("/api/orders", {
         session,
-        body: { orderType: "bawa-pulang", items: [{ barcode: "A1", qty: 1 }], expectedTotal: 11_100, method: "tunai", cashReceived: 15_000 },
+        body: {
+          orderType: "bawa-pulang",
+          items: [{ barcode: "A1", qty: 1 }],
+          expectedTotal: 11_100,
+          method: "tunai",
+          cashReceived: 15_000,
+        },
       }),
       putShift(session, "race-shift", { openedAt, closedAt: Date.now() + 1_000, actualCash: 0, status: "CLOSED" }),
     ]);
@@ -84,7 +94,9 @@ describe("closing a shift", () => {
       expect(total).toBe(0);
     } else {
       const created = (await readJson(payment)).data;
-      const stored = await env.DB.prepare("SELECT cash_shift_id FROM orders WHERE no = ?").bind(created.no).first<{ cash_shift_id: string | null }>();
+      const stored = await env.DB.prepare("SELECT cash_shift_id FROM orders WHERE no = ?")
+        .bind(created.no)
+        .first<{ cash_shift_id: string | null }>();
       expect(stored?.cash_shift_id).toBe("race-shift");
       expect(total).toBe(11_100);
     }
@@ -95,7 +107,8 @@ describe("closing a shift", () => {
     const openedAt = Date.now() - 60_000;
     await putShift(session, "clock-shift", { openedAt, status: "OPEN" });
     const created = await api("/api/orders", {
-      session, body: { orderType: "bawa-pulang", items: [{ barcode: "A1", qty: 1 }], expectedTotal: 11_100 },
+      session,
+      body: { orderType: "bawa-pulang", items: [{ barcode: "A1", qty: 1 }], expectedTotal: 11_100 },
     });
     const no = (await readJson(created)).data.no;
     expect((await api(`/api/orders/${no}/payment`, { session, body: { method: "tunai", cashReceived: 15_000 } })).status).toBe(200);
@@ -159,10 +172,14 @@ describe("closing a shift", () => {
   it("allows only one open shift and lets only admins edit a closed one", async () => {
     const cashier = await signIn("kasir");
     const now = Date.now();
-    expect((await putShift(cashier.session, "s1", { openedAt: now - 9_000, closedAt: now - 8_000, actualCash: 0, status: "CLOSED" })).status).toBe(200);
+    expect(
+      (await putShift(cashier.session, "s1", { openedAt: now - 9_000, closedAt: now - 8_000, actualCash: 0, status: "CLOSED" })).status,
+    ).toBe(200);
     expect((await putShift(cashier.session, "s2", { openedAt: now, status: "OPEN" })).status).toBe(200);
     expect((await putShift(cashier.session, "s3", { openedAt: now, status: "OPEN" })).status).toBe(409);
-    expect((await putShift(cashier.session, "s1", { openedAt: now - 9_000, closedAt: now - 8_000, actualCash: 5, status: "CLOSED" })).status).toBe(403);
+    expect(
+      (await putShift(cashier.session, "s1", { openedAt: now - 9_000, closedAt: now - 8_000, actualCash: 5, status: "CLOSED" })).status,
+    ).toBe(403);
   });
 });
 
@@ -225,7 +242,9 @@ describe("paged lists", () => {
     let cursor: string | null = null;
     let pages = 0;
     do {
-      const response: Response = await api(`/api/resources/shifts?limit=2${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, { session });
+      const response: Response = await api(`/api/resources/shifts?limit=2${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, {
+        session,
+      });
       const page: { data: { id: string }[]; nextCursor: string | null } = await readJson(response);
       seen.push(...page.data.map((s) => s.id));
       cursor = page.nextCursor;
@@ -241,7 +260,9 @@ describe("paged lists", () => {
     for (let i = 0; i < 3; i++) await putMovement(session, `m${i}`, { createdAt: now - i * 1_000 });
     const first = await readJson(await api("/api/resources/cashMovements?limit=2", { session }));
     expect(first.data.map((m: { id: string }) => m.id)).toEqual(["m0", "m1"]);
-    const second = await readJson(await api(`/api/resources/cashMovements?limit=2&cursor=${encodeURIComponent(first.nextCursor)}`, { session }));
+    const second = await readJson(
+      await api(`/api/resources/cashMovements?limit=2&cursor=${encodeURIComponent(first.nextCursor)}`, { session }),
+    );
     expect(second.data.map((m: { id: string }) => m.id)).toEqual(["m2"]);
     expect(second.nextCursor).toBeNull();
     expect((await api("/api/resources/cashMovements?cursor=garbage", { session })).status).toBe(422);
@@ -268,7 +289,9 @@ describe("paged lists", () => {
     const first = await readJson(await api(`/api/reports/orders?${range}&limit=3`, { session }));
     expect(first.data).toHaveLength(3);
     expect(first.data[0].items).toHaveLength(1);
-    const second = await readJson(await api(`/api/reports/orders?${range}&limit=3&cursor=${encodeURIComponent(first.nextCursor)}`, { session }));
+    const second = await readJson(
+      await api(`/api/reports/orders?${range}&limit=3&cursor=${encodeURIComponent(first.nextCursor)}`, { session }),
+    );
     expect(second.data).toHaveLength(2);
     expect(second.nextCursor).toBeNull();
     const numbers = [...first.data, ...second.data].map((o: { no: number }) => o.no);

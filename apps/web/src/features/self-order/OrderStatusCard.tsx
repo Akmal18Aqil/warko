@@ -1,11 +1,11 @@
 import { CheckCircle2, ChefHat, QrCode, ReceiptText, Sparkles } from "lucide-react";
-import { Badge } from "../../ui/Badge";
-import { Button } from "../../ui/Button";
 import { formatIDR } from "../../data/menu";
-import { isPaid, kitchenStatusOf } from "../../lib/orderStatus";
 import { cn } from "../../lib/cn";
+import { isPaid, kitchenStatusOf } from "../../lib/orderStatus";
 import { t } from "../../locales/id";
 import type { OrderRow } from "../../types/domain";
+import { Badge } from "../../ui/Badge";
+import { Button } from "../../ui/Button";
 
 const STEP_KEYS = ["queued", "preparing", "ready", "served"] as const;
 
@@ -19,7 +19,8 @@ interface OrderStatusCardProps {
 /** Live progress, items and payment state of one placed order. */
 export function OrderStatusCard({ order, qrisAvailable, onReceipt, onPayQris }: OrderStatusCardProps) {
   const stage = kitchenStatusOf(order);
-  const stepIndex = Math.max(0, STEP_KEYS.findIndex((key) => key === stage));
+  // A draft has not reached the kitchen yet; it shows as the first step.
+  const stepIndex = stage === "draft" ? 0 : STEP_KEYS.indexOf(stage);
   const paid = isPaid(order);
   return (
     <article className="space-y-3 rounded-2xl border-2 border-accent bg-surface p-4 shadow-clay">
