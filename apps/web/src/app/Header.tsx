@@ -10,6 +10,8 @@ import { useLocation } from "wouter";
 import { isRemoteDataSource } from "../data/index";
 import { useAuth } from "../state/auth";
 import { cn } from "../lib/cn";
+import { isDemoMode } from "../state/demo";
+import { DemoModeBadge } from "./DemoModeBadge";
 import { REMOTE_LOGOUT_EVENT } from "./RemoteAuthGate";
 
 export function Header({
@@ -71,24 +73,28 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Local Server & Waiter Pairing Trigger */}
-          <button
-            type="button"
-            onClick={() => setNetworkModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl border border-border bg-mineral px-3 py-2 text-xs font-bold text-ink shadow-2xs transition-all hover:border-border-hover"
-            title={t.app.header.networkTitle}
-          >
-            <span className="flex h-2 w-2 rounded-full bg-success-dark animate-pulse" />
-            <span className="flex items-center gap-1.5 text-ink-soft">
-              <Radio size={14} className="text-success-dark" />
-              <span className="hidden sm:inline">{t.app.header.localServer}</span>
-              <span className="font-mono text-xs2 font-extrabold text-ink">{hostInfo.host}:{hostInfo.port}</span>
-            </span>
-            <span className="hidden md:inline-flex items-center gap-1 bg-accent px-1.5 py-0.5 rounded ml-0.5 text-2xs font-extrabold text-white">
-              <Smartphone size={11} />
-              {t.app.header.pairPhone}
-            </span>
-          </button>
+          {isDemoMode ? (
+            <DemoModeBadge onClick={() => setNetworkModalOpen(true)} />
+          ) : (
+            /* Local Server & Waiter Pairing Trigger */
+            <button
+              type="button"
+              onClick={() => setNetworkModalOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-border bg-mineral px-3 py-2 text-xs font-bold text-ink shadow-2xs transition-all hover:border-border-hover"
+              title={t.app.header.networkTitle}
+            >
+              <span className="flex h-2 w-2 rounded-full bg-success-dark animate-pulse" />
+              <span className="flex items-center gap-1.5 text-ink-soft">
+                <Radio size={14} className="text-success-dark" />
+                <span className="hidden sm:inline">{t.app.header.localServer}</span>
+                <span className="font-mono text-xs2 font-extrabold text-ink">{hostInfo.host}:{hostInfo.port}</span>
+              </span>
+              <span className="hidden md:inline-flex items-center gap-1 bg-accent px-1.5 py-0.5 rounded ml-0.5 text-2xs font-extrabold text-white">
+                <Smartphone size={11} />
+                {t.app.header.pairPhone}
+              </span>
+            </button>
+          )}
 
           <IconButton label={t.app.header.notifications} onClick={handleNotifications}>
             <Bell size={19} />

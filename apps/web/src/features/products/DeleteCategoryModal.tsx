@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, ArrowRight, KeyRound, ShieldAlert, Trash2 } f
 import { toast } from "sonner";
 import { deleteCategory, useCategories, useProducts } from "../../state/catalog";
 import { FULL_ACCESS_ROLES, useAuth } from "../../state/auth";
+import { isDemoMode } from "../../state/demo";
 import type { CategoryRow } from "../../types/domain";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
@@ -23,11 +24,16 @@ type Step = 1 | 2;
 export function DeleteCategoryModal({ category, onClose }: { category: CategoryRow; onClose: () => void }) {
   const categories = useCategories();
   const products = useProducts();
-  const { isRemote, verifyPin } = useAuth();
+  const { isRemote, staffList, verifyPin } = useAuth();
   const text = t.products.categories.delete;
 
   const fallbacks = useMemo(() => categories.filter((c) => c.id !== category.id), [categories, category.id]);
   const affected = useMemo(() => products.filter((p) => p.category === category.name), [products, category.name]);
+
+  const demoPinHints = useMemo(
+    () => (isDemoMode ? staffList.filter((s) => FULL_ACCESS_ROLES.includes(s.role)).map((s) => `${s.name} (${s.role}): ${s.pin}`) : []),
+    [staffList],
+  );
 
   const [step, setStep] = useState<Step>(1);
   const [reassignTo, setReassignTo] = useState(fallbacks[0]?.name ?? "");
@@ -154,6 +160,11 @@ export function DeleteCategoryModal({ category, onClose }: { category: CategoryR
                 placeholder={text.pinPlaceholder}
                 className="text-center text-lg font-bold tracking-widest"
               />
+            )}
+            {demoPinHints.length > 0 && (
+              <p className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent-dark">
+                {text.demoPinHint(demoPinHints)}
+              </p>
             )}
           </ModalBody>
           <ModalFooter className="justify-between">

@@ -1,8 +1,8 @@
-import { MAX_MONEY } from "@wakro/shared";
+import { CATALOG_WRITE_ROLES, IMAGE_PATTERN, MAX_IMAGE_LENGTH, MAX_MONEY, MAX_STOCK, READ_ROLES, STOCK_ROLES } from "@wakro/shared";
 import type { Env } from "../env";
 import { assertBodyId, changes, decodeId, isCheckViolation, isUniqueViolation, validId } from "../guards";
 import { conflict, HttpError, invalid, json, Reader, readJsonObject } from "../http";
-import { CATALOG_WRITE_ROLES, KINDS, READ_ROLES, STOCK_ROLES } from "../policy";
+import { KINDS } from "../policy";
 import { loadPricing, parsePricingInput, savePricing } from "../pricing";
 import { get, send, type AuthedContext, type Route } from "../router";
 import {
@@ -12,9 +12,6 @@ import {
 import { resourceRoutes } from "./resources";
 
 const STOCK_MODES = ["set", "add"] as const;
-const MAX_STOCK = 1_000_000;
-const MAX_IMAGE_LENGTH = 200_000;
-const IMAGE_PATTERN = /^(?:|https?:\/\/\S+|\/(?!\/)\S*|data:image\/(?:png|jpe?g|webp|gif|avif);base64,[A-Za-z0-9+/=]+)$/i;
 
 // ---- products ------------------------------------------------------------
 

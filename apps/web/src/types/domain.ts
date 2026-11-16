@@ -47,6 +47,8 @@ export type OrderRow = {
   cashReceived?: number;
   paidBy?: string;
   paidAt?: number;
+  /** Shift whose drawer holds this order's cash; set for cash payments only. */
+  cashShiftId?: string;
   createdAt: number;
   /** Local mode only: idempotency key of the submit that created this order. */
   clientRef?: string;

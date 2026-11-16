@@ -1,7 +1,8 @@
-import { readBackup, writeImport, type ImportCounts } from "../data/backup";
+import { readBackup, writeImport, type ImportCounts, type ImportRows } from "../data/backup";
 import type { MenuItem, MenuKind } from "../data/menu";
-import type { CashMovementRow, CategoryRow, OrderRow, TableRow } from "../types/domain";
+import type { CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } from "../types/domain";
 import { isPaid, tableLabel } from "./orderStatus";
+import { broadcastSync } from "./syncBus";
 import { PAY_METHOD_LABEL } from "./receipt";
 import { STORE_PROFILE } from "./storeProfile";
 
@@ -77,6 +78,9 @@ const isCategory = (c: Record<string, unknown>) => typeof c.id === "string" && t
 const isMovement = (m: Record<string, unknown>) =>
   typeof m.id === "string" && typeof m.amount === "number" && (m.type === "CASH_IN" || m.type === "CASH_OUT");
 
+const isShift = (s: Record<string, unknown>) =>
+  typeof s.id === "string" && typeof s.openedAt === "number" && (s.status === "OPEN" || s.status === "CLOSED");
+
 const MENU_KINDS: readonly MenuKind[] = ["Minuman", "Makanan", "Camilan"];
 
 function parseJsonBackup(text: string) {
@@ -94,6 +98,7 @@ function parseJsonBackup(text: string) {
     tables: rowsOf<TableRow>(source.tables, isTable),
     categories: rowsOf<CategoryRow>(source.categories, isCategory),
     cashMovements: rowsOf<CashMovementRow>(source.cashMovements, isMovement),
+    shifts: rowsOf<ShiftRecord>(source.shifts, isShift),
   };
 }
 
@@ -124,6 +129,13 @@ function parseProductsCsv(text: string): MenuItem[] {
     });
 }
 
+/** Writes the rows, then tells other tabs to reload everything: an import can touch every slice of state. */
+async function importedAndBroadcast(rows: ImportRows): Promise<ImportCounts> {
+  const counts = await writeImport(rows);
+  broadcastSync({ type: "DATA_IMPORTED" });
+  return counts;
+}
+
 /** Restores a backup into the browser database (local mode only). */
 export async function importBackupFile(file: File): Promise<ImportCounts> {
   const isJson = file.name.endsWith(".json");
@@ -134,22 +146,22 @@ export async function importBackupFile(file: File): Promise<ImportCounts> {
   }
 
   const text = await file.text();
-  const empty = { products: [], orders: [], tables: [], categories: [], cashMovements: [] };
+  const empty = { products: [], orders: [], tables: [], categories: [], cashMovements: [], shifts: [] };
 
   if (isJson) {
     const rows = parseJsonBackup(text);
     const total = Object.values(rows).reduce((sum, list) => sum + list.length, 0);
     if (total === 0) {
-      throw new Error("Tidak ada data produk, pesanan, meja, kategori, atau mutasi kas yang valid dalam berkas ini.");
+      throw new Error("Tidak ada data produk, pesanan, meja, kategori, shift, atau mutasi kas yang valid dalam berkas ini.");
     }
-    return writeImport(rows);
+    return importedAndBroadcast(rows);
   }
 
   const products = parseProductsCsv(text);
   if (products.length === 0) {
     throw new Error("Tidak ada baris data produk yang valid dalam file CSV.");
   }
-  return writeImport({ ...empty, products });
+  return importedAndBroadcast({ ...empty, products });
 }
 
 // ---- owner reports ----------------------------------------------------------

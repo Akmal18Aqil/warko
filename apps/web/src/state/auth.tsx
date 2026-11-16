@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { STORAGE_KEYS } from "../lib/storageKeys";
 import { t } from "../locales/id";
+import { isDemoMode } from "./demo";
 import { DEMO_STAFF } from "./demoStaff";
 import { normalizeAvatarColor } from "./staffAvatar";
 
@@ -12,8 +13,9 @@ import { normalizeAvatarColor } from "./staffAvatar";
  *
  * Remote mode: the signed-in staff member comes from the server session and the API enforces every
  * permission; the route matrix below only decides which screens to show.
- * Local mode is demo-only: the staff list and their plaintext PINs live in the browser and the role
- * check is client-side, so it is a convenience for switching users on one device, not access control.
+ * Local mode is demo-only: the staff list is always `DEMO_STAFF` (only the chosen member is remembered) and the
+ * PINs are plaintext, so switching users is a convenience on one device, not access control. The local data
+ * source is told who is acting and enforces the same role policy as the API.
  */
 
 export interface StaffUser {
@@ -52,19 +54,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const withNormalizedAvatar = (staff: StaffUser): StaffUser => ({ ...staff, avatarColor: normalizeAvatarColor(staff.avatarColor) });
-
-function getInitialStaffList(): StaffUser[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.staffList);
-    if (raw) {
-      const parsed: unknown = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return (parsed as StaffUser[]).map(withNormalizedAvatar);
-    }
-  } catch (err) {
-    console.warn("Daftar staf tersimpan tidak dapat dibaca:", err);
-  }
-  return DEMO_STAFF;
-}
 
 function getInitialCurrentStaff(list: StaffUser[]): StaffUser {
   try {
@@ -110,7 +99,7 @@ function roleAllows(role: StaffRole, path: string): boolean {
 }
 
 export function AuthProvider({ children, remoteStaff }: { children: ReactNode; remoteStaff?: StaffUser }) {
-  const [staffList] = useState<StaffUser[]>(() => (remoteStaff ? [withNormalizedAvatar(remoteStaff)] : getInitialStaffList()));
+  const [staffList] = useState<StaffUser[]>(() => (remoteStaff ? [withNormalizedAvatar(remoteStaff)] : DEMO_STAFF.map(withNormalizedAvatar)));
   const [currentStaff, setCurrentStaff] = useState<StaffUser>(() =>
     remoteStaff ? withNormalizedAvatar(remoteStaff) : getInitialCurrentStaff(staffList),
   );
@@ -121,12 +110,21 @@ export function AuthProvider({ children, remoteStaff }: { children: ReactNode; r
   useEffect(() => {
     if (isRemote) return;
     try {
-      localStorage.setItem(STORAGE_KEYS.staffList, JSON.stringify(staffList));
       localStorage.setItem(STORAGE_KEYS.currentStaffId, currentStaff.id);
     } catch (err) {
-      console.warn("Data staf tidak dapat disimpan:", err);
+      console.warn("Staf aktif tidak dapat disimpan:", err);
     }
-  }, [staffList, currentStaff.id, isRemote]);
+  }, [currentStaff.id, isRemote]);
+
+  useEffect(() => {
+    if (!isDemoMode) return;
+    const { id, name, role } = currentStaff;
+    // Dexie is only loaded in the local build; the data source module is already in the cache by now.
+    void import("../data/local").then(({ setLocalActor }) => setLocalActor({ id, name, role }));
+    return () => {
+      void import("../data/local").then(({ setLocalActor }) => setLocalActor(null));
+    };
+  }, [currentStaff]);
 
   const openSwitchModal = useCallback(() => setIsSwitchModalOpen(true), []);
   const closeSwitchModal = useCallback(() => setIsSwitchModalOpen(false), []);

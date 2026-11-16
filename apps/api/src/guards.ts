@@ -1,4 +1,4 @@
-import type { StaffRole } from "@wakro/shared";
+import { ACCESS_DENIED_MESSAGE, type StaffRole } from "@wakro/shared";
 import type { SessionStaff } from "./env";
 import { HttpError, invalid } from "./http";
 
@@ -18,7 +18,7 @@ export function assertSameOrigin(request: Request, url: URL): void {
 }
 
 export function requireRole(staff: SessionStaff, ...roles: readonly StaffRole[]): void {
-  if (!roles.includes(staff.role)) throw new HttpError(403, "Peran Anda tidak diizinkan melakukan aksi ini.");
+  if (!roles.includes(staff.role)) throw new HttpError(403, ACCESS_DENIED_MESSAGE);
 }
 
 /** Decodes and validates an id taken from a URL path segment. */

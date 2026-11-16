@@ -35,3 +35,7 @@ export function calculateCharges(subtotal: number, pricing: PricingSettings): Or
   const tax = pricing.taxEnabled ? Math.round(((subtotal + serviceCharge) * pricing.taxRate) / 100) : 0;
   return { serviceCharge, tax, total: subtotal + serviceCharge + tax };
 }
+
+/** Rejection message when the total the customer confirmed differs from the total computed now. */
+export const EXPECTED_TOTAL_MISMATCH_MESSAGE =
+  "Total pesanan berubah karena harga atau pengaturan pajak/layanan diperbarui. Periksa total terbaru lalu coba lagi.";

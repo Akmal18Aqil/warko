@@ -1,4 +1,4 @@
-import { applySnapshot } from "./snapshot";
+import { applySnapshot, reloadAllData } from "./snapshot";
 import { dataSource } from "../data/index";
 import { loadPublicMenu } from "../data/public";
 import { subscribeSync } from "../lib/syncBus";
@@ -6,6 +6,7 @@ import { startTabPresence } from "../services/tabPresence";
 import type { CategoryRow, Snapshot } from "../types/domain";
 import { refreshCategories, refreshProducts, refreshTables } from "./catalog";
 import { reloadOrders } from "./orders";
+import { reloadPricing } from "./pricing";
 import { reloadCashMovements, reloadActiveShift } from "./shift";
 import { catalogStore, ordersStore, pricingStore, sessionStore, shiftStore } from "./stores";
 import { t } from "../locales/id";
@@ -70,6 +71,16 @@ function subscribeTabEvents(): () => void {
         break;
       case "CASH_MOVEMENTS_CHANGED":
         void reloadCashMovements().catch(logFailure("mutasi kas"));
+        break;
+      case "PRICING_UPDATED":
+        void reloadPricing().catch(logFailure("pengaturan harga"));
+        break;
+      case "DATA_IMPORTED":
+        void reloadAllData().catch(logFailure("data impor"));
+        break;
+      case "DEMO_RESET":
+        // The other tab deleted the database; this tab must reopen it from scratch.
+        window.location.reload();
         break;
       case "DEVICE_HEARTBEAT":
         break;

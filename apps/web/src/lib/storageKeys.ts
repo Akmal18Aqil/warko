@@ -16,8 +16,28 @@ export const STORAGE_KEYS = {
 
 export const SYNC_CHANNEL_NAME = "wakro_sync_channel";
 
-export const waiterCartKey = (staffId: string): string => `wakro_waiter_cart_${staffId}`;
-export const waiterTableKey = (staffId: string): string => `wakro_waiter_table_${staffId}`;
+const WAITER_CART_PREFIX = "wakro_waiter_cart_";
+const WAITER_TABLE_PREFIX = "wakro_waiter_table_";
+
+export const waiterCartKey = (staffId: string): string => `${WAITER_CART_PREFIX}${staffId}`;
+export const waiterTableKey = (staffId: string): string => `${WAITER_TABLE_PREFIX}${staffId}`;
+
+/** Every key that holds demo-mode state (settings, session choices, drafts); the demo reset removes them. */
+export function demoStorageKeys(storage: Storage = localStorage): string[] {
+  const fixed: string[] = [
+    STORAGE_KEYS.pricing,
+    STORAGE_KEYS.staffList,
+    STORAGE_KEYS.currentStaffId,
+    STORAGE_KEYS.selfOrders,
+    STORAGE_KEYS.selfTable,
+    STORAGE_KEYS.selfCustomerName,
+    STORAGE_KEYS.selfPendingOrder,
+  ];
+  const drafts = Array.from({ length: storage.length }, (_, i) => storage.key(i)).filter(
+    (key): key is string => key !== null && (key.startsWith(WAITER_CART_PREFIX) || key.startsWith(WAITER_TABLE_PREFIX)),
+  );
+  return [...fixed, ...drafts];
+}
 
 /** Pre-rename keys. Only values whose loss would lose user data are carried over (see `migrateLegacyStorage`). */
 const LEGACY_KEYS = {

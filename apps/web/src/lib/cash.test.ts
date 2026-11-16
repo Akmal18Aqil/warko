@@ -12,6 +12,7 @@ const order = (no: number, patch: Partial<OrderRow>): OrderRow => ({
   itemCount: 1,
   orderType: "bawa-pulang",
   method: "tunai",
+  cashShiftId: "s1",
   paidAt: 2_000,
   createdAt: 1_500,
   ...patch,
@@ -39,7 +40,7 @@ describe("expectedDrawerCash", () => {
     expect(result).toMatchObject({ cashSales: 75_000, cashIn: 15_000, cashOut: 5_000, expected: 285_000 });
   });
 
-  it("counts only paid cash orders paid inside the shift window", () => {
+  it("counts only paid cash orders recorded against the shift", () => {
     const closed = { ...shift, closedAt: 3_000 };
     const result = expectedDrawerCash(
       closed,
@@ -50,12 +51,15 @@ describe("expectedDrawerCash", () => {
         order(4, { paymentStatus: "refunded" }),
         order(5, { paidAt: 999 }),
         order(6, { paidAt: 3_001 }),
+        order(7, { cashShiftId: "other" }),
+        order(8, { cashShiftId: undefined }),
       ],
       [],
     );
-    expect(result.cashSales).toBe(50_000);
-    expect(result.paidOrders.map((o) => o.no)).toEqual([1, 2]);
-    expect(result.expected).toBe(250_000);
+    // Orders 1, 5 and 6 belong to the shift whatever their paid time; the display list keeps the time window.
+    expect(result.cashSales).toBe(150_000);
+    expect(result.paidOrders.map((o) => o.no)).toEqual([1, 2, 7, 8]);
+    expect(result.expected).toBe(350_000);
   });
 
   it("excludes modal_awal cash-in because starting cash already counts it", () => {
@@ -74,10 +78,5 @@ describe("expectedDrawerCash", () => {
       [movement("a", { shiftId: "other", amount: 99_000 }), movement("b", { shiftId: undefined, amount: 99_000 })],
     );
     expect(result).toMatchObject({ cashIn: 0, cashOut: 0, expected: 200_000 });
-  });
-
-  it("does not invent a paid time for orders without paidAt", () => {
-    const result = expectedDrawerCash(shift, [order(1, { paidAt: undefined })], []);
-    expect(result.cashSales).toBe(0);
   });
 });

@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, Layers, Plus, ScanLine, Search, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { CATALOG_WRITE_ROLES } from "@wakro/shared";
 import { isLowStock, isSoldOut, LOW_STOCK_THRESHOLD, type MenuItem } from "../../data/menu";
 import { useBarcodeGunScanner } from "../../hooks/useBarcodeGunScanner";
 import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
 import { useCategories, useProducts } from "../../state/catalog";
 import { Header } from "../../app/Header";
+import { useCan } from "../../app/useCan";
 import { Button, IconButton } from "../../ui/Button";
 import { Empty } from "../../ui/Empty";
 import { Input } from "../../ui/Input";
@@ -35,6 +37,7 @@ export default function ProductsPage() {
   const [stockItemId, setStockItemId] = useState<string | null>(null);
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const canEditCatalog = useCan(CATALOG_WRITE_ROLES);
   const text = t.products;
 
   const soldOutCount = products.filter(isSoldOut).length;
@@ -86,6 +89,7 @@ export default function ProductsPage() {
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <PageHeader subtitle={text.subtitle} className="mb-0">
             <p className="text-xs font-semibold text-text-light">{text.summary(products.length, categories.length)}</p>
+            {!canEditCatalog && <p className="mt-0.5 text-xs font-semibold text-text-muted">{text.readOnlyNote}</p>}
           </PageHeader>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -115,15 +119,19 @@ export default function ProductsPage() {
               </IconButton>
             </div>
 
-            <Button variant="outline" size="sm" onClick={() => setCategoryManagerOpen(true)} className="font-semibold">
-              <Layers size={15} className="text-accent-dark" aria-hidden="true" />
-              {text.manageCategories}
-            </Button>
+            {canEditCatalog && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setCategoryManagerOpen(true)} className="font-semibold">
+                  <Layers size={15} className="text-accent-dark" aria-hidden="true" />
+                  {text.manageCategories}
+                </Button>
 
-            <Button size="sm" onClick={() => setForm({ mode: "add" })} className="font-semibold">
-              <Plus size={15} aria-hidden="true" />
-              {text.addNew}
-            </Button>
+                <Button size="sm" onClick={() => setForm({ mode: "add" })} className="font-semibold">
+                  <Plus size={15} aria-hidden="true" />
+                  {text.addNew}
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -176,10 +184,12 @@ export default function ProductsPage() {
                   >
                     {text.empty.reset}
                   </Button>
-                  <Button size="sm" onClick={() => setForm({ mode: "add" })}>
-                    <Plus size={14} aria-hidden="true" />
-                    {text.empty.addProduct}
-                  </Button>
+                  {canEditCatalog && (
+                    <Button size="sm" onClick={() => setForm({ mode: "add" })}>
+                      <Plus size={14} aria-hidden="true" />
+                      {text.empty.addProduct}
+                    </Button>
+                  )}
                 </div>
               }
             />
@@ -187,7 +197,12 @@ export default function ProductsPage() {
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface shadow-clay">
             {filtered.map((item) => (
-              <ProductRow key={item.id} item={item} onStock={() => setStockItemId(item.id)} onEdit={() => setForm({ mode: "edit", item })} />
+              <ProductRow
+                key={item.id}
+                item={item}
+                onStock={() => setStockItemId(item.id)}
+                onEdit={canEditCatalog ? () => setForm({ mode: "edit", item }) : undefined}
+              />
             ))}
           </ul>
         )}

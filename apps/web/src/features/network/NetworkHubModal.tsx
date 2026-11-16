@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ChefHat, Info, QrCode, Radio, Smartphone, TriangleAlert, Wifi } from "lucide-react";
 import { STORAGE_KEYS } from "../../lib/storageKeys";
+import { isDemoMode } from "../../state/demo";
 import { t } from "../../locales/id";
 import { getNetworkHostInfo, getSavedServerIp, type NetworkHostInfo } from "../../services/networkHost";
 import { subscribeTabPeers } from "../../services/tabPresence";
@@ -11,6 +12,7 @@ import { Button } from "../../ui/Button";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
 import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
 import { AccessLinkTab } from "./AccessLinkTab";
+import { NetworkDemoHub } from "./NetworkDemoHub";
 import { NetworkDevicesTab } from "./NetworkDevicesTab";
 import { NetworkTableTab } from "./NetworkTableTab";
 import { RichText } from "./RichText";
@@ -35,7 +37,7 @@ function resolveBaseUrl(savedIp: string, info: NetworkHostInfo): string {
 export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
   return (
     <Modal open={open} onClose={onClose} size="lg">
-      <NetworkHub onClose={onClose} />
+      {isDemoMode ? <NetworkDemoHub onClose={onClose} /> : <NetworkHub onClose={onClose} />}
     </Modal>
   );
 }

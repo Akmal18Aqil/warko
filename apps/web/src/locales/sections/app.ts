@@ -27,6 +27,8 @@ export const app = {
     localServer: "Server Lokal:",
     networkTitle: "Buka Pusat Jaringan & Pairing HP Pelayan",
     pairPhone: "Pair HP",
+    demoBadge: "Mode Demo",
+    demoBadgeTitle: "Mode Demo: data hanya di browser ini. Buka info sinkronisasi tab",
     accountMenu: (name: string) => `Menu akun ${name}`,
     manageStaff: "Kelola akun staf",
     logout: "Keluar / ganti akun",
@@ -35,6 +37,12 @@ export const app = {
       new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
         .format(date)
         .toUpperCase(),
+  },
+
+  demo: {
+    label: "DEMO",
+    banner: "Data contoh tersimpan hanya di browser ini dan tidak dikirim ke server.",
+    reset: "Reset demo",
   },
 
   auth: {
@@ -91,6 +99,8 @@ export const app = {
     remoteBody: "Keluar untuk masuk menggunakan akun staf lain.",
     title: "Ganti Peran & Masuk Staf",
     subtitle: "Pilih profil staf dan masukkan PIN 4 digit untuk akses modul khusus",
+    subtitleDemo: "Mode demo: PIN setiap staf tertera di kartunya. Ketuk kartu lalu masukkan PIN, atau pakai pintasan di bawah.",
+    demoPin: (pin: string) => `PIN demo: ${pin}`,
     stepSelect: "1. Pilih Akun Staf:",
     activeNow: "Aktif saat ini:",
     active: "Aktif",

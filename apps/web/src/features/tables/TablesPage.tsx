@@ -2,9 +2,11 @@ import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { Armchair, Banknote, Coffee, Edit, Plus, Printer, QrCode, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
+import { CATALOG_WRITE_ROLES, SETTLE_ROLES } from "@wakro/shared";
 import { formatIDR } from "../../data/menu";
 import { t } from "../../locales/id";
 import { Header } from "../../app/Header";
+import { useCan } from "../../app/useCan";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { SegmentedTabs, type SegmentedTab } from "../../ui/SegmentedTabs";
@@ -28,6 +30,8 @@ export default function TablesPage() {
   const orders = useOrders();
   const cart = useCart();
   const { currentStaff } = useAuth();
+  const canEditTables = useCan(CATALOG_WRITE_ROLES);
+  const canSettle = useCan(SETTLE_ROLES);
   const [, setLocation] = useLocation();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<TableRow | null>(null);
@@ -101,6 +105,7 @@ export default function TablesPage() {
         <div className="-mt-1 mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm text-text-muted">{t.tables.subtitle}</p>
+            {!canEditTables && <p className="text-xs font-semibold text-text-muted">{t.tables.readOnlyNote}</p>}
             <p className="text-xs font-semibold text-text-muted">
               <span className="text-success-dark">{t.tables.summaryFree(filteredTables.length - occupiedCount)}</span>
               {" · "}
@@ -125,10 +130,12 @@ export default function TablesPage() {
               <UtensilsCrossed size={15} aria-hidden="true" />
               {t.tables.waiterMode}
             </Button>
-            <Button size="sm" onClick={openAdd} className="gap-1.5 font-bold">
-              <Plus size={15} aria-hidden="true" />
-              {t.tables.addTable}
-            </Button>
+            {canEditTables && (
+              <Button size="sm" onClick={openAdd} className="gap-1.5 font-bold">
+                <Plus size={15} aria-hidden="true" />
+                {t.tables.addTable}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -182,14 +189,16 @@ export default function TablesPage() {
                     >
                       <QrCode size={17} aria-hidden="true" />
                     </button>
-                    <button
-                      type="button"
-                      aria-label={t.tables.editLabel(table.name)}
-                      onClick={(e) => openEdit(table, e)}
-                      className="rounded-lg p-1.5 text-text-muted hover:bg-ink/5 hover:text-ink"
-                    >
-                      <Edit size={15} aria-hidden="true" />
-                    </button>
+                    {canEditTables && (
+                      <button
+                        type="button"
+                        aria-label={t.tables.editLabel(table.name)}
+                        onClick={(e) => openEdit(table, e)}
+                        className="rounded-lg p-1.5 text-text-muted hover:bg-ink/5 hover:text-ink"
+                      >
+                        <Edit size={15} aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -215,6 +224,10 @@ export default function TablesPage() {
                         {isPaid(o) ? (
                           <Badge tone="success" className="shrink-0 text-2xs font-bold">
                             {t.tables.paid}
+                          </Badge>
+                        ) : !canSettle ? (
+                          <Badge tone="error" className="shrink-0 text-2xs font-bold">
+                            {t.orders.unpaid}
                           </Badge>
                         ) : (
                           <button

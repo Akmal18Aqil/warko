@@ -1,8 +1,8 @@
+import { FINANCE_ROLES, READ_ROLES } from "@wakro/shared";
 import { sha256Hex } from "../crypto";
 import { batchTyped } from "../db";
 import { jsonText } from "../http";
 import { operationalOrderStatements, serializeOrders, type OrderDbRow, type OrderItemDbRow } from "../orders";
-import { FINANCE_ROLES, READ_ROLES } from "../policy";
 import { parsePricing, pricingStatement, type PricingRow } from "../pricing";
 import {
   CATEGORY_LIST_SQL, PRODUCT_LIST_SQL, serializeCashMovement, serializeCategory, serializeProduct, serializeShift,

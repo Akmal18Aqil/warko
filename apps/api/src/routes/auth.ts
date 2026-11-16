@@ -1,4 +1,4 @@
-import { STAFF_ROLES, type StaffRole } from "@wakro/shared";
+import { ADMIN_ROLES, READ_ROLES, STAFF_ROLES, type StaffRole } from "@wakro/shared";
 import {
   clearAttempts, clearSessionCookie, consumeAttempt, createSession, destroySession, initialsOf, readSession,
   releaseAttempt, ROLE_DEFAULTS, STAFF_COLUMNS, throttledError, toSessionStaff, type StaffRow,
@@ -7,7 +7,6 @@ import { hashPassword, safeEqual, sha256Hex, verifyPassword } from "../crypto";
 import type { Env } from "../env";
 import { isUniqueViolation } from "../guards";
 import { conflict, HttpError, invalid, json, Reader, readJsonObject, type StringOptions } from "../http";
-import { ADMIN_ROLES, READ_ROLES } from "../policy";
 import { get, publicGet, publicPost, send, type AuthedContext, type Route, type RouteContext } from "../router";
 
 type StaffRowFull = StaffRow & { password_hash: string; updated_at: number };

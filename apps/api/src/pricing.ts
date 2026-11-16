@@ -1,4 +1,4 @@
-import { DEFAULT_PRICING, MAX_RATE, type PricingSettings } from "@wakro/shared";
+import { DEFAULT_PRICING, EXPECTED_TOTAL_MISMATCH_MESSAGE, MAX_RATE, type PricingSettings } from "@wakro/shared";
 import type { Env } from "./env";
 import { HttpError, Reader } from "./http";
 
@@ -109,7 +109,7 @@ export async function savePricing(env: Env, pricing: PricingSettings): Promise<P
  */
 export function assertExpectedTotal(expectedTotal: number, total: number): void {
   if (expectedTotal !== total) {
-    throw new HttpError(409, "Total pesanan berubah karena harga atau pengaturan pajak/layanan diperbarui. Periksa total terbaru lalu coba lagi.", {
+    throw new HttpError(409, EXPECTED_TOTAL_MISMATCH_MESSAGE, {
       expectedTotal: ["expectedTotal tidak sama dengan total terbaru dari server."],
     });
   }

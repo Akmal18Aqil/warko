@@ -1,13 +1,15 @@
 import { useRef, useState } from "react";
 import { FileDown, FileSpreadsheet, FileUp, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { CATALOG_WRITE_ROLES } from "@wakro/shared";
+import { useCan } from "../../app/useCan";
 import { isRemoteDataSource } from "../../data/index";
 import { t } from "../../locales/id";
 import { Button } from "../../ui/Button";
-import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
-import { resetCatalogToDemo, useProducts } from "../../state/catalog";
+import { useProducts } from "../../state/catalog";
 import { reloadAllData } from "../../state/snapshot";
 import { exportBackupJson, exportProductsCsv, importBackupFile } from "../../lib/exporters";
+import { ResetDemoModal } from "./ResetDemoModal";
 import { SettingsCard } from "./SettingsCard";
 
 const IMPORT_ACCEPT = ".json,.csv,application/json,text/csv";
@@ -21,7 +23,7 @@ export function BackupCard() {
   const products = useProducts();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [confirmingReset, setConfirmingReset] = useState(false);
-  const [resetting, setResetting] = useState(false);
+  const canImport = useCan(CATALOG_WRITE_ROLES);
 
   const runExport = async (action: () => Promise<void>) => {
     try {
@@ -39,19 +41,6 @@ export function BackupCard() {
       toast.success(t.settings.data.importSuccess, { description: t.settings.data.importSuccessBody(counts) });
     } catch (err) {
       toast.error(t.settings.data.importError, { description: errorMessage(err, t.settings.data.importErrorBody) });
-    }
-  };
-
-  const handleReset = async () => {
-    setResetting(true);
-    try {
-      await resetCatalogToDemo();
-      toast.success(t.settings.data.resetDone);
-      setConfirmingReset(false);
-    } catch (err) {
-      toast.error(errorMessage(err, t.settings.data.resetFailed));
-    } finally {
-      setResetting(false);
     }
   };
 
@@ -75,10 +64,12 @@ export function BackupCard() {
                 <FileDown size={15} aria-hidden="true" />
                 {t.settings.data.exportJson}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                <FileUp size={15} aria-hidden="true" />
-                {t.settings.data.importFile}
-              </Button>
+              {canImport && (
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                  <FileUp size={15} aria-hidden="true" />
+                  {t.settings.data.importFile}
+                </Button>
+              )}
               <Button variant="ghost" size="sm" onClick={() => setConfirmingReset(true)}>
                 <RotateCcw size={14} aria-hidden="true" />
                 {t.settings.data.resetDemo}
@@ -100,22 +91,7 @@ export function BackupCard() {
         </div>
       </SettingsCard>
 
-      {confirmingReset && (
-        <Modal onClose={() => setConfirmingReset(false)} size="sm" closeOnBackdrop={!resetting}>
-          <ModalHeader title={t.settings.data.resetTitle} />
-          <ModalBody>
-            <p className="text-sm text-ink/70">{t.settings.data.resetBody}</p>
-          </ModalBody>
-          <ModalFooter>
-            <Button size="sm" variant="outline" disabled={resetting} onClick={() => setConfirmingReset(false)}>
-              {t.common.cancel}
-            </Button>
-            <Button size="sm" variant="danger" loading={resetting} onClick={() => void handleReset()}>
-              {t.settings.data.resetConfirm}
-            </Button>
-          </ModalFooter>
-        </Modal>
-      )}
+      {confirmingReset && <ResetDemoModal onClose={() => setConfirmingReset(false)} />}
     </>
   );
 }

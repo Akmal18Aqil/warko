@@ -54,7 +54,7 @@ export default function CustomerSelfOrderPage() {
               <OrderStatusCard
                 key={order.no}
                 order={order}
-                qrisAvailable={s.qris.available && s.isPublicCustomer}
+                qrisAvailable={s.qris.available}
                 onReceipt={() => s.openReceipt(order)}
                 onPayQris={() => s.payPlacedOrderQris(order.no)}
               />
@@ -100,12 +100,12 @@ export default function CustomerSelfOrderPage() {
         />
       )}
 
-      {s.demoQrisOpen && (
+      {s.demoQris && (
         <DemoQrisModal
-          total={cart.totals.total}
-          submitting={s.submitting}
-          onConfirm={() => void s.confirmDemoQris()}
-          onClose={s.closeDemoQris}
+          total={s.demoQris.total}
+          submitting={s.demoQris.submitting}
+          onConfirm={() => void s.demoQris?.confirm()}
+          onClose={s.demoQris.close}
         />
       )}
 

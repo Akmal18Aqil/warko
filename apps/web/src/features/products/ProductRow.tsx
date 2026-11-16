@@ -14,7 +14,8 @@ function StockBadge({ item }: { item: MenuItem }) {
   return <Badge tone="success">{text.inStock(stock)}</Badge>;
 }
 
-export function ProductRow({ item, onStock, onEdit }: { item: MenuItem; onStock: () => void; onEdit: () => void }) {
+/** `onEdit` is omitted for roles that may only adjust stock. */
+export function ProductRow({ item, onStock, onEdit }: { item: MenuItem; onStock: () => void; onEdit?: () => void }) {
   const text = t.products.row;
   return (
     <li className="flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-mineral/40 md:px-5">
@@ -42,9 +43,11 @@ export function ProductRow({ item, onStock, onEdit }: { item: MenuItem; onStock:
         <PackageCheck size={14} aria-hidden="true" />
         {text.stock}
       </Button>
-      <Button variant="outline" size="sm" className="shrink-0" onClick={onEdit} aria-label={text.editAria(item.name)}>
-        {t.common.edit}
-      </Button>
+      {onEdit && (
+        <Button variant="outline" size="sm" className="shrink-0" onClick={onEdit} aria-label={text.editAria(item.name)}>
+          {t.common.edit}
+        </Button>
+      )}
     </li>
   );
 }

@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { useCartLines } from "../../hooks/useCartLines";
 import { usePublicCustomer } from "../../hooks/usePublicCustomer";
 import { useCategories, useProducts } from "../../state/catalog";
-import { createSelfOrder } from "../../state/orders";
+import { createSelfOrder, settleOrder } from "../../state/orders";
 import { usePricing } from "../../state/pricing";
 import { useDataReady, useDataSourceError } from "../../state/session";
 import { usePrint } from "../../state/print";
@@ -50,11 +50,17 @@ interface SelfOrderSession {
   payQris: () => Promise<void>;
   /** Re-open the QRIS sheet for an already placed, unpaid order. */
   payPlacedOrderQris: (no: number) => void;
-  demoQrisOpen: boolean;
-  closeDemoQris: () => void;
-  confirmDemoQris: () => Promise<void>;
+  /** Local demo only: the simulated QRIS sheet, for a cart being paid now or for an already placed order. */
+  demoQris: DemoQris | null;
   receipt: { order: OrderRow; close: () => void; print: () => void } | null;
   openReceipt: (order: OrderRow) => void;
+}
+
+interface DemoQris {
+  total: number;
+  submitting: boolean;
+  confirm: () => Promise<void>;
+  close: () => void;
 }
 
 const NOTE_MAX = 200;
@@ -91,6 +97,9 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
   const qris = useQrisPayment(isPublicCustomer, live, setReceiptOrder);
   /** Local demo only: the cart waiting for a simulated QRIS confirmation. */
   const [demoQrisOpen, setDemoQrisOpen] = useState(false);
+  /** Local demo only: a placed pay-later order waiting for a simulated QRIS confirmation. */
+  const [demoPayOrder, setDemoPayOrder] = useState<OrderRow | null>(null);
+  const [settlingDemo, setSettlingDemo] = useState(false);
 
   // Drop cart lines whose product disappeared or sold out after a menu refresh.
   useEffect(() => {
@@ -212,10 +221,34 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
     setReceiptOrder(result.order);
   };
 
+  const confirmDemoPlacedQris = async (order: OrderRow) => {
+    setSettlingDemo(true);
+    try {
+      const { order: paid } = await settleOrder(order.no, "qris", t.selfOrder.demoQris.paidBy);
+      setDemoPayOrder(null);
+      toast.success(t.selfOrder.order.paidDemo(paid.no));
+      setReceiptOrder(paid);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.selfOrder.order.sendFailed);
+    } finally {
+      setSettlingDemo(false);
+    }
+  };
+
   const payPlacedOrderQris = (no: number) => {
+    if (!isPublicCustomer) {
+      setDemoPayOrder(live.find((o) => o.no === no) ?? null);
+      return;
+    }
     const key = keyOf(no);
     if (key) void qris.open(no, key);
   };
+
+  const demoQris: DemoQris | null = demoPayOrder
+    ? { total: demoPayOrder.total, submitting: settlingDemo, confirm: () => confirmDemoPlacedQris(demoPayOrder), close: () => setDemoPayOrder(null) }
+    : demoQrisOpen
+      ? { total: cart.totals.total, submitting, confirm: confirmDemoQris, close: () => setDemoQrisOpen(false) }
+      : null;
 
   // The receipt follows the live order so a payment confirmed while it is open shows up.
   const receiptView = receiptOrder ? (live.find((o) => o.no === receiptOrder.no) ?? receiptOrder) : null;
@@ -249,9 +282,7 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
     payAtCashier,
     payQris,
     payPlacedOrderQris,
-    demoQrisOpen,
-    closeDemoQris: () => setDemoQrisOpen(false),
-    confirmDemoQris,
+    demoQris,
     receipt: receiptView
       ? {
           order: receiptView,

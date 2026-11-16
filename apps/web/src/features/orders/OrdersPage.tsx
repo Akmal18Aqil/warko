@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Banknote, Printer, ReceiptText, Search } from "lucide-react";
 import { toast } from "sonner";
-import type { KitchenStatus } from "@wakro/shared";
+import { SETTLE_ROLES, type KitchenStatus } from "@wakro/shared";
 import { formatIDR } from "../../data/menu";
 import { t } from "../../locales/id";
 import { Header } from "../../app/Header";
-import { useAuth } from "../../state/auth";
+import { useCan } from "../../app/useCan";
 import { useOrders } from "../../state/orders";
 import { usePrint } from "../../state/print";
 import type { OrderRow } from "../../types/domain";
@@ -44,13 +44,12 @@ function PaymentBadge({ order }: { order: OrderRow }) {
 /** Cashier order desk: confirm cash payments of self-orders / waiter orders and reprint receipts. */
 export default function OrdersPage() {
   const orders = useOrders();
-  const { currentStaff } = useAuth();
   const { printOrderReceipt } = usePrint();
   const [filter, setFilter] = useState<OrderFilter>("unpaid");
   const [query, setQuery] = useState("");
   const [payingOrder, setPayingOrder] = useState<OrderRow | null>(null);
   const [detailNo, setDetailNo] = useState<number | null>(null);
-  const canSettle = currentStaff.role === "admin" || currentStaff.role === "kasir";
+  const canSettle = useCan(SETTLE_ROLES);
 
   const counts = useMemo(
     () => ({

@@ -102,16 +102,3 @@ export async function deleteTable(id: string): Promise<void> {
   await refreshTables();
   broadcastSync({ type: "TABLE_UPDATED" });
 }
-
-// ---- local demo data --------------------------------------------------------------------------
-
-/** Restores the demo menu, tables and categories in the browser database (local mode only). */
-export async function resetCatalogToDemo(): Promise<void> {
-  // Code-split: keeps Dexie out of the startup chunk; demo reset only exists in local mode.
-  const { resetToDemoSeed } = await import("../data/backup");
-  await resetToDemoSeed();
-  await Promise.all([refreshProducts(), refreshTables(), refreshCategories()]);
-  broadcastSync({ type: "PRODUCTS_UPDATED" });
-  broadcastSync({ type: "TABLE_UPDATED" });
-  broadcastSync({ type: "CATEGORIES_UPDATED" });
-}

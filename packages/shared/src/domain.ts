@@ -24,5 +24,8 @@ export type OrderStatus = "disimpan" | "memasak" | "siap" | "sudah-dibayar";
 export type OrderType = "bawa-pulang" | "meja";
 export type OrderSource = "pos" | "waiter" | "self-order";
 
-export type CashMovementType = "CASH_IN" | "CASH_OUT";
-export type CashMovementCategory = "modal_awal" | "operasional" | "bahan_baku" | "setoran" | "tips" | "lainnya";
+export const CASH_MOVEMENT_TYPES = ["CASH_IN", "CASH_OUT"] as const;
+export type CashMovementType = (typeof CASH_MOVEMENT_TYPES)[number];
+
+export const CASH_MOVEMENT_CATEGORIES = ["modal_awal", "operasional", "bahan_baku", "setoran", "tips", "lainnya"] as const;
+export type CashMovementCategory = (typeof CASH_MOVEMENT_CATEGORIES)[number];

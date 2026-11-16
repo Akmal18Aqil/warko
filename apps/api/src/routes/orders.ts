@@ -1,4 +1,7 @@
-import { KITCHEN_STATUSES, MAX_MONEY, PAYMENT_METHODS } from "@wakro/shared";
+import {
+  CREATE_ORDER_ROLES, CREATE_PAID_ROLES, DISCOUNT_ROLES, KITCHEN_STATUSES, MAX_MONEY, MAX_ORDER_LINES, MAX_ORDER_QTY, PAYMENT_METHODS,
+  READ_ROLES, REPORT_ROLES, SETTLE_ROLES, UPDATE_STATUS_ROLES,
+} from "@wakro/shared";
 import { batchTyped } from "../db";
 import { HttpError, invalid, json, Reader, readJsonObject } from "../http";
 import { parseOrderNo, requireRole } from "../guards";
@@ -7,17 +10,12 @@ import {
   setKitchenStatus, settleOrder, type OrderDbRow, type OrderItemDbRow,
 } from "../orders";
 import { readCursor, readLimit, toPage } from "../pagination";
-import {
-  CREATE_ORDER_ROLES, CREATE_PAID_ROLES, DISCOUNT_ROLES, READ_ROLES, REPORT_ROLES, SETTLE_ROLES, UPDATE_STATUS_ROLES,
-} from "../policy";
 import { get, send, type AuthedContext, type Route } from "../router";
 
 const ORDER_TYPES = ["bawa-pulang", "meja"] as const;
 const ORDER_SOURCES = ["pos", "waiter", "self-order"] as const;
 const PAYMENT_CHOICES = ["paid-now", "pay-later"] as const;
 
-const MAX_ORDER_LINES = 40;
-const MAX_QTY = 999;
 /** Reports cover at most a little over a year per request. */
 const MAX_REPORT_RANGE_MS = 400 * 24 * 60 * 60 * 1000;
 const REPORT_DEFAULT_PAGE = 500;
@@ -55,7 +53,7 @@ async function createOrder({ request, env, staff }: AuthedContext): Promise<Resp
   r.array("items", { min: 1, max: MAX_ORDER_LINES }).forEach((entry, i) => {
     const lr = r.child(entry, `items.${i}`);
     const barcode = lr.string("barcode", { max: 100, min: 1 });
-    const qty = lr.integer("qty", { min: 1, max: MAX_QTY });
+    const qty = lr.integer("qty", { min: 1, max: MAX_ORDER_QTY });
     const note = lr.string("note", { max: 500, optional: true });
     lines.push({ barcode, qty, note: note?.trim() ? note.trim() : null });
   });

@@ -1,9 +1,11 @@
 import { isRemoteDataSource } from "../../data/index";
+import { isDemoMode } from "../../state/demo";
 import { t } from "../../locales/id";
 import { Header } from "../../app/Header";
 import { PageHeader } from "../../ui/PageHeader";
 import { useAuth } from "../../state/auth";
 import { BackupCard } from "./BackupCard";
+import { DemoStaffCard } from "./DemoStaffCard";
 import { NetworkCard } from "./NetworkCard";
 import { PricingCard } from "./PricingCard";
 import { PrinterCard } from "./PrinterCard";
@@ -27,6 +29,11 @@ export default function SettingsPage() {
           <NetworkCard />
           <BackupCard />
         </div>
+        {isDemoMode && (
+          <div className="lg:max-w-4xl">
+            <DemoStaffCard />
+          </div>
+        )}
         {isRemoteDataSource && currentStaff.role === "admin" && (
           <div className="lg:max-w-4xl">
             <RemoteStaffManager currentStaffId={currentStaff.id} />

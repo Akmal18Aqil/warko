@@ -103,6 +103,23 @@ describe("closing a shift", () => {
     expect((await readJson(closed)).data.cashSalesTotal).toBe(11_100);
   });
 
+  it("exposes the shift that holds an order's cash as cashShiftId", async () => {
+    const { session } = await signIn("kasir");
+    await putShift(session, "drawer-shift", { openedAt: Date.now() - 1_000, status: "OPEN" });
+    const order = { orderType: "bawa-pulang", items: [{ barcode: "A1", qty: 1 }], expectedTotal: 11_100 };
+    const cash = (await readJson(await api("/api/orders", { session, body: { ...order, method: "tunai", cashReceived: 15_000 } }))).data;
+    const qris = (await readJson(await api("/api/orders", { session, body: { ...order, method: "qris" } }))).data;
+    const unpaid = (await readJson(await api("/api/orders", { session, body: order }))).data;
+    expect(cash.cashShiftId).toBe("drawer-shift");
+    expect(qris.cashShiftId).toBeNull();
+    expect(unpaid.cashShiftId).toBeNull();
+
+    await api(`/api/orders/${unpaid.no}/payment`, { session, body: { method: "tunai", cashReceived: 15_000 } });
+    const listed = (await readJson(await api("/api/orders", { session }))).data as { no: number; cashShiftId: string | null }[];
+    expect(listed.find((o) => o.no === unpaid.no)?.cashShiftId).toBe("drawer-shift");
+    expect(listed.find((o) => o.no === qris.no)?.cashShiftId).toBeNull();
+  });
+
   it("rejects both new cash orders and cash settlements when no shift is open", async () => {
     const { session } = await signIn("kasir");
     const body = { orderType: "bawa-pulang", items: [{ barcode: "A1", qty: 1 }], expectedTotal: 11_100 };

@@ -6,6 +6,17 @@ export const network = {
     title: "Pusat Jaringan & Perangkat",
     subtitle: "Hubungkan HP pelayan dan tablet dapur ke server utama dalam satu jaringan WiFi.",
     serverActive: "Server lokal aktif",
+    demo: {
+      title: "Sinkronisasi Mode Demo",
+      subtitle: "Aplikasi berjalan sebagai demo di browser ini, tanpa server lokal.",
+      badge: "Mode demo",
+      noteTitle: "Hanya tab di browser ini yang tersinkron",
+      noteBody:
+        "Data demo disimpan di browser masing-masing perangkat, jadi HP atau tablet lain tidak dapat dipasangkan lewat QR dan akan melihat data yang berbeda. Untuk melihat sinkronisasi langsung, buka layar pelayan atau dapur di tab baru pada browser ini lalu buat pesanan.",
+      openTitle: "Buka di tab baru (browser ini)",
+      openWaiter: "Layar pelayan",
+      openKitchen: "Layar dapur (KDS)",
+    },
     serverAddress: "Alamat server utama:",
     editIp: EDIT_IP,
     saveIp: "Simpan",

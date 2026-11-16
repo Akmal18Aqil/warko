@@ -1,8 +1,7 @@
-import { MAX_MONEY } from "@wakro/shared";
+import { CASH_MOVEMENT_CATEGORIES, CASH_MOVEMENT_TYPES, FINANCE_ROLES, MAX_MONEY } from "@wakro/shared";
 import type { Env } from "../env";
 import { assertBodyId, changes, validId } from "../guards";
 import { conflict, HttpError, invalid, json, Reader } from "../http";
-import { FINANCE_ROLES } from "../policy";
 import { readCursor, readLimit, toPage } from "../pagination";
 import type { AuthedContext, Route } from "../router";
 import {
@@ -11,8 +10,6 @@ import {
 import { resourceRoutes } from "./resources";
 
 const SHIFT_STATUSES = ["OPEN", "CLOSED"] as const;
-const MOVEMENT_TYPES = ["CASH_IN", "CASH_OUT"] as const;
-const MOVEMENT_CATEGORIES = ["modal_awal", "operasional", "bahan_baku", "setoran", "tips", "lainnya"] as const;
 
 const MAX_DENOMINATIONS = 20;
 const DEFAULT_PAGE = 100;
@@ -214,8 +211,8 @@ async function upsertMovement({ env, staff }: AuthedContext, id: string, body: R
   const r = new Reader(body, { strict: true });
   r.allow("id");
   const shiftIdInput = r.string("shiftId", { max: 100, optional: true });
-  const type = r.oneOf("type", MOVEMENT_TYPES);
-  const category = r.oneOf("category", MOVEMENT_CATEGORIES);
+  const type = r.oneOf("type", CASH_MOVEMENT_TYPES);
+  const category = r.oneOf("category", CASH_MOVEMENT_CATEGORIES);
   const amount = r.integer("amount", { min: 0, max: MAX_MONEY });
   const description = r.string("description", { max: 500, optional: true });
   const createdAt = r.timestamp("createdAt", { optional: true });

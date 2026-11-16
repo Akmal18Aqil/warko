@@ -15,6 +15,11 @@ export type SyncEvent =
   | { type: "CATEGORIES_UPDATED" }
   | { type: "SHIFT_CHANGED"; payload: { shift: ShiftRecord } }
   | { type: "CASH_MOVEMENTS_CHANGED" }
+  | { type: "PRICING_UPDATED" }
+  /** A backup was imported: every slice may have changed. */
+  | { type: "DATA_IMPORTED" }
+  /** The demo database was reset: reload the page. */
+  | { type: "DEMO_RESET" }
   | { type: "DEVICE_HEARTBEAT"; payload: ConnectedDevice };
 
 export type SyncMessage = SyncEvent & { senderId: string; timestamp: number };

@@ -72,6 +72,7 @@ export type OrderDbRow = {
   cash_received: number | null;
   paid_by: string | null;
   paid_at: number | null;
+  cash_shift_id: string | null;
   created_at: number;
 };
 
@@ -88,7 +89,7 @@ export type OrderItemDbRow = {
 const ORDER_SELECT = `SELECT o.no, o.status, o.payment_status, o.kitchen_status, o.total, o.subtotal, o.tax, o.discount,
   o.service_charge, o.item_count, o.method, o.order_type, o.table_id, o.table_number, o.table_name,
   t.area AS table_area, o.guests, o.customer_name, o.waiter_id, o.waiter_name, o.source, o.payment_choice,
-  o.cash_received, o.paid_by, o.paid_at, o.created_at
+  o.cash_received, o.paid_by, o.paid_at, o.cash_shift_id, o.created_at
   FROM orders o LEFT JOIN restaurant_tables t ON t.id = o.table_id`;
 
 const ITEM_SELECT = `SELECT oi.order_no, p.barcode, oi.product_id, oi.product_name, oi.qty, oi.unit_price, oi.note
@@ -166,6 +167,8 @@ export interface OrderJson {
   cashReceived: number | null;
   paidBy: string | null;
   paidAt: number | null;
+  /** Shift whose drawer holds this order's cash (cash payments only). */
+  cashShiftId: string | null;
   createdAt: number;
 }
 
@@ -197,6 +200,7 @@ function serializeOrder(o: OrderDbRow, items: OrderItemJson[]): OrderJson {
     cashReceived: o.cash_received,
     paidBy: o.paid_by,
     paidAt: o.paid_at,
+    cashShiftId: o.cash_shift_id,
     createdAt: o.created_at,
   };
 }
@@ -491,5 +495,5 @@ export async function loadPublicOrder(env: Env, no: number, key: string): Promis
   if (!row) throw new HttpError(404, "Pesanan tidak ditemukan.");
   const order = (await loadOrder(env, no))!;
   // Staff-only details are not part of the customer view.
-  return { ...order, waiterId: null, waiterName: null, paidBy: null };
+  return { ...order, waiterId: null, waiterName: null, paidBy: null, cashShiftId: null };
 }

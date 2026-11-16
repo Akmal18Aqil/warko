@@ -176,16 +176,32 @@ Panduan lengkap untuk pemilik restoran dan tim operasional tersedia di:
 
 ## 🔑 Akun Demo (mode `local`)
 
-Mode demo lokal menyediakan staf contoh dengan PIN 4 digit untuk tombol ganti akun cepat (*Quick Switch*). PIN ini hanya ada di browser dan bukan kontrol keamanan; mode `remote` memakai akun staf di D1 dengan username dan password, dan hak akses diperiksa oleh server.
+Mode demo lokal menyediakan staf contoh dengan PIN 4 digit untuk ganti akun cepat (*Quick Switch*). Di mode demo, PIN tertera langsung di kartu staf pada Quick Switch dan di **Pengaturan → Akun staf demo** (daftar hanya-baca), serta sebagai petunjuk pada langkah verifikasi hapus kategori. PIN ini hanya ada di browser dan bukan kontrol keamanan; mode `remote` memakai akun staf di D1 dengan username dan password, dan hak akses diperiksa oleh server.
 
-| Nama Staf | Peran (*Role*) | PIN Default | Hak Akses Rute |
+| Nama Staf | Peran (*Role*) | PIN Default | Hak Akses |
 | :--- | :--- | :--- | :--- |
-| **Jamie Morgan** | `Kasir & Admin` | `1234` | Akses penuh: POS, Meja, Produk, Laci Kas, Laporan, Pengaturan, Pelayan, Dapur |
+| **Dewi Lestari** | `Admin / Pemilik` | `0000` | Akses penuh seperti kasir, plus tindakan khusus admin |
+| **Jamie Morgan** | `Kasir` | `1234` | POS, Pesanan (termasuk pelunasan), Meja, Produk, Laci Kas, Laporan, Pengaturan, Pelayan, Dapur |
 | **Budi Santoso** | `Pelayan 1` | `2222` | Khusus Mode Pelayan (`/pelayan`) & Pesanan Meja |
 | **Siti Rahma** | `Pelayan 2` | `2223` | Khusus Mode Pelayan (`/pelayan`) & Pesanan Meja |
 | **Agus Pratama** | `Pelayan 3` | `2224` | Khusus Mode Pelayan (`/pelayan`) & Pesanan Meja |
 | **Chef Junaedi** | `Kepala Dapur` | `3333` | Khusus Layar Dapur KDS (`/dapur`) |
-| **Hendra Wijaya** | `Manajer` | `8888` | Dashboard Owner (`/laporan`), Stok Produk (`/produk`), Pesanan, Laci Kas, Pengaturan, & Meja |
+| **Hendra Wijaya** | `Manajer` | `8888` | Laporan, stok produk, Pesanan (hanya lihat), Laci Kas, Pengaturan (pajak hanya lihat), & Meja (hanya lihat) |
+
+Aturan peran sama dengan API: menambah/mengubah produk, kategori, meja, dan pajak hanya untuk admin dan kasir; diskon dan pelunasan pesanan juga hanya admin dan kasir. Tombol yang tidak boleh dipakai suatu peran disembunyikan, dan aksi yang tetap dicoba ditolak dengan pesan akses ditolak seperti di server.
+
+### Reset & data demo
+
+- **Reset**: tombol *Reset demo* di strip kuning bagian atas aplikasi, atau **Pengaturan → Data & cadangan → Reset semua data demo**. Reset menghapus seluruh database browser (produk, meja, kategori, pesanan, shift, kas), pajak, staf aktif, keranjang, dan data self-order, lalu memuat ulang halaman dan semua tab lain.
+- **Tanggal segar**: data contoh dibuat relatif terhadap hari ini saat pertama dibuka atau setelah reset, sehingga laporan "Hari ini" dan antrean dapur selalu terisi.
+- **Penanda demo**: lencana *Mode Demo* di header menggantikan "Server Lokal / Pair HP".
+
+### Batasan mode demo
+
+- Data tersimpan di IndexedDB masing-masing browser. Sinkronisasi hanya antar-tab pada browser yang sama; HP atau tablet lain **tidak dapat dipasangkan** dan akan melihat data terpisah. Pusat Jaringan di mode demo hanya menjelaskan hal ini dan menautkan layar pelayan/dapur untuk dibuka di tab baru.
+- Pembayaran QRIS adalah simulasi (tanpa payment gateway), termasuk pelunasan pesanan self-order "bayar nanti".
+- Tidak ada akun, password, atau sesi server; Quick Switch dan PIN hanya mengganti peran di browser.
+- Menghapus data situs browser menghapus seluruh data demo.
 
 ---
 

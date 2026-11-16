@@ -4,9 +4,9 @@ import { isPaid } from "./orderStatus";
 export type DrawerCash = {
   /** Cash that should be in the drawer. */
   expected: number;
-  /** Total of paid cash orders whose payment falls inside the shift window. */
+  /** Total of paid cash orders recorded against this shift. */
   cashSales: number;
-  /** Paid orders (any method) inside the shift window. */
+  /** Paid orders (any method) inside the shift time window, for display. */
   paidOrders: OrderRow[];
   cashIn: number;
   cashOut: number;
@@ -17,8 +17,8 @@ type ShiftWindow = Pick<ShiftRecord, "id" | "openedAt" | "closedAt" | "startingC
 /**
  * The reconciliation rule used everywhere (cash drawer page, settings, and the local data source
  * that closes a shift; the API applies the same formula):
- * `startingCash + cash sales + cash in - cash out` (cash in excludes `modal_awal`), where cash sales are `paidAt` inside
- * `[openedAt, closedAt]` and movements are the ones recorded against this shift.
+ * `startingCash + cash sales + cash in - cash out` (cash in excludes `modal_awal`), where cash sales are paid cash
+ * orders whose `cashShiftId` is this shift and movements are the ones recorded against this shift.
  */
 export function expectedDrawerCash(
   shift: ShiftWindow,
@@ -27,7 +27,9 @@ export function expectedDrawerCash(
 ): DrawerCash {
   const end = shift.closedAt ?? Number.POSITIVE_INFINITY;
   const paidOrders = orders.filter((o) => isPaid(o) && o.paidAt !== undefined && o.paidAt >= shift.openedAt && o.paidAt <= end);
-  const cashSales = paidOrders.filter((o) => o.method === "tunai").reduce((sum, o) => sum + o.total, 0);
+  const cashSales = orders
+    .filter((o) => isPaid(o) && o.method === "tunai" && o.cashShiftId === shift.id)
+    .reduce((sum, o) => sum + o.total, 0);
   let cashIn = 0;
   let cashOut = 0;
   for (const m of movements) {

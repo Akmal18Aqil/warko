@@ -1,10 +1,9 @@
 import { db, restaurantTables } from "./db";
-import { MENU_SEED, type MenuItem } from "./menu";
-import { DEFAULT_CATEGORIES, DEFAULT_TABLES } from "./seed";
+import type { MenuItem } from "./menu";
 import type { CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } from "../types/domain";
 
 /**
- * Backup, import and demo reset operate on the browser database only. They are unavailable in remote
+ * Backup and import operate on the browser database only. They are unavailable in remote
  * mode, where the server is the system of record (the Settings page hides them there).
  */
 
@@ -48,6 +47,7 @@ export type ImportCounts = {
   tables: number;
   categories: number;
   cashMovements: number;
+  shifts: number;
 };
 
 export type ImportRows = {
@@ -56,15 +56,33 @@ export type ImportRows = {
   tables: TableRow[];
   categories: CategoryRow[];
   cashMovements: CashMovementRow[];
+  shifts: ShiftRecord[];
 };
 
+/** Categories that imported products refer to but that do not exist yet, so no product points at a missing category. */
+function missingCategories(products: readonly MenuItem[], known: readonly CategoryRow[]): CategoryRow[] {
+  const names = new Set(known.map((c) => c.name.trim().toLowerCase()));
+  let sortOrder = known.reduce((max, c) => Math.max(max, c.sortOrder), 0);
+  const created: CategoryRow[] = [];
+  for (const product of products) {
+    const key = product.category.trim().toLowerCase();
+    if (key === "" || names.has(key)) continue;
+    names.add(key);
+    sortOrder += 1;
+    created.push({ id: `cat-import-${sortOrder}-${Date.now()}`, name: product.category.trim(), kind: product.kind, color: "accent", sortOrder, createdAt: Date.now() });
+  }
+  return created;
+}
+
 export async function writeImport(rows: ImportRows): Promise<ImportCounts> {
-  await db.transaction("rw", [db.products, db.orders, restaurantTables, db.categories, db.cash_movements], async () => {
+  await db.transaction("rw", [db.products, db.orders, restaurantTables, db.categories, db.cash_movements, db.shifts], async () => {
+    const categories = [...rows.categories, ...missingCategories(rows.products, [...(await db.categories.toArray()), ...rows.categories])];
     if (rows.products.length > 0) await db.products.bulkPut(rows.products);
     if (rows.orders.length > 0) await db.orders.bulkPut(rows.orders);
     if (rows.tables.length > 0) await restaurantTables.bulkPut(rows.tables);
-    if (rows.categories.length > 0) await db.categories.bulkPut(rows.categories);
+    if (categories.length > 0) await db.categories.bulkPut(categories);
     if (rows.cashMovements.length > 0) await db.cash_movements.bulkPut(rows.cashMovements);
+    if (rows.shifts.length > 0) await db.shifts.bulkPut(rows.shifts);
   });
   return {
     products: rows.products.length,
@@ -72,18 +90,6 @@ export async function writeImport(rows: ImportRows): Promise<ImportCounts> {
     tables: rows.tables.length,
     categories: rows.categories.length,
     cashMovements: rows.cashMovements.length,
+    shifts: rows.shifts.length,
   };
-}
-
-/** Restores the demo menu, tables and categories. Orders, shifts and cash movements are kept. */
-export async function resetToDemoSeed(): Promise<{ products: number; tables: number }> {
-  await db.transaction("rw", [db.products, restaurantTables, db.categories], async () => {
-    await db.products.clear();
-    await db.products.bulkPut(MENU_SEED);
-    await restaurantTables.clear();
-    await restaurantTables.bulkPut(DEFAULT_TABLES);
-    await db.categories.clear();
-    await db.categories.bulkPut(DEFAULT_CATEGORIES);
-  });
-  return { products: MENU_SEED.length, tables: DEFAULT_TABLES.length };
 }

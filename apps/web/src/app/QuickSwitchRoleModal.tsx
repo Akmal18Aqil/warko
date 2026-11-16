@@ -17,6 +17,7 @@ import { REMOTE_LOGOUT_EVENT } from "./RemoteAuthGate";
 import { cn } from "../lib/cn";
 import { Button } from "../ui/Button";
 import { isRemoteDataSource } from "../data/index";
+import { isDemoMode } from "../state/demo";
 
 export function QuickSwitchRoleModal() {
   const {
@@ -138,7 +139,7 @@ export function QuickSwitchRoleModal() {
     <Modal onClose={closeSwitchModal} size="lg" className="max-h-[92vh]">
       <ModalHeader
         title={t.app.quickSwitch.title}
-        subtitle={t.app.quickSwitch.subtitle}
+        subtitle={isDemoMode ? t.app.quickSwitch.subtitleDemo : t.app.quickSwitch.subtitle}
         icon={
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-white shadow-xs">
             <KeyRound size={20} />
@@ -208,6 +209,16 @@ export function QuickSwitchRoleModal() {
                       <p className="text-2xs opacity-60 line-clamp-1 mt-0.5">
                         {staff.description}
                       </p>
+                      {isDemoMode && (
+                        <p
+                          className={cn(
+                            "mt-1 inline-block rounded px-1.5 py-0.5 font-mono text-2xs font-bold",
+                            isSelected ? "bg-white/20 text-white" : "bg-ink/10 text-ink",
+                          )}
+                        >
+                          {t.app.quickSwitch.demoPin(staff.pin)}
+                        </p>
+                      )}
                     </div>
 
                     {isSelected && (

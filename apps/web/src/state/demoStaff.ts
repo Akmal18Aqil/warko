@@ -1,7 +1,7 @@
 import type { StaffUser } from "./auth";
 import { STAFF_AVATAR } from "./staffAvatar";
 
-/** Demo staff of the local (browser-only) mode. Remote mode takes staff from the server session instead. */
+/** Demo staff of the local (browser-only) mode. Remote mode takes staff from the server session instead. The demo data names them as cashier and waiters. */
 export const DEMO_STAFF: StaffUser[] = [
   {
     id: "staff-1",
@@ -10,8 +10,8 @@ export const DEMO_STAFF: StaffUser[] = [
     pin: "1234",
     avatarColor: STAFF_AVATAR.accent,
     initials: "JM",
-    title: "Kasir & Admin",
-    description: "Akses lengkap: POS kasir, produk, laporan, meja, laci kas & sistem",
+    title: "Kasir",
+    description: "POS kasir, produk, laporan, meja, laci kas & shift",
   },
   {
     id: "staff-2",
@@ -62,5 +62,15 @@ export const DEMO_STAFF: StaffUser[] = [
     initials: "HW",
     title: "Manajer Restoran",
     description: "Analisis laporan keuangan, ringkasan pesanan, laci kas & shift",
+  },
+  {
+    id: "staff-7",
+    name: "Dewi Lestari",
+    role: "admin",
+    pin: "0000",
+    avatarColor: STAFF_AVATAR.error,
+    initials: "DL",
+    title: "Admin / Pemilik",
+    description: "Akses penuh termasuk mengoreksi shift yang sudah ditutup & kelola staf",
   },
 ];

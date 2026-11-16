@@ -6,6 +6,7 @@ export const products = {
   searchPlaceholder: "Cari produk",
   scanBarcode: "Pindai barcode produk",
   manageCategories: "Kelola Kategori",
+  readOnlyNote: "Peran Anda hanya dapat mengubah stok. Produk, harga, dan kategori dikelola admin atau kasir.",
   addNew: "Tambah baru",
   categoryFilterLabel: "Filter kategori",
   filterAll: (count: number) => `Semua (${count})`,
@@ -219,6 +220,7 @@ export const products = {
       pinLabel: "PIN admin / kasir",
       pinPlaceholder: "••••",
       wrongPin: "PIN salah atau bukan milik admin/kasir.",
+      demoPinHint: (hints: readonly string[]) => `Mode demo, PIN yang berlaku: ${hints.join(", ")}.`,
       notAllowed: "Akun Anda tidak berhak menghapus kategori.",
       confirm: "Konfirmasi hapus sekarang",
       deleted: (name: string, moved: { count: number; to: string } | null) =>

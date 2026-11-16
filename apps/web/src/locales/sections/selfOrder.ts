@@ -100,6 +100,7 @@ export const selfOrder = {
     title: "Simulasi QRIS (mode demo lokal)",
     body: "Mode demo tidak terhubung ke payment gateway. Tombol di bawah hanya menyimulasikan pembayaran berhasil.",
     confirm: "Simulasikan pembayaran berhasil",
+    paidBy: "Pelanggan (simulasi QRIS demo)",
   },
   receipt: {
     label: "Struk digital",

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Tag } from "lucide-react";
 import { toast } from "sonner";
+import { DISCOUNT_ROLES } from "@wakro/shared";
 import { formatIDR } from "../../data/menu";
+import { useCan } from "../../app/useCan";
 import { t } from "../../locales/id";
 import { saveDraft, setDiscount, useCart } from "../../state/cart";
 import { useProducts } from "../../state/catalog";
@@ -19,6 +21,7 @@ export function CartSummary({ onPay }: { onPay: () => void }) {
   const orderNo = useNextOrderNo();
   const [discountOpen, setDiscountOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const canDiscount = useCan(DISCOUNT_ROLES);
 
   const blocked = lines.length === 0 || (orderType === "meja" && !selectedTable);
 
@@ -54,32 +57,34 @@ export function CartSummary({ onPay }: { onPay: () => void }) {
 
   return (
     <div className="shrink-0 space-y-1 border-t border-border bg-surface px-4 py-2 shadow-lg">
-      <div className="flex items-center justify-between border-b border-border pb-1.5">
-        <button
-          type="button"
-          onClick={() => setDiscountOpen(true)}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted transition-colors hover:text-ink"
-        >
-          <Tag size={12} className="text-accent-dark" aria-hidden="true" />
-          {discountValue > 0 ? (
-            <span className="font-extrabold text-accent-dark">
-              {t.pos.cart.discountActive(discountType === "percent" ? `${discountValue}%` : formatIDR(discountValue))}
-            </span>
-          ) : (
-            <span className="hover:underline">{t.pos.cart.addDiscount}</span>
-          )}
-        </button>
-        {discountValue > 0 && (
+      {canDiscount && (
+        <div className="flex items-center justify-between border-b border-border pb-1.5">
           <button
             type="button"
-            aria-label={t.pos.cart.removeDiscount}
-            onClick={() => setDiscount("percent", 0)}
-            className="text-xs2 font-semibold text-error hover:underline"
+            onClick={() => setDiscountOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted transition-colors hover:text-ink"
           >
-            {t.common.delete}
+            <Tag size={12} className="text-accent-dark" aria-hidden="true" />
+            {discountValue > 0 ? (
+              <span className="font-extrabold text-accent-dark">
+                {t.pos.cart.discountActive(discountType === "percent" ? `${discountValue}%` : formatIDR(discountValue))}
+              </span>
+            ) : (
+              <span className="hover:underline">{t.pos.cart.addDiscount}</span>
+            )}
           </button>
-        )}
-      </div>
+          {discountValue > 0 && (
+            <button
+              type="button"
+              aria-label={t.pos.cart.removeDiscount}
+              onClick={() => setDiscount("percent", 0)}
+              className="text-xs2 font-semibold text-error hover:underline"
+            >
+              {t.common.delete}
+            </button>
+          )}
+        </div>
+      )}
 
       <dl className="space-y-1 text-xs">
         <SummaryRow label={t.pos.cart.productSubtotal} value={formatIDR(totals.rawSubtotal)} />

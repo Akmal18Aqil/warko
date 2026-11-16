@@ -16,6 +16,8 @@ import { cn } from "../lib/cn";
 import { STORE_PROFILE } from "../lib/storeProfile";
 import { t } from "../locales/id";
 import { NetworkHubModal } from "../features/network/NetworkHubModal";
+import { isDemoMode } from "../state/demo";
+import { DemoModeBadge } from "./DemoModeBadge";
 
 interface FocusModeHeaderProps {
   title: string;
@@ -112,16 +114,20 @@ export function FocusModeHeader({
 
         {/* Right: Actions, Network Status, & Staff Profile */}
         <div className="flex items-center gap-2">
-          {/* Local Server WiFi indicator */}
-          <button
-            type="button"
-            onClick={() => setNetworkModalOpen(true)}
-            className="hidden items-center gap-1.5 rounded-lg border border-border bg-mineral px-2.5 py-1.5 text-xs text-ink-soft transition-all hover:border-border-hover sm:flex"
-            title={t.app.focus.networkTitle}
-          >
-            <span className="h-2 w-2 rounded-full bg-success-dark animate-pulse" />
-            <span className="font-mono text-xs2">{hostInfo.host}:{hostInfo.port}</span>
-          </button>
+          {isDemoMode ? (
+            <DemoModeBadge onClick={() => setNetworkModalOpen(true)} className="px-2.5 py-1.5" />
+          ) : (
+            /* Local Server WiFi indicator */
+            <button
+              type="button"
+              onClick={() => setNetworkModalOpen(true)}
+              className="hidden items-center gap-1.5 rounded-lg border border-border bg-mineral px-2.5 py-1.5 text-xs text-ink-soft transition-all hover:border-border-hover sm:flex"
+              title={t.app.focus.networkTitle}
+            >
+              <span className="h-2 w-2 rounded-full bg-success-dark animate-pulse" />
+              <span className="font-mono text-xs2">{hostInfo.host}:{hostInfo.port}</span>
+            </button>
+          )}
 
           {/* Fullscreen Toggle */}
           <button

@@ -3,6 +3,7 @@ import { BookOpen, Radio, Smartphone } from "lucide-react";
 import { t } from "../../locales/id";
 import { Button } from "../../ui/Button";
 import { getNetworkHostInfo } from "../../services/networkHost";
+import { isDemoMode } from "../../state/demo";
 import { LocalServerGuideModal } from "../network/LocalServerGuideModal";
 import { NetworkHubModal } from "../network/NetworkHubModal";
 import { SettingsCard } from "./SettingsCard";
@@ -16,8 +17,8 @@ export function NetworkCard() {
       <SettingsCard
         icon={<Radio size={19} aria-hidden="true" />}
         label={t.settings.network.label}
-        value={getNetworkHostInfo().baseUrl}
-        note={t.settings.network.note}
+        value={isDemoMode ? t.settings.network.demoValue : getNetworkHostInfo().baseUrl}
+        note={isDemoMode ? t.settings.network.demoNote : t.settings.network.note}
         wide
       >
         <div className="flex flex-wrap items-center gap-2">
@@ -27,7 +28,7 @@ export function NetworkCard() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => setHubOpen(true)}>
             <Smartphone size={15} aria-hidden="true" />
-            {t.settings.network.pairing}
+            {isDemoMode ? t.settings.network.demoPairing : t.settings.network.pairing}
           </Button>
         </div>
       </SettingsCard>

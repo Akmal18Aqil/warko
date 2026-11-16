@@ -26,6 +26,7 @@ export const tables = {
   drafting: "Sedang diinput kasir",
   freeTable: "Meja kosong",
   openOrder: "Buka pesanan",
+  readOnlyNote: "Peran Anda hanya dapat melihat meja. Tambah dan ubah meja dilakukan admin atau kasir.",
   hasActiveOrders: "Meja masih memiliki pesanan aktif atau belum dibayar.",
   printFailed: "QR meja gagal dicetak.",
   linkCopied: "Tautan QR meja disalin ke clipboard",
