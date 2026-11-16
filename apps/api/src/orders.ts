@@ -363,15 +363,16 @@ export async function placeOrder(env: Env, input: PlaceOrderInput): Promise<Plac
     customer_name, waiter_id, waiter_name, source, payment_choice, item_count, subtotal, discount, service_charge,
     tax, total, method, paid_at, cash_received, paid_by, table_id, client_ref, created_at, updated_at, cash_shift_id`;
   const valueSlots = `${orderValues.map(() => "?").join(", ")}, ${input.payment?.method === "tunai" ? "(SELECT id FROM shifts WHERE status = 'OPEN' LIMIT 1)" : "NULL"}`;
+  const cashGuard = input.payment?.method === "tunai" ? "EXISTS (SELECT 1 FROM shifts WHERE status = 'OPEN')" : "1 = 1";
 
   const statements: D1PreparedStatement[] = [
     table
       ? // Zero rows (and a failing item insert below) if the table was deactivated meanwhile.
-        env.DB.prepare(`INSERT INTO orders (${orderColumns}) SELECT ${valueSlots} FROM restaurant_tables WHERE id = ? AND active = 1`).bind(
+        env.DB.prepare(`INSERT INTO orders (${orderColumns}) SELECT ${valueSlots} FROM restaurant_tables WHERE id = ? AND active = 1 AND ${cashGuard}`).bind(
           ...orderValues,
           table.id,
         )
-      : env.DB.prepare(`INSERT INTO orders (${orderColumns}) VALUES (${valueSlots})`).bind(...orderValues),
+      : env.DB.prepare(`INSERT INTO orders (${orderColumns}) SELECT ${valueSlots} WHERE ${cashGuard}`).bind(...orderValues),
     // NULL subselects (order missing, product deactivated or repriced since the read) violate NOT NULL
     // and roll the whole batch back.
     ...resolved.map(({ product, line }) =>
@@ -405,6 +406,9 @@ export async function placeOrder(env: Env, input: PlaceOrderInput): Promise<Plac
       if (existing !== null) return { order: (await loadOrder(env, existing))!, replayed: true };
     }
     if (isCheckViolation(error)) throw await currentStockError(env, [...qtyByProduct.values()]);
+    if (input.payment?.method === "tunai" && !(await env.DB.prepare("SELECT 1 FROM shifts WHERE status = 'OPEN'").first())) {
+      throw conflict("Buka shift sebelum menerima pembayaran tunai.");
+    }
     if (isNotNullViolation(error)) {
       throw conflict("Menu, harga, atau meja berubah saat pesanan diproses. Muat ulang lalu coba lagi.");
     }
@@ -447,13 +451,17 @@ export async function settleOrder(env: Env, no: number, input: SettleInput): Pro
     `UPDATE orders SET payment_status = 'paid', method = ?, paid_at = ?, cash_received = ?, paid_by = ?,
        payment_ref = COALESCE(?, payment_ref), updated_at = ?,
        cash_shift_id = CASE WHEN ? = 'tunai' THEN (SELECT id FROM shifts WHERE status = 'OPEN' LIMIT 1) ELSE NULL END
-     WHERE no = ? AND payment_status = 'unpaid' AND total = ?`,
+     WHERE no = ? AND payment_status = 'unpaid' AND total = ?
+       AND (? <> 'tunai' OR EXISTS (SELECT 1 FROM shifts WHERE status = 'OPEN'))`,
   )
-    .bind(input.method, Date.now(), input.cashReceived, input.paidBy, input.paymentRef, Date.now(), input.method, no, current.total)
+    .bind(input.method, Date.now(), input.cashReceived, input.paidBy, input.paymentRef, Date.now(), input.method, no, current.total, input.method)
     .run();
   const order = (await loadOrder(env, no))!;
   if ((result.meta.changes ?? 0) === 0) {
     if (order.paymentStatus === "paid") return { order, alreadyPaid: true };
+    if (input.method === "tunai" && !(await env.DB.prepare("SELECT 1 FROM shifts WHERE status = 'OPEN'").first())) {
+      throw conflict("Buka shift sebelum menerima pembayaran tunai.");
+    }
     throw new HttpError(409, "Pesanan berubah saat diproses; muat ulang lalu coba lagi.");
   }
   return { order, alreadyPaid: false };

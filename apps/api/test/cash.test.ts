@@ -77,11 +77,17 @@ describe("closing a shift", () => {
       }),
       putShift(session, "race-shift", { openedAt, closedAt: Date.now() + 1_000, actualCash: 0, status: "CLOSED" }),
     ]);
-    expect(payment.status).toBe(201);
     expect(closed.status).toBe(200);
-    const created = (await readJson(payment)).data;
-    const stored = await env.DB.prepare("SELECT cash_shift_id FROM orders WHERE no = ?").bind(created.no).first<{ cash_shift_id: string | null }>();
-    expect((await readJson(closed)).data.cashSalesTotal).toBe(stored?.cash_shift_id === "race-shift" ? 11_100 : 0);
+    expect([201, 409]).toContain(payment.status);
+    const total = (await readJson(closed)).data.cashSalesTotal;
+    if (payment.status === 409) {
+      expect(total).toBe(0);
+    } else {
+      const created = (await readJson(payment)).data;
+      const stored = await env.DB.prepare("SELECT cash_shift_id FROM orders WHERE no = ?").bind(created.no).first<{ cash_shift_id: string | null }>();
+      expect(stored?.cash_shift_id).toBe("race-shift");
+      expect(total).toBe(11_100);
+    }
   });
 
   it("includes settlement in its open shift even when the client close clock is behind", async () => {
@@ -95,6 +101,20 @@ describe("closing a shift", () => {
     expect((await api(`/api/orders/${no}/payment`, { session, body: { method: "tunai", cashReceived: 15_000 } })).status).toBe(200);
     const closed = await putShift(session, "clock-shift", { openedAt, closedAt: openedAt + 1, actualCash: 11_100, status: "CLOSED" });
     expect((await readJson(closed)).data.cashSalesTotal).toBe(11_100);
+  });
+
+  it("rejects both new cash orders and cash settlements when no shift is open", async () => {
+    const { session } = await signIn("kasir");
+    const body = { orderType: "bawa-pulang", items: [{ barcode: "A1", qty: 1 }], expectedTotal: 11_100 };
+    const paid = await api("/api/orders", { session, body: { ...body, method: "tunai", cashReceived: 15_000 } });
+    expect(paid.status).toBe(409);
+    expect((await readJson(paid)).message).toContain("Buka shift");
+    const unpaid = await api("/api/orders", { session, body });
+    const no = (await readJson(unpaid)).data.no;
+    const settle = await api(`/api/orders/${no}/payment`, { session, body: { method: "tunai", cashReceived: 15_000 } });
+    expect(settle.status).toBe(409);
+    expect((await readJson(settle)).message).toContain("Buka shift");
+    expect(await env.DB.prepare("SELECT payment_status FROM orders WHERE no = ?").bind(no).first()).toEqual({ payment_status: "unpaid" });
   });
 
   it("rejects totals, cashier names and unknown fields sent by the client", async () => {

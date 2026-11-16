@@ -92,6 +92,7 @@ describe("Midtrans notification", () => {
 
   it("keeps a QRIS payment for an order a cashier already settled as paid_duplicate", async () => {
     const { no, staffSession } = await createUnpaidOrder();
+    expect((await api("/api/resources/shifts/cash-shift", { session: staffSession, method: "PUT", body: { id: "cash-shift", openedAt: Date.now(), status: "OPEN" } })).status).toBe(200);
     const cash = await api(`/api/orders/${no}/payment`, { session: staffSession, body: { method: "tunai", cashReceived: 20_000 } });
     expect(cash.status).toBe(200);
     mockMidtransStatus({});
