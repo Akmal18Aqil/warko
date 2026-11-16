@@ -29,3 +29,7 @@ export function readPendingOrder(storage: Storage): PendingOrder | null {
     return null;
   }
 }
+
+export function shouldClearSubmittedCart(recovering: boolean, submitted: CartLine[], current: CartLine[]): boolean {
+  return !recovering && JSON.stringify(current) === JSON.stringify(submitted);
+}

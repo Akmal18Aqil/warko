@@ -17,7 +17,7 @@ import type { PricingSettings } from "@wakro/shared";
 import { useLiveOrders } from "./useLiveOrders";
 import { useQrisPayment, type QrisPayment } from "./useQrisPayment";
 import { useSelfTable, type SelfTable } from "./useSelfTable";
-import { PENDING_ORDER_KEY, readPendingOrder, type PendingOrder } from "./pendingOrder";
+import { PENDING_ORDER_KEY, readPendingOrder, shouldClearSubmittedCart, type PendingOrder } from "./pendingOrder";
 
 type PaymentChoice = "paid-now" | "pay-later";
 
@@ -76,6 +76,8 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
   }, [customerName]);
 
   const cart = useCartLines({ products, pricing });
+  const currentCart = useRef(cart.lines);
+  currentCart.current = cart.lines;
   const [cartOpen, setCartOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const submittingRef = useRef(false);
@@ -108,6 +110,7 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
       toast.error(t.selfOrder.order.emptyCart);
       return null;
     }
+    const recovering = pendingRef.current !== null;
     const key = pendingRef.current?.clientRef ?? newClientRef();
     const pending: PendingOrder | null = isPublicCustomer ? pendingRef.current ?? {
       tableId: currentTable!.id,
@@ -136,7 +139,7 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
       pendingRef.current = null;
       setPendingOrder(null);
       localStorage.removeItem(PENDING_ORDER_KEY);
-      if (!pending || (currentTable?.id === pending.tableId && JSON.stringify(cart.lines) === JSON.stringify(pending.lines))) cart.clear();
+      if (shouldClearSubmittedCart(recovering, cart.lines, currentCart.current)) cart.clear();
       setCartOpen(false);
       return { order: created, key };
     } catch (err) {
