@@ -5,9 +5,9 @@ import { IconButton } from "./ui/Button";
 import { StatusDot } from "./KasaLogo";
 import { t } from "../locales/en";
 import { NetworkHubModal } from "./NetworkHubModal";
-import { getNetworkHostInfo } from "../services/localSyncServer";
+import { getNetworkHostInfo } from "../services/networkHost";
 import { useLocation } from "wouter";
-import { isRemoteDataSource } from "../lib/remote";
+import { isRemoteDataSource } from "../data";
 import { useAuth } from "./AuthContext";
 import { cn } from "../lib/cn";
 

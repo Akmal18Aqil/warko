@@ -16,20 +16,19 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { KasaLogoBlock, StatusDot } from "./KasaLogo";
-import { runningOrdersCount, salesToday, usePos } from "./PosContext";
+import { useOrders } from "../state/orders";
 import { useAuth } from "./AuthContext";
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
 import { cn } from "../lib/cn";
-import { kitchenStatusOf } from "../lib/orderStatus";
+import { kitchenStatusOf, runningOrdersCount, salesToday } from "../lib/orderStatus";
+import { STORAGE_KEYS } from "../lib/storageKeys";
 
 type NavEntry = { href: string; label: string; icon: LucideIcon; badge?: number };
 
-const COLLAPSE_KEY = "kasa-sidebar-collapsed";
-
 function readCollapsed(): boolean {
   try {
-    return localStorage.getItem(COLLAPSE_KEY) === "1";
+    return localStorage.getItem(STORAGE_KEYS.sidebarCollapsed) === "1";
   } catch {
     return false;
   }
@@ -37,7 +36,7 @@ function readCollapsed(): boolean {
 
 function writeCollapsed(value: boolean): void {
   try {
-    localStorage.setItem(COLLAPSE_KEY, value ? "1" : "0");
+    localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, value ? "1" : "0");
   } catch {
     /* penyimpanan tidak tersedia — abaikan */
   }
@@ -45,7 +44,7 @@ function writeCollapsed(value: boolean): void {
 
 export function Sidebar() {
   const [location] = useLocation();
-  const { orders } = usePos();
+  const orders = useOrders();
   const { currentStaff, openSwitchModal } = useAuth();
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const running = runningOrdersCount(orders);

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import type { StaffRole } from "./AuthContext";
+import type { StaffRole } from "@wakro/shared";
+import { API_BASE } from "../data/api";
 
 type Staff = { id: string; username: string; name: string; role: StaffRole; active: boolean };
-const api = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 
 async function call<T>(path: string, method = "GET", body?: unknown): Promise<T> {
-  const response = await fetch(`${api}${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     method,
     credentials: "same-origin",
     headers: { "Content-Type": "application/json", Accept: "application/json" },

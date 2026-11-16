@@ -5,11 +5,13 @@ import { toast } from "sonner";
 import { formatIDR, isLowStock, isSoldOut } from "../data/menu";
 import { t } from "../locales/en";
 import { Header } from "../components/Header";
-import { usePos, type OrderRow } from "../components/PosContext";
+import { dataSource } from "../data";
+import { useProducts } from "../state/catalog";
+import { useOrders } from "../state/orders";
+import type { OrderRow } from "../types/domain";
 import { usePrint } from "../components/PrintContext";
 import { Button } from "../components/ui/Button";
 import { exportReportExcel, exportTransactionsCsv, summarizeSales } from "../lib/exporters";
-import { loadOrdersInRange } from "../lib/repo";
 import { tableLabel } from "../lib/orderStatus";
 import { PAY_METHOD_LABEL } from "../lib/receipt";
 import { cn } from "../lib/cn";
@@ -63,7 +65,8 @@ const PRESETS: Array<[Preset, string]> = [
 
 /** Owner dashboard: live revenue metrics, best sellers, stock alerts, transaction history and exports. */
 export default function Reports() {
-  const { products, orders: liveOrders } = usePos();
+  const products = useProducts();
+  const liveOrders = useOrders();
   const { printReport } = usePrint();
   const [, setLocation] = useLocation();
   const [preset, setPreset] = useState<Preset>("today");
@@ -78,7 +81,7 @@ export default function Reports() {
 
   const reload = useCallback(async () => {
     try {
-      setOrders(await loadOrdersInRange(range.from, range.to));
+      setOrders(await dataSource.loadOrdersInRange(range.from, range.to));
       setError(null);
       setUpdatedAt(Date.now());
     } catch (err) {
@@ -118,9 +121,13 @@ export default function Reports() {
     toast.success("CSV transaksi diunduh");
   };
 
-  const handleExcel = () => {
-    exportReportExcel(summary, periodLabel, periodSlug);
-    toast.success(t.data.exported, { description: t.data.exportedBody });
+  const handleExcel = async () => {
+    try {
+      await exportReportExcel(summary, periodLabel, periodSlug);
+      toast.success(t.data.exported, { description: t.data.exportedBody });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal membuat berkas Excel.");
+    }
   };
 
   const handlePrint = () => {

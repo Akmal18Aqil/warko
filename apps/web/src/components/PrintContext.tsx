@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { OrderRow } from "../lib/db";
+import type { OrderRow } from "../types/domain";
 import { escPosPayload, receiptFromOrder } from "../lib/receipt";
 import { getPrinterDriver } from "../services/printer";
 

@@ -20,7 +20,11 @@ import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
 import { Header } from "../components/Header";
 import { Button } from "../components/ui/Button";
-import { usePos } from "../components/PosContext";
+import { resetCatalogToDemo, useProducts } from "../state/catalog";
+import { useOrders } from "../state/orders";
+import { savePricing, usePricing } from "../state/pricing";
+import { closeShift, openShift, useActiveShift, useCashMovements } from "../state/shift";
+import { reloadAllData } from "../state/sync";
 import {
   exportBackupJson,
   exportProductsCsv,
@@ -32,29 +36,18 @@ import { NetworkHubModal } from "../components/NetworkHubModal";
 import { LocalServerGuideModal } from "../components/LocalServerGuideModal";
 import { RemoteStaffManager } from "../components/RemoteStaffManager";
 import { useAuth } from "../components/AuthContext";
-import { isRemoteDataSource } from "../lib/remote";
-import { getNetworkHostInfo } from "../services/localSyncServer";
-import { isPaid } from "../lib/orderStatus";
+import { isRemoteDataSource } from "../data";
+import { getNetworkHostInfo } from "../services/networkHost";
+import { expectedDrawerCash } from "../lib/cash";
 
 export default function Settings() {
   const { currentStaff } = useAuth();
   const [, setLocation] = useLocation();
-  const {
-    products,
-    reloadProducts,
-    reloadTables,
-    reloadOrders,
-    resetSeed,
-    taxEnabled,
-    taxRate,
-    serviceChargeEnabled,
-    serviceChargeRate,
-    savePricing,
-    activeShift,
-    openShift,
-    closeShift,
-    orders,
-  } = usePos();
+  const products = useProducts();
+  const orders = useOrders();
+  const activeShift = useActiveShift();
+  const cashMovements = useCashMovements();
+  const { taxEnabled, taxRate, serviceChargeEnabled, serviceChargeRate } = usePricing();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentDriver, setCurrentDriver] = useState(() => getPrinterDriver());
@@ -74,16 +67,14 @@ export default function Settings() {
   const [savingPricing, setSavingPricing] = useState(false);
 
   // Shift form state
-  const [cashierName, setCashierName] = useState("Jamie Morgan");
+  const [cashierName, setCashierName] = useState(currentStaff.name);
   const [startingCash, setStartingCash] = useState("200000");
   const [actualCash, setActualCash] = useState("");
   const [closingNotes, setClosingNotes] = useState("");
 
-  const cashSalesToday = orders
-    .filter((o) => isPaid(o) && o.method === "tunai" && (o.paidAt ?? 0) >= (activeShift?.openedAt ?? 0))
-    .reduce((sum, o) => sum + o.total, 0);
-
-  const estimatedDrawerCash = (activeShift?.startingCash || 200_000) + cashSalesToday;
+  const drawer = activeShift ? expectedDrawerCash(activeShift, orders, cashMovements) : null;
+  const cashSalesToday = drawer?.cashSales ?? 0;
+  const estimatedDrawerCash = drawer?.expected ?? 0;
 
   const handleTogglePrinter = () => {
     const nextId = currentDriver.id === "browser" ? "escpos-bluetooth" : "browser";
@@ -147,9 +138,9 @@ export default function Settings() {
   const handleImport = async (file: File) => {
     try {
       const res = await importBackupFile(file);
-      await Promise.all([reloadProducts(), reloadTables(), reloadOrders()]);
+      await reloadAllData();
       toast.success(t.data.importSuccess, {
-        description: `Berhasil memulihkan ${res.products} produk, ${res.orders} pesanan, dan ${res.tables} meja.`,
+        description: `Berhasil memulihkan ${res.products} produk, ${res.orders} pesanan, ${res.tables} meja, ${res.categories} kategori, dan ${res.cashMovements} mutasi kas.`,
       });
     } catch (err) {
       toast.error(t.data.importError, {
@@ -160,7 +151,7 @@ export default function Settings() {
 
   const handleResetSeed = async () => {
     try {
-      await resetSeed();
+      await resetCatalogToDemo();
       toast.success("Menu bawaan dan meja restoran berhasil dimuat ulang!");
     } catch {
       toast.error("Gagal memuat ulang data demo");
@@ -305,8 +296,12 @@ export default function Settings() {
           <SettingsCard
             icon={<FileDown size={19} aria-hidden="true" />}
             label={t.data.card}
-            value={`${products.length} produk tersimpan lokal`}
-            note="Cadangkan produk, pesanan, dan meja ke berkas JSON/CSV atau impor data baru."
+            value={`${products.length} produk ${isRemoteDataSource ? "di server" : "tersimpan lokal"}`}
+            note={
+              isRemoteDataSource
+                ? "Ekspor daftar produk ke CSV. Pencadangan dan pemulihan data dikelola di server."
+                : "Cadangkan produk, pesanan, meja, kategori, dan mutasi kas ke berkas JSON/CSV atau impor data baru."
+            }
             wide
           >
             <div className="flex flex-wrap gap-2">
@@ -318,42 +313,46 @@ export default function Settings() {
                 <FileSpreadsheet size={15} aria-hidden="true" />
                 {t.data.exportCsv}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void exportBackupJson()}
-              >
-                <FileDown size={15} aria-hidden="true" />
-                Cadangkan Semua (JSON)
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <FileUp size={15} aria-hidden="true" />
-                Impor (JSON / CSV)
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleResetSeed}
-                className="text-xs text-ink/60 hover:text-ink hover:bg-ink/5"
-              >
-                <RotateCcw size={14} aria-hidden="true" className="mr-1" />
-                Muat Menu Demo Bawaan
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,.csv,application/json,text/csv"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleImport(file);
-                  e.target.value = "";
-                }}
-              />
+              {!isRemoteDataSource && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void exportBackupJson()}
+                  >
+                    <FileDown size={15} aria-hidden="true" />
+                    Cadangkan Semua (JSON)
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <FileUp size={15} aria-hidden="true" />
+                    Impor (JSON / CSV)
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetSeed}
+                    className="text-xs text-ink/60 hover:text-ink hover:bg-ink/5"
+                  >
+                    <RotateCcw size={14} aria-hidden="true" className="mr-1" />
+                    Muat Menu Demo Bawaan
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json,.csv,application/json,text/csv"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleImport(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </>
+              )}
             </div>
           </SettingsCard>
         </div>

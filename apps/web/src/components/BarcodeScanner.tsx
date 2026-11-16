@@ -14,10 +14,11 @@ import {
   Barcode as BarcodeIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { findProductByBarcode } from "../lib/repo";
+import { dataSource } from "../data";
 import type { MenuItem } from "../data/menu";
 import { t } from "../locales/en";
-import { usePos } from "./PosContext";
+import { useProducts } from "../state/catalog";
+import { parseTableQr } from "../lib/tableQr";
 import { playScanSuccessBeep, playScanErrorBeep } from "../lib/audioFeedback";
 import { cn } from "../lib/cn";
 
@@ -40,7 +41,7 @@ export function BarcodeScanner({
   title,
   subtitle,
 }: BarcodeScannerProps) {
-  const pos = usePos();
+  const products = useProducts();
   const [activeTab, setActiveTab] = useState<"camera" | "upload" | "manual" | "demo">("camera");
 
   // Camera state
@@ -87,11 +88,11 @@ export function BarcodeScanner({
       setManualFoundProduct(null);
       return;
     }
-    const found = pos.products.find(
+    const found = products.find(
       (p) => p.barcode === q || p.name.toLowerCase().includes(q.toLowerCase())
     );
     setManualFoundProduct(found || null);
-  }, [manualCode, pos.products]);
+  }, [manualCode, products]);
 
   // Process a scanned / decoded raw code
   const processRawCode = async (rawText: string) => {
@@ -102,11 +103,11 @@ export function BarcodeScanner({
     setLastScannedCode(code);
 
     // 1. Check if it's a Table QR code (e.g. /order/meja-01 or meja-01 or http://.../order/meja-01)
-    const tableMatch = code.match(/order\/([a-zA-Z0-9_-]+)/) || code.match(/^meja[ -]?(\d+)$/i);
-    if (tableMatch) {
+    const tableKey = parseTableQr(code);
+    if (tableKey) {
       playScanSuccessBeep();
       toast.success("QR Meja Terdeteksi", {
-        description: `Kode Meja: ${tableMatch[1]}`,
+        description: `Kode Meja: ${tableKey}`,
       });
       onScanCode?.(code);
       setTimeout(() => {
@@ -117,7 +118,7 @@ export function BarcodeScanner({
 
     // 2. Check if it's a product barcode in database
     try {
-      const product = await findProductByBarcode(code);
+      const product = await dataSource.findProductByBarcode(code);
       if (product) {
         playScanSuccessBeep();
         toast.success(t.scanner.added(product.name), {
@@ -310,8 +311,8 @@ export function BarcodeScanner({
 
   // Sample Demo Barcodes for Quick Testing
   const demoItems = useMemo(() => {
-    return pos.products.slice(0, 6);
-  }, [pos.products]);
+    return products.slice(0, 6);
+  }, [products]);
   useEffect(() => {
     if (!open) return;
     const handleEscape = (event: KeyboardEvent) => {

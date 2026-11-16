@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   Users,
   ChefHat,
@@ -19,7 +19,13 @@ import {
   Flame,
   ScanLine,
 } from "lucide-react";
-import { usePos, type CartLine, type OrderRow } from "../components/PosContext";
+import { useCartLines } from "../hooks/useCartLines";
+import { useCategories, useProducts, useTables } from "../state/catalog";
+import { createWaiterOrder, updateKitchenStatus, useOrders } from "../state/orders";
+import { usePricing } from "../state/pricing";
+import { parseTableQr, resolveTable } from "../lib/tableQr";
+import { waiterCartKey, waiterTableKey } from "../lib/storageKeys";
+import type { CartLine, OrderRow } from "../types/domain";
 import { formatIDR } from "../data/menu";
 import { Button } from "../components/ui/Button";
 import { BarcodeScanner } from "../components/BarcodeScanner";
@@ -27,42 +33,44 @@ import { cn } from "../lib/cn";
 import { toast } from "sonner";
 import { FocusModeHeader } from "../components/FocusModeHeader";
 import { useAuth } from "../components/AuthContext";
-import { RemoteDataError } from "../lib/remote";
-import { isPaid, KITCHEN_LABEL, kitchenStatusOf, newClientRef, openOrdersForTable, tableLabel } from "../lib/orderStatus";
+import { RemoteDataError } from "../data";
+import { isHandledBy, isPaid, KITCHEN_LABEL, kitchenStatusOf, newClientRef, openOrdersForTable, tableLabel } from "../lib/orderStatus";
 
 type WaiterTab = "order" | "my-orders" | "floor-map";
 
+/** Per-waiter draft cart persisted in localStorage; anything malformed is ignored. */
+function readDraftLines(key: string): CartLine[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (l): l is CartLine =>
+        typeof l === "object" && l !== null && typeof l.itemId === "string" && typeof l.qty === "number" && l.qty > 0,
+    );
+  } catch {
+    return [];
+  }
+}
+
 export default function WaiterOrder() {
   const { currentStaff, openSwitchModal } = useAuth();
-  const {
-    products,
-    categories,
-    tables,
-    orders,
-    createWaiterOrder,
-    updateKitchenStatus,
-    taxEnabled,
-    taxRate,
-    serviceChargeEnabled,
-    serviceChargeRate,
-  } = usePos();
+  const products = useProducts();
+  const categories = useCategories();
+  const tables = useTables();
+  const orders = useOrders();
+  const pricing = usePricing();
+  const { taxEnabled, taxRate, serviceChargeEnabled, serviceChargeRate } = pricing;
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<WaiterTab>("order");
 
   // Isolated storage keys per waiter profile ID
-  const staffDraftCartKey = `kasa_waiter_cart_${currentStaff.id}`;
-  const staffDraftTableKey = `kasa_waiter_table_${currentStaff.id}`;
+  const staffDraftCartKey = waiterCartKey(currentStaff.id);
+  const staffDraftTableKey = waiterTableKey(currentStaff.id);
 
   // State isolated per waiter
-  const [cartLines, setCartLines] = useState<CartLine[]>(() => {
-    try {
-      const saved = localStorage.getItem(staffDraftCartKey);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const cart = useCartLines({ products, pricing, initialLines: () => readDraftLines(staffDraftCartKey) });
+  const cartLines = cart.lines;
 
   const [selectedTableId, setSelectedTableId] = useState<string>(() => {
     return localStorage.getItem(staffDraftTableKey) || tables[0]?.id || "";
@@ -87,8 +95,12 @@ export default function WaiterOrder() {
     return () => clearInterval(timer);
   }, []);
 
+  /** Whose draft `cartLines` currently holds: stops one waiter's lines being saved under the next waiter's key. */
+  const draftOwnerRef = useRef(staffDraftCartKey);
+
   // Sync isolated cart to localStorage whenever currentStaff or cartLines changes
   useEffect(() => {
+    if (draftOwnerRef.current !== staffDraftCartKey) return;
     try {
       localStorage.setItem(staffDraftCartKey, JSON.stringify(cartLines));
     } catch (e) {
@@ -98,15 +110,11 @@ export default function WaiterOrder() {
 
   // Load correct draft cart when switching staff
   useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem(staffDraftCartKey);
-      setCartLines(savedCart ? JSON.parse(savedCart) : []);
-      const savedTable = localStorage.getItem(staffDraftTableKey);
-      if (savedTable) setSelectedTableId(savedTable);
-    } catch {
-      setCartLines([]);
-    }
-  }, [currentStaff.id, staffDraftCartKey, staffDraftTableKey]);
+    draftOwnerRef.current = staffDraftCartKey;
+    cart.setLines(readDraftLines(staffDraftCartKey));
+    const savedTable = localStorage.getItem(staffDraftTableKey);
+    if (savedTable) setSelectedTableId(savedTable);
+  }, [currentStaff.id, staffDraftCartKey, staffDraftTableKey, cart.setLines]);
 
   // Save selected table per waiter
   useEffect(() => {
@@ -130,82 +138,24 @@ export default function WaiterOrder() {
 
   const activeOrderOnSelectedTable = selectedTable ? activeOrdersByTable.get(selectedTable.id) : undefined;
   const isSelectedTableOccupied = !!activeOrderOnSelectedTable;
-  const isHandledByMe =
-    activeOrderOnSelectedTable &&
-    (activeOrderOnSelectedTable.waiterId === currentStaff.id ||
-      activeOrderOnSelectedTable.waiterName === currentStaff.name);
+  const isHandledByMe = activeOrderOnSelectedTable && isHandledBy(activeOrderOnSelectedTable, currentStaff);
 
   // Orders taken by THIS waiter today
   const myActiveOrders = useMemo(() => {
-    return orders.filter(
-      (o) =>
-        (o.waiterId === currentStaff.id ||
-          o.waiterName === currentStaff.name ||
-          (o.source === "waiter" && o.customerName?.includes(currentStaff.name))) &&
-        kitchenStatusOf(o) !== "served",
-    );
+    return orders.filter((o) => isHandledBy(o, currentStaff) && kitchenStatusOf(o) !== "served");
   }, [orders, currentStaff]);
 
   const myReadyOrdersCount = useMemo(() => {
     return myActiveOrders.filter((o) => kitchenStatusOf(o) === "ready").length;
   }, [myActiveOrders]);
 
-  // Cart operations
-  const handleAddItem = (itemId: string) => {
-    const product = products.find((p) => p.id === itemId);
-    const inCart = cartLines.find((l) => l.itemId === itemId)?.qty ?? 0;
-    if (product && product.stock !== undefined && product.stock !== null && inCart >= product.stock) {
-      toast.error(product.stock <= 0 ? `${product.name} HABIS` : `Stok ${product.name} tinggal ${product.stock}`);
-      return;
-    }
-    setCartLines((prev) => {
-      const idx = prev.findIndex((l) => l.itemId === itemId);
-      if (idx >= 0) {
-        return prev.map((l, i) => (i === idx ? { ...l, qty: l.qty + 1 } : l));
-      }
-      return [...prev, { itemId, qty: 1 }];
-    });
-  };
-
-  const handleDecreaseItem = (itemId: string) => {
-    setCartLines((prev) =>
-      prev
-        .map((l) => (l.itemId === itemId ? { ...l, qty: l.qty - 1 } : l))
-        .filter((l) => l.qty > 0),
-    );
-  };
-
-  const handleSetNote = (itemId: string, note: string) => {
-    setCartLines((prev) =>
-      prev.map((l) => (l.itemId === itemId ? { ...l, note } : l)),
-    );
-  };
+  const totals = cart.totals;
 
   const handleClearCart = () => {
-    setCartLines([]);
+    cart.clear();
     localStorage.removeItem(staffDraftCartKey);
     toast.info("Keranjang pesanan dibersihkan.");
   };
-
-  // Cart totals
-  const totals = useMemo(() => {
-    let rawSubtotal = 0;
-    let count = 0;
-    for (const line of cartLines) {
-      const prod = products.find((p) => p.id === line.itemId);
-      if (prod) {
-        rawSubtotal += prod.price * line.qty;
-        count += line.qty;
-      }
-    }
-    const serviceCharge = serviceChargeEnabled
-      ? Math.round((rawSubtotal * serviceChargeRate) / 100)
-      : 0;
-    const tax = taxEnabled ? Math.round(((rawSubtotal + serviceCharge) * taxRate) / 100) : 0;
-    const total = rawSubtotal + tax + serviceCharge;
-
-    return { rawSubtotal, tax, serviceCharge, total, count };
-  }, [cartLines, products, serviceChargeEnabled, serviceChargeRate, taxEnabled, taxRate]);
 
   // Filtered menu
   const filteredProducts = useMemo(() => {
@@ -249,7 +199,7 @@ export default function WaiterOrder() {
       toast.success("Pesanan dikirim ke Dapur (KDS)!", {
         description: `Order #${created.no} · ${tableLabel(created)} · Pelayan: ${currentStaff.name}`,
       });
-      setCartLines([]);
+      cart.clear();
       localStorage.removeItem(staffDraftCartKey);
       setCustomerName("");
       setSubmitRef(newClientRef());
@@ -299,7 +249,7 @@ export default function WaiterOrder() {
       toast.success("Pembayaran Meja Berhasil!", {
         description: `Order #${created.no} · ${formatIDR(created.total)} (${payMethod.toUpperCase()})${change} · Pelayan: ${currentStaff.name}`,
       });
-      setCartLines([]);
+      cart.clear();
       localStorage.removeItem(staffDraftCartKey);
       setCustomerName("");
       setCashInput("");
@@ -471,10 +421,7 @@ export default function WaiterOrder() {
                     const activeOrd = activeOrdersByTable.get(t.id);
                     const isOccupied = !!activeOrd;
                     const isSelected = t.id === selectedTableId;
-                    const isMine =
-                      activeOrd &&
-                      (activeOrd.waiterId === currentStaff.id ||
-                        activeOrd.waiterName === currentStaff.name);
+                    const isMine = activeOrd && isHandledBy(activeOrd, currentStaff);
 
                     return (
                       <button
@@ -658,7 +605,7 @@ export default function WaiterOrder() {
                           <div className="flex w-full items-center justify-between rounded-lg bg-slate-100 p-1">
                             <button
                               type="button"
-                              onClick={() => handleDecreaseItem(p.id)}
+                              onClick={() => cart.decrease(p.id)}
                               className="flex h-7 w-7 items-center justify-center rounded bg-white text-ink shadow-sm"
                             >
                               <Minus size={13} />
@@ -666,7 +613,7 @@ export default function WaiterOrder() {
                             <span className="text-xs font-bold text-ink">{inCart.qty}</span>
                             <button
                               type="button"
-                              onClick={() => handleAddItem(p.id)}
+                              onClick={() => cart.add(p.id)}
                               className="flex h-7 w-7 items-center justify-center rounded bg-accent text-white shadow-sm"
                             >
                               <Plus size={13} />
@@ -675,7 +622,7 @@ export default function WaiterOrder() {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => handleAddItem(p.id)}
+                            onClick={() => cart.add(p.id)}
                             className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-accent text-xs font-bold text-white hover:bg-accent/90 active:scale-95 shadow-sm"
                           >
                             <Plus size={14} />
@@ -741,7 +688,7 @@ export default function WaiterOrder() {
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
-                                onClick={() => handleDecreaseItem(line.itemId)}
+                                onClick={() => cart.decrease(line.itemId)}
                                 className="h-6 w-6 rounded bg-white text-ink border border-slate-200 flex items-center justify-center"
                               >
                                 <Minus size={11} />
@@ -751,7 +698,7 @@ export default function WaiterOrder() {
                               </span>
                               <button
                                 type="button"
-                                onClick={() => handleAddItem(line.itemId)}
+                                onClick={() => cart.add(line.itemId)}
                                 className="h-6 w-6 rounded bg-accent text-white flex items-center justify-center font-bold"
                               >
                                 <Plus size={11} />
@@ -762,7 +709,7 @@ export default function WaiterOrder() {
                           <input
                             type="text"
                             value={line.note || ""}
-                            onChange={(e) => handleSetNote(line.itemId, e.target.value)}
+                            onChange={(e) => cart.setNote(line.itemId, e.target.value)}
                             placeholder="Catatan (contoh: pedas, es sedikit)"
                             className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] text-ink placeholder:text-ink/30 focus:border-accent focus:outline-none"
                           />
@@ -1006,10 +953,7 @@ export default function WaiterOrder() {
               {tables.map((t) => {
                 const activeOrd = activeOrdersByTable.get(t.id);
                 const isOccupied = !!activeOrd;
-                const isMine =
-                  activeOrd &&
-                  (activeOrd.waiterId === currentStaff.id ||
-                    activeOrd.waiterName === currentStaff.name);
+                const isMine = activeOrd && isHandledBy(activeOrd, currentStaff);
 
                 return (
                   <div
@@ -1192,22 +1136,14 @@ export default function WaiterOrder() {
         title="Pindai Menu atau QR Meja"
         subtitle="Arahkan ke barcode menu untuk menambah pesanan, atau QR meja untuk beralih meja"
         onProduct={(item) => {
-          handleAddItem(item.id);
+          cart.add(item.id);
           toast.success(`${item.name} Ditambahkan ke Pesanan Meja`);
           setScannerOpen(false);
         }}
         onScanCode={(code) => {
-          const tableMatch = code.match(/order\/([A-Za-z0-9_.:%-]+)/);
-          if (tableMatch) {
-            let key = tableMatch[1].toLowerCase();
-            try {
-              key = decodeURIComponent(tableMatch[1]).toLowerCase();
-            } catch {
-              // Malformed escape: match the raw text.
-            }
-            const matched =
-              tables.find((t) => t.id.toLowerCase() === key) ??
-              tables.find((t) => t.name.toLowerCase().replace(/\s+/g, "-") === key);
+          const key = parseTableQr(code);
+          if (key !== null) {
+            const matched = resolveTable(tables, key);
             if (matched) {
               setSelectedTableId(matched.id);
               toast.success(`Beralih ke ${matched.name}`, {

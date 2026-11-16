@@ -1,4 +1,4 @@
-# Persiapan Capacitor — KASA Sistem Kasir
+# Persiapan Capacitor — WAKRO Digital
 
 Fondasi pembungkusan APK Android. **Toolchain Android sengaja belum dipasang** (fase stabilitas). Ikuti langkah ini saat siap build APK.
 
@@ -8,18 +8,18 @@ Fondasi pembungkusan APK Android. **Toolchain Android sengaja belum dipasang** (
 
 ## Langkah
 ```bash
-cd client
-npm i -D @capacitor/cli
-npm i @capacitor/core @capacitor/android
-npx cap init "KASA" "id.kasa.kasir" --web-dir=dist
-npx cap add android
-pnpm build
-npx cap sync android
-npx cap open android   # build APK dari Android Studio
+cd apps/web
+pnpm add -D @capacitor/cli
+pnpm add @capacitor/core @capacitor/android
+pnpm exec cap init "KASA" "id.kasa.kasir" --web-dir=dist
+pnpm exec cap add android
+pnpm build:local       # mode demo lokal; `pnpm build` untuk mode Worker + D1
+pnpm exec cap sync android
+pnpm exec cap open android   # build APK dari Android Studio
 ```
 
 ## Config
-Salin `capacitor.config.example.ts` → `client/capacitor.config.ts` (sudah disesuaikan webDir + appId).
+Salin `capacitor.config.example.ts` → `apps/web/capacitor.config.ts` (sudah disesuaikan webDir + appId).
 
 ## Catatan
 - Kamera barcode butuh secure context — di WebView Capacitor berjalan `https://localhost` default ✓

@@ -10,12 +10,13 @@ import { ProductModal } from "../components/ProductModal";
 import { CategoryManagerModal } from "../components/CategoryManagerModal";
 import { BarcodeScanner } from "../components/BarcodeScanner";
 import { useBarcodeGunScanner } from "../hooks/useBarcodeGunScanner";
-import { usePos } from "../components/PosContext";
+import { adjustStock, deleteProduct, saveProduct, useCategories, useProducts } from "../state/catalog";
 import { toast } from "sonner";
 import { cn } from "../lib/cn";
 
 export default function Products() {
-  const { products, categories, addProduct, updateProduct, deleteProduct, adjustStock } = usePos();
+  const products = useProducts();
+  const categories = useCategories();
   const [stockItem, setStockItem] = useState<MenuItem | null>(null);
   const [stockFilter, setStockFilter] = useState<"all" | "alert">("all");
   const soldOutCount = products.filter(isSoldOut).length;
@@ -72,11 +73,7 @@ export default function Products() {
   };
 
   const handleSave = async (item: MenuItem) => {
-    if (selectedProduct) {
-      await updateProduct(item);
-    } else {
-      await addProduct(item);
-    }
+    await saveProduct(item);
   };
 
   const handleDelete = async (id: string) => {

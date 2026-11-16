@@ -1,5 +1,6 @@
 import { BrowserPrintDriver } from "./BrowserPrintDriver";
 import { EscPosBluetoothDriver } from "./EscPosBluetoothDriver";
+import { STORAGE_KEYS } from "../../lib/storageKeys";
 import type { PrinterDriver, ReceiptPayload } from "./types";
 
 export type { PrinterDriver, ReceiptPayload };
@@ -12,15 +13,13 @@ const drivers: Record<string, PrinterDriver> = {
   "escpos-bluetooth": bluetoothDriver,
 };
 
-const STORAGE_KEY = "kasa_printer_driver";
-
 export function getAvailablePrinterDrivers(): PrinterDriver[] {
   return [browserDriver, bluetoothDriver];
 }
 
 export function getPrinterDriver(): PrinterDriver {
   if (typeof window !== "undefined") {
-    const savedId = localStorage.getItem(STORAGE_KEY);
+    const savedId = localStorage.getItem(STORAGE_KEYS.printerDriver);
     if (savedId && drivers[savedId]) {
       return drivers[savedId];
     }
@@ -30,6 +29,6 @@ export function getPrinterDriver(): PrinterDriver {
 
 export function setPrinterDriver(id: "browser" | "escpos-bluetooth"): void {
   if (typeof window !== "undefined" && drivers[id]) {
-    localStorage.setItem(STORAGE_KEY, id);
+    localStorage.setItem(STORAGE_KEYS.printerDriver, id);
   }
 }

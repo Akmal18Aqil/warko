@@ -1,6 +1,6 @@
-import * as XLSX from "xlsx";
-import { db, tablesTable, DEFAULT_TABLES, type OrderRow, type TableRow } from "./db";
-import { MENU_SEED, type MenuItem } from "../data/menu";
+import { readBackup, writeImport, type ImportCounts } from "../data/backup";
+import type { MenuItem, MenuKind } from "../data/menu";
+import type { CashMovementRow, CategoryRow, OrderRow, TableRow } from "../types/domain";
 import { isPaid, tableLabel } from "./orderStatus";
 import { PAY_METHOD_LABEL } from "./receipt";
 
@@ -31,23 +31,7 @@ function toCsv(headers: string[], rows: Array<Array<string | number | undefined>
 }
 
 export async function exportBackupJson(): Promise<void> {
-  const [products, orders, tables, shifts] = await Promise.all([
-    db.products.toArray(),
-    db.orders.toArray(),
-    tablesTable.toArray(),
-    db.shifts.toArray(),
-  ]);
-
-  const payload = {
-    app: "WAKRO Digital",
-    version: 3,
-    exportedAt: new Date().toISOString(),
-    products,
-    orders,
-    tables,
-    shifts,
-  };
-
+  const payload = await readBackup();
   download(
     new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
     `wakro-cadangan-lengkap-${dateStamp()}.json`,
@@ -75,85 +59,44 @@ export async function exportProductsCsv(products: MenuItem[]): Promise<void> {
   );
 }
 
-export type ImportResult = {
-  products: number;
-  orders: number;
-  tables: number;
-};
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-export async function importBackupFile(file: File): Promise<ImportResult> {
-  const isJson = file.name.endsWith(".json");
-  const isCsv = file.name.endsWith(".csv");
+function rowsOf<T>(value: unknown, isValid: (row: Record<string, unknown>) => boolean): T[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((row): row is T & Record<string, unknown> => isRecord(row) && isValid(row)) as T[];
+}
 
-  if (!isJson && !isCsv) {
-    throw new Error("Format berkas tidak didukung. Harap unggah file .json atau .csv.");
+const isProduct = (p: Record<string, unknown>) =>
+  typeof p.id === "string" && typeof p.name === "string" && typeof p.price === "number";
+const isOrder = (o: Record<string, unknown>) => typeof o.no === "number" && typeof o.total === "number";
+const isTable = (t: Record<string, unknown>) => typeof t.id === "string" && typeof t.name === "string";
+const isCategory = (c: Record<string, unknown>) => typeof c.id === "string" && typeof c.name === "string";
+const isMovement = (m: Record<string, unknown>) =>
+  typeof m.id === "string" && typeof m.amount === "number" && (m.type === "CASH_IN" || m.type === "CASH_OUT");
+
+const MENU_KINDS: readonly MenuKind[] = ["Minuman", "Makanan", "Camilan"];
+
+function parseJsonBackup(text: string) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error("Gagal membaca file JSON. Berkas mungkin rusak atau tidak valid.");
   }
+  // A bare array is a product list; an object is a full backup.
+  const source: Record<string, unknown> = isRecord(parsed) ? parsed : { products: parsed };
+  return {
+    products: rowsOf<MenuItem>(source.products, isProduct),
+    orders: rowsOf<OrderRow>(source.orders, isOrder),
+    tables: rowsOf<TableRow>(source.tables, isTable),
+    categories: rowsOf<CategoryRow>(source.categories, isCategory),
+    cashMovements: rowsOf<CashMovementRow>(source.cashMovements, isMovement),
+  };
+}
 
-  const text = await file.text();
-
-  if (isJson) {
-    let parsed: any;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      throw new Error("Gagal membaca file JSON. Berkas mungkin rusak atau tidak valid.");
-    }
-
-    let productsToInsert: MenuItem[] = [];
-    let ordersToInsert: OrderRow[] = [];
-    let tablesToInsert: TableRow[] = [];
-
-    // Case 1: Full backup object
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      if (Array.isArray(parsed.products)) {
-        productsToInsert = parsed.products;
-      }
-      if (Array.isArray(parsed.orders)) {
-        ordersToInsert = parsed.orders;
-      }
-      if (Array.isArray(parsed.tables)) {
-        tablesToInsert = parsed.tables;
-      }
-    }
-    // Case 2: Array of products directly
-    else if (Array.isArray(parsed)) {
-      productsToInsert = parsed;
-    }
-
-    const validProducts = productsToInsert.filter(
-      (p) => p && typeof p.id === "string" && typeof p.name === "string" && typeof p.price === "number",
-    );
-
-    const validOrders = ordersToInsert.filter(
-      (o) => o && typeof o.no === "number" && typeof o.total === "number",
-    );
-
-    const validTables = tablesToInsert.filter(
-      (t) => t && typeof t.id === "string" && typeof t.name === "string",
-    );
-
-    if (validProducts.length === 0 && validOrders.length === 0 && validTables.length === 0) {
-      throw new Error("Tidak ada data produk, pesanan, atau meja yang valid dalam berkas ini.");
-    }
-
-    if (validProducts.length > 0) {
-      await db.products.bulkPut(validProducts);
-    }
-    if (validOrders.length > 0) {
-      await db.orders.bulkPut(validOrders);
-    }
-    if (validTables.length > 0) {
-      await tablesTable.bulkPut(validTables);
-    }
-
-    return {
-      products: validProducts.length,
-      orders: validOrders.length,
-      tables: validTables.length,
-    };
-  }
-
-  // Handle CSV Products Import
+function parseProductsCsv(text: string): MenuItem[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length <= 1) {
     throw new Error("File CSV kosong atau tidak memiliki baris data produk.");
@@ -162,51 +105,50 @@ export async function importBackupFile(file: File): Promise<ImportResult> {
   const delimiter = lines[0].includes(";") ? ";" : ",";
   const rows = lines.slice(1).map((line) => line.split(delimiter).map((c) => c.replace(/^"|"$/g, "").trim()));
 
-  const importedProducts: MenuItem[] = rows
+  return rows
     .filter((r) => r.length >= 3 && r[1])
     .map((r, index) => {
-      const id = r[0] || `item-csv-${Date.now()}-${index}`;
-      const barcode = r[1] || `899${Date.now().toString().slice(-9)}${index}`;
-      const name = r[2] || "Produk Impor";
-      const description = r[3] || "Deskripsi produk";
-      const price = Number.parseInt((r[4] || "0").replace(/\D/g, ""), 10) || 10000;
-      const category = (r[5] as any) || "Makanan";
-      const kind = (r[6] as any) || "Makanan";
-      const prepMinutes = Number.parseInt(r[7] || "5", 10) || 5;
-
+      const kind = MENU_KINDS.find((k) => k === r[6]) ?? "Makanan";
       return {
-        id,
-        barcode,
-        name,
-        description,
-        price,
-        category,
+        id: r[0] || `item-csv-${Date.now()}-${index}`,
+        barcode: r[1] || `899${Date.now().toString().slice(-9)}${index}`,
+        name: r[2] || "Produk Impor",
+        description: r[3] || "Deskripsi produk",
+        price: Number.parseInt((r[4] || "0").replace(/\D/g, ""), 10) || 10000,
+        category: r[5] || "Makanan",
         kind,
-        prepMinutes,
+        prepMinutes: Number.parseInt(r[7] || "5", 10) || 5,
         image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=640&q=70",
       };
     });
-
-  if (importedProducts.length === 0) {
-    throw new Error("Tidak ada baris data produk yang valid dalam file CSV.");
-  }
-
-  await db.products.bulkPut(importedProducts);
-  return {
-    products: importedProducts.length,
-    orders: 0,
-    tables: 0,
-  };
 }
 
-export async function resetToDemoSeed(): Promise<{ products: number; tables: number }> {
-  await db.products.clear();
-  await db.products.bulkPut(MENU_SEED);
-  await tablesTable.bulkPut(DEFAULT_TABLES);
-  return {
-    products: MENU_SEED.length,
-    tables: DEFAULT_TABLES.length,
-  };
+/** Restores a backup into the browser database (local mode only). */
+export async function importBackupFile(file: File): Promise<ImportCounts> {
+  const isJson = file.name.endsWith(".json");
+  const isCsv = file.name.endsWith(".csv");
+
+  if (!isJson && !isCsv) {
+    throw new Error("Format berkas tidak didukung. Harap unggah file .json atau .csv.");
+  }
+
+  const text = await file.text();
+  const empty = { products: [], orders: [], tables: [], categories: [], cashMovements: [] };
+
+  if (isJson) {
+    const rows = parseJsonBackup(text);
+    const total = Object.values(rows).reduce((sum, list) => sum + list.length, 0);
+    if (total === 0) {
+      throw new Error("Tidak ada data produk, pesanan, meja, kategori, atau mutasi kas yang valid dalam berkas ini.");
+    }
+    return writeImport(rows);
+  }
+
+  const products = parseProductsCsv(text);
+  if (products.length === 0) {
+    throw new Error("Tidak ada baris data produk yang valid dalam file CSV.");
+  }
+  return writeImport({ ...empty, products });
 }
 
 // ---- owner reports ----------------------------------------------------------
@@ -344,7 +286,8 @@ export function exportTransactionsCsv(summary: SalesSummary, periodSlug: string)
   download(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }), `wakro-transaksi-${periodSlug}.csv`);
 }
 
-export function exportReportExcel(summary: SalesSummary, periodLabel: string, periodSlug: string): void {
+export async function exportReportExcel(summary: SalesSummary, periodLabel: string, periodSlug: string): Promise<void> {
+  const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(
     wb,

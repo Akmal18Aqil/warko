@@ -1,8 +1,17 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, type ReactNode, useCallback } from "react";
+import type { StaffRole } from "@wakro/shared";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { STORAGE_KEYS } from "../lib/storageKeys";
 
-export type StaffRole = "admin" | "kasir" | "pelayan" | "dapur" | "manajer";
+/**
+ * Staff identity and role gating.
+ *
+ * Remote mode: the signed-in staff member comes from the server session and the API enforces every
+ * permission; the route matrix below only decides which screens to show.
+ * Local mode is demo-only: the staff list and their plaintext PINs live in the browser and the role
+ * check is client-side, so it is a convenience for switching users on one device, not access control.
+ */
 
 export interface StaffUser {
   id: string;
@@ -78,9 +87,6 @@ export const DEFAULT_STAFF_LIST: StaffUser[] = [
   },
 ];
 
-const STORAGE_STAFF_KEY = "kasa_staff_list_v1";
-const STORAGE_CURRENT_STAFF_KEY = "kasa_current_staff_id_v1";
-
 interface AuthContextType {
   currentStaff: StaffUser;
   staffList: StaffUser[];
@@ -100,7 +106,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function getInitialStaffList(): StaffUser[] {
   try {
-    const raw = localStorage.getItem(STORAGE_STAFF_KEY);
+    const raw = localStorage.getItem(STORAGE_KEYS.staffList);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -113,7 +119,7 @@ function getInitialStaffList(): StaffUser[] {
 
 function getInitialCurrentStaff(list: StaffUser[]): StaffUser {
   try {
-    const activeId = localStorage.getItem(STORAGE_CURRENT_STAFF_KEY);
+    const activeId = localStorage.getItem(STORAGE_KEYS.currentStaffId);
     if (activeId) {
       const found = list.find((s) => s.id === activeId);
       if (found) return found;
@@ -134,7 +140,7 @@ export function AuthProvider({ children, remoteStaff }: { children: ReactNode; r
   useEffect(() => {
     if (remoteStaff) return;
     try {
-      localStorage.setItem(STORAGE_STAFF_KEY, JSON.stringify(staffList));
+      localStorage.setItem(STORAGE_KEYS.staffList, JSON.stringify(staffList));
     } catch (err) {
       console.warn("Could not save staff list", err);
     }
@@ -143,7 +149,7 @@ export function AuthProvider({ children, remoteStaff }: { children: ReactNode; r
   useEffect(() => {
     if (remoteStaff) return;
     try {
-      localStorage.setItem(STORAGE_CURRENT_STAFF_KEY, currentStaff.id);
+      localStorage.setItem(STORAGE_KEYS.currentStaffId, currentStaff.id);
     } catch (err) {
       console.warn("Could not save current staff id", err);
     }
@@ -263,26 +269,38 @@ export function AuthProvider({ children, remoteStaff }: { children: ReactNode; r
     });
   }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        currentStaff,
-        staffList,
-        isSwitchModalOpen,
-        openSwitchModal,
-        closeSwitchModal,
-        switchStaffByPin,
-        switchStaffDirect,
-        hasAccessTo,
-        getAllowedDefaultRoute,
-        updateStaff,
-        addStaff,
-        deleteStaff,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextType>(
+    () => ({
+      currentStaff,
+      staffList,
+      isSwitchModalOpen,
+      openSwitchModal,
+      closeSwitchModal,
+      switchStaffByPin,
+      switchStaffDirect,
+      hasAccessTo,
+      getAllowedDefaultRoute,
+      updateStaff,
+      addStaff,
+      deleteStaff,
+    }),
+    [
+      currentStaff,
+      staffList,
+      isSwitchModalOpen,
+      openSwitchModal,
+      closeSwitchModal,
+      switchStaffByPin,
+      switchStaffDirect,
+      hasAccessTo,
+      getAllowedDefaultRoute,
+      updateStaff,
+      addStaff,
+      deleteStaff,
+    ],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

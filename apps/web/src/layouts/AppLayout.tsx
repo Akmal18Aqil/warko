@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Sidebar, MobileNav } from "../components/Sidebar";
-import { usePos } from "../components/PosContext";
+import { useDataSourceError } from "../state/session";
 import { cn } from "../lib/cn";
 interface AppLayoutProps {
   children?: ReactNode;
@@ -8,7 +8,7 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, className }: AppLayoutProps) {
-  const { dataSourceError } = usePos();
+  const dataSourceError = useDataSourceError();
   return (
     <div className={cn("screen-root flex min-h-screen bg-mineral", className)}>
       <Sidebar />

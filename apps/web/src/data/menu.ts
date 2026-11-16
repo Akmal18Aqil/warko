@@ -1,5 +1,3 @@
-export type MenuCategory = "Favorit" | "Sarapan" | "Makanan" | "Minuman" | "Camilan";
-
 export type MenuKind = "Minuman" | "Makanan" | "Camilan";
 
 export type MenuItem = {
@@ -8,7 +6,8 @@ export type MenuItem = {
   name: string;
   description: string;
   price: number; // Rupiah utuh, misalnya 25000
-  category: MenuCategory;
+  /** Category name; custom categories are allowed, so this is not a closed union. */
+  category: string;
   image: string;
   badge?: string;
   kind: MenuKind;
@@ -30,14 +29,6 @@ export function isLowStock(item: Pick<MenuItem, "stock">): boolean {
 
 const unsplash = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=640&q=70`;
-
-export const MENU_CATEGORIES: MenuCategory[] = [
-  "Favorit",
-  "Sarapan",
-  "Makanan",
-  "Minuman",
-  "Camilan",
-];
 
 export const MENU_SEED: MenuItem[] = [
   {

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { findProductByBarcode } from "../lib/repo";
+import { dataSource } from "../data";
 import type { MenuItem } from "../data/menu";
 import { playScanSuccessBeep, playScanErrorBeep } from "../lib/audioFeedback";
 
@@ -32,6 +32,10 @@ export function useBarcodeGunScanner({
   const bufferRef = useRef<string[]>([]);
   const lastKeyTimeRef = useRef<number>(0);
   const isGunTypingRef = useRef<boolean>(false);
+
+  // Callers pass inline callbacks; reading them through a ref keeps the keydown listener registered once.
+  const callbacksRef = useRef({ onScan, onProductFound, onProductNotFound });
+  callbacksRef.current = { onScan, onProductFound, onProductNotFound };
 
   useEffect(() => {
     if (!enabled) return;
@@ -73,15 +77,15 @@ export function useBarcodeGunScanner({
           }
 
           try {
-            const product = await findProductByBarcode(fullCode);
+            const product = await dataSource.findProductByBarcode(fullCode);
             if (product) {
               playScanSuccessBeep();
-              onProductFound?.(product);
+              callbacksRef.current.onProductFound?.(product);
             } else {
               playScanErrorBeep();
-              onProductNotFound?.(fullCode);
+              callbacksRef.current.onProductNotFound?.(fullCode);
             }
-            onScan?.({ code: fullCode, product: product || null });
+            callbacksRef.current.onScan?.({ code: fullCode, product: product ?? null });
           } catch (err) {
             console.error("Failed to process barcode scanner input:", err);
           }
@@ -107,5 +111,5 @@ export function useBarcodeGunScanner({
     return () => {
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
     };
-  }, [enabled, onScan, onProductFound, onProductNotFound, maxKeyIntervalMs, minCodeLength]);
+  }, [enabled, maxKeyIntervalMs, minCodeLength]);
 }

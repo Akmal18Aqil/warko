@@ -20,12 +20,12 @@ import {
 import { toast } from "sonner";
 import { Button } from "./ui/Button";
 import { cn } from "../lib/cn";
-import {
-  getNetworkHostInfo,
-  localNetworkHub,
-  type ConnectedDevice,
-} from "../services/localSyncServer";
-import { usePos } from "./PosContext";
+import { getNetworkHostInfo } from "../services/networkHost";
+import { getLocalTabId, getTabPeers, subscribeTabPeers } from "../services/tabPresence";
+import { STORAGE_KEYS } from "../lib/storageKeys";
+import { tableOrderUrl } from "../lib/tableQr";
+import { useTables } from "../state/catalog";
+import type { ConnectedDevice } from "../types/domain";
 
 interface NetworkHubModalProps {
   open: boolean;
@@ -33,15 +33,15 @@ interface NetworkHubModalProps {
 }
 
 export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
-  const { tables } = usePos();
+  const tables = useTables();
   const hostInfo = getNetworkHostInfo();
   const [activeTab, setActiveTab] = useState<"pelayan" | "dapur" | "meja" | "perangkat">("pelayan");
   const [customIp, setCustomIp] = useState(() => {
-    return localStorage.getItem("kasa_custom_server_ip") || "";
+    return localStorage.getItem(STORAGE_KEYS.customServerIp) || "";
   });
   const [isEditingIp, setIsEditingIp] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
-  const [selectedTableId, setSelectedTableId] = useState<string>(tables[0]?.id || "meja-01");
+  const [selectedTableId, setSelectedTableId] = useState<string>(tables[0]?.id ?? "");
   const [connectedPeers, setConnectedPeers] = useState<ConnectedDevice[]>([]);
 
   // Keep selected table valid if tables change
@@ -67,14 +67,12 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
 
   const waiterFullUrl = `${effectiveBaseUrl}/pelayan`;
   const kitchenFullUrl = `${effectiveBaseUrl}/dapur`;
-  const tableFullUrl = selectedTable
-    ? `${effectiveBaseUrl}/order/${selectedTable.id}`
-    : `${effectiveBaseUrl}/order/meja-01`;
+  const tableFullUrl = selectedTable ? tableOrderUrl(selectedTable, effectiveBaseUrl) : `${effectiveBaseUrl}/order`;
 
   // Subscribe to live connected peers
   useEffect(() => {
     if (!open) return;
-    const unsub = localNetworkHub.subscribePeers((peers) => {
+    const unsub = subscribeTabPeers((peers) => {
       setConnectedPeers(peers);
     });
     return unsub;
@@ -109,10 +107,10 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
   const handleSaveCustomIp = () => {
     const clean = customIp.trim();
     if (clean) {
-      localStorage.setItem("kasa_custom_server_ip", clean);
+      localStorage.setItem(STORAGE_KEYS.customServerIp, clean);
       toast.success("Alamat IP Server Lokal disimpan!");
     } else {
-      localStorage.removeItem("kasa_custom_server_ip");
+      localStorage.removeItem(STORAGE_KEYS.customServerIp);
       toast.info("Menggunakan alamat IP otomatis.");
     }
     setIsEditingIp(false);
@@ -477,15 +475,15 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-sm text-ink">Perangkat Aktif di Jaringan Restoran</h3>
-                  <p className="text-xs text-ink/50">Daftar perangkat yang terhubung ke Server Kasir Utama saat ini.</p>
+                  <h3 className="font-bold text-sm text-ink">Tab Aktif di Browser Ini</h3>
+                  <p className="text-xs text-ink/50">Tab aplikasi yang terbuka di browser ini. Perangkat lain di jaringan tidak ditampilkan.</p>
                 </div>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    setConnectedPeers(localNetworkHub.getPeers());
-                    toast.success("Daftar perangkat diperbarui.");
+                    setConnectedPeers(getTabPeers());
+                    toast.success("Daftar tab diperbarui.");
                   }}
                   className="gap-1.5 text-xs font-semibold"
                 >
@@ -496,7 +494,7 @@ export function NetworkHubModal({ open, onClose }: NetworkHubModalProps) {
 
               <div className="rounded-2xl border border-ink/10 bg-white divide-y divide-ink/8 shadow-sm overflow-hidden">
                 {connectedPeers.map((peer) => {
-                  const isLocal = peer.id === localNetworkHub.getPeers()[0]?.id;
+                  const isLocal = peer.id === getLocalTabId();
                   return (
                     <div key={peer.id} className="p-4 flex items-center justify-between gap-3 hover:bg-mineral/20 transition-colors">
                       <div className="flex items-center gap-3">

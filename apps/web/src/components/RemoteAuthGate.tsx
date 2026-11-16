@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
-import type { StaffRole, StaffUser } from "./AuthContext";
-import { isRemoteDataSource } from "../lib/remote";
-
-const API_BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
+import type { StaffRole } from "@wakro/shared";
+import type { StaffUser } from "./AuthContext";
+import { API_BASE, isRemoteDataSource } from "../data/api";
+import { usePublicCustomer } from "../hooks/usePublicCustomer";
 
 type Session = {
   id: string;
@@ -18,6 +18,7 @@ type Session = {
 type Props = { children: (staff?: StaffUser) => ReactNode };
 
 export function RemoteAuthGate({ children }: Props) {
+  const publicCustomer = usePublicCustomer();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(isRemoteDataSource);
   const [username, setUsername] = useState("");
@@ -64,8 +65,7 @@ export function RemoteAuthGate({ children }: Props) {
     }
   }
 
-  if (isRemoteDataSource && /^\/order(?:\/|$)/.test(window.location.pathname)) return children();
-  if (!isRemoteDataSource) return children();
+  if (!isRemoteDataSource || publicCustomer) return children();
   if (session) return children({ ...session, pin: "" });
   return (
     <main className="flex min-h-screen items-center justify-center bg-mineral p-4">

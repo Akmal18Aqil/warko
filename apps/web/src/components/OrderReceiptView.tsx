@@ -1,4 +1,4 @@
-import type { OrderRow } from "../lib/db";
+import type { OrderRow } from "../types/domain";
 import { receiptFromOrder } from "../lib/receipt";
 import { cn } from "../lib/cn";
 

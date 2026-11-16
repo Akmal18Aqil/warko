@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { cn } from "../lib/cn";
-import { getNetworkHostInfo } from "../services/localSyncServer";
+import { getNetworkHostInfo } from "../services/networkHost";
 
 interface LocalServerGuideModalProps {
   open: boolean;

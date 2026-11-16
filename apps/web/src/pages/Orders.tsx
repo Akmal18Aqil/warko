@@ -5,7 +5,9 @@ import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
 import { Header } from "../components/Header";
 import { useAuth } from "../components/AuthContext";
-import { usePos, type KitchenStatus, type OrderRow } from "../components/PosContext";
+import type { KitchenStatus } from "@wakro/shared";
+import { useOrders } from "../state/orders";
+import type { OrderRow } from "../types/domain";
 import { usePrint } from "../components/PrintContext";
 import { PaymentModal } from "../components/PaymentModal";
 import { OrderReceiptView } from "../components/OrderReceiptView";
@@ -33,7 +35,7 @@ const SOURCE_LABEL: Record<NonNullable<OrderRow["source"]>, string> = {
 
 /** Cashier order desk: confirm cash payments of self-orders / waiter orders and reprint receipts. */
 export default function Orders() {
-  const { orders } = usePos();
+  const orders = useOrders();
   const { currentStaff } = useAuth();
   const { printOrderReceipt } = usePrint();
   const [filter, setFilter] = useState<OrderFilter>("unpaid");

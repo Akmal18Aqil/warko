@@ -10,11 +10,16 @@ import { CartPanel } from "../components/CartPanel";
 import { PaymentModal } from "../components/PaymentModal";
 import { BarcodeScanner } from "../components/BarcodeScanner";
 import { useBarcodeGunScanner } from "../hooks/useBarcodeGunScanner";
-import { usePos } from "../components/PosContext";
+import { addItem, selectTable, useCart } from "../state/cart";
+import { useCategories, useProducts, useTables } from "../state/catalog";
+import { parseTableQr, resolveTable } from "../lib/tableQr";
 import { cn } from "../lib/cn";
 
 export default function Home() {
-  const pos = usePos();
+  const products = useProducts();
+  const categories = useCategories();
+  const tables = useTables();
+  const { lines } = useCart();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("Semua");
   const [payOpen, setPayOpen] = useState(false);
@@ -52,7 +57,7 @@ export default function Home() {
 
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return pos.products.filter((item) => {
+    return products.filter((item) => {
       const inCategory =
         category === "Semua" ||
         item.category === category ||
@@ -64,41 +69,36 @@ export default function Home() {
         item.barcode.includes(q);
       return inCategory && matchesQuery;
     });
-  }, [pos.products, query, category]);
+  }, [products, query, category]);
 
   const inOrderIds = useMemo(
-    () => new Set(pos.lines.map((line) => line.itemId)),
-    [pos.lines],
+    () => new Set(lines.map((line) => line.itemId)),
+    [lines],
   );
 
   const handleAdd = (item: MenuItem) => {
-    pos.addItem(item.id);
+    addItem(item.id);
     if (!inOrderIds.has(item.id)) {
       toastAdd(item.name);
     }
   };
 
   const handleScanProduct = (item: MenuItem) => {
-    pos.addItem(item.id);
+    addItem(item.id);
   };
 
   const handleScanCode = (code: string) => {
-    // Check if it was a table QR code
-    const tableMatch = code.match(/order\/([a-zA-Z0-9_-]+)/) || code.match(/^meja[ -]?(\d+)$/i);
-    if (tableMatch) {
-      const slugOrNum = tableMatch[1].toLowerCase();
-      const tbl = pos.tables.find(
-        (t) =>
-          t.name.toLowerCase().replace(/\s+/g, "-") === slugOrNum ||
-          t.name.toLowerCase().includes(slugOrNum)
-      );
-      if (tbl) {
-        pos.selectTable(tbl);
-        toast.success(`Meja Berhasil Dipilih: ${tbl.name}`, {
-          description: `Area ${tbl.area || "Utama"} diaktifkan untuk pesanan ini.`,
-        });
-      }
+    const tableKey = parseTableQr(code);
+    if (tableKey === null) return;
+    const table = resolveTable(tables, tableKey);
+    if (!table) {
+      toast.error("QR meja tidak dikenali.");
+      return;
     }
+    selectTable(table);
+    toast.success(`Meja Berhasil Dipilih: ${table.name}`, {
+      description: `Area ${table.area || "Utama"} diaktifkan untuk pesanan ini.`,
+    });
   };
 
   const handleScanError = (code: string) => {
@@ -111,7 +111,7 @@ export default function Home() {
   useBarcodeGunScanner({
     enabled: !payOpen,
     onProductFound: (product) => {
-      pos.addItem(product.id);
+      addItem(product.id);
       toast.success(t.scanner.added(product.name), {
         description: `Barcode: ${product.barcode} (Scanner Gun)`,
       });
@@ -174,7 +174,7 @@ export default function Home() {
             </div>
 
             <div role="tablist" aria-label="Kategori menu" className="flex flex-wrap gap-1.5">
-              {["Semua", ...pos.categories.map((c) => c.name)].map((cat) => (
+              {["Semua", ...categories.map((c) => c.name)].map((cat) => (
                 <button
                   key={cat}
                   type="button"

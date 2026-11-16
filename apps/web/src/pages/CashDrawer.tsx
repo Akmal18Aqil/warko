@@ -1,14 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { usePos } from "../components/PosContext";
+import { useAuth } from "../components/AuthContext";
+import { addCashMovement, closeShift, deleteCashMovement, loadShiftHistory, openShift, useActiveShift, useCashMovements } from "../state/shift";
+import { useOrders } from "../state/orders";
 import { formatIDR } from "../data/menu";
-import { loadShiftHistory } from "../lib/repo";
 import { Header } from "../components/Header";
 import { Button } from "../components/ui/Button";
-import type {
-  CashMovementType,
-  CashMovementCategory,
-  ShiftRecord,
-} from "../lib/db";
+import type { CashMovementCategory, CashMovementType } from "@wakro/shared";
+import type { ShiftRecord } from "../types/domain";
 import {
   Vault,
   PlusCircle,
@@ -28,7 +26,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "../lib/cn";
-import { isPaid } from "../lib/orderStatus";
+import { playDrawerBeep } from "../lib/audioFeedback";
+import { expectedDrawerCash } from "../lib/cash";
 
 const DENOMINATIONS = [
   { value: 100_000, label: "Rp 100.000", color: "bg-red-50 text-red-700 border border-red-200" },
@@ -42,16 +41,10 @@ const DENOMINATIONS = [
 ];
 
 export default function CashDrawer() {
-  const {
-    activeShift,
-    orders,
-    cashMovements,
-    openShift,
-    closeShift,
-    addCashMovement,
-    deleteCashMovement,
-    triggerOpenDrawer,
-  } = usePos();
+  const { currentStaff } = useAuth();
+  const activeShift = useActiveShift();
+  const orders = useOrders();
+  const cashMovements = useCashMovements();
 
   const [activeTab, setActiveTab] = useState<"mutasi" | "histori">("mutasi");
   const [movementFilter, setMovementFilter] = useState<"ALL" | "CASH_IN" | "CASH_OUT">("ALL");
@@ -70,7 +63,7 @@ export default function CashDrawer() {
   const [movementDesc, setMovementDesc] = useState("");
 
   // Form state for Open Shift
-  const [cashierNameInput, setCashierNameInput] = useState("Jamie Morgan");
+  const [cashierNameInput, setCashierNameInput] = useState(currentStaff.name);
   const [startingCashInput, setStartingCashInput] = useState("200000");
 
   // Form state for Close Shift (Denominations)
@@ -100,47 +93,21 @@ export default function CashDrawer() {
     void fetchShiftHistory();
   }, [activeShift]);
 
-  // Current Shift Financial Metrics Calculations
-  const shiftStartTime = activeShift?.openedAt ?? (Date.now() - 28800_000);
-  const startingCash = activeShift?.startingCash ?? 200_000;
-
-  const currentShiftOrders = useMemo(() => {
-    return orders.filter(
-      (o) =>
-        isPaid(o) &&
-        (o.paidAt ?? o.createdAt) >= shiftStartTime
-    );
-  }, [orders, shiftStartTime]);
-
-  const cashSales = useMemo(() => {
-    return currentShiftOrders
-      .filter((o) => o.method === "tunai")
-      .reduce((sum, o) => sum + o.total, 0);
-  }, [currentShiftOrders]);
-
-  const nonCashSales = useMemo(() => {
-    return currentShiftOrders
-      .filter((o) => o.method !== "tunai")
-      .reduce((sum, o) => sum + o.total, 0);
-  }, [currentShiftOrders]);
-
-  const currentShiftMovements = useMemo(() => {
-    return cashMovements.filter((m) => m.createdAt >= shiftStartTime);
-  }, [cashMovements, shiftStartTime]);
-
-  const totalCashIn = useMemo(() => {
-    return currentShiftMovements
-      .filter((m) => m.type === "CASH_IN" && m.category !== "modal_awal")
-      .reduce((sum, m) => sum + m.amount, 0);
-  }, [currentShiftMovements]);
-
-  const totalCashOut = useMemo(() => {
-    return currentShiftMovements
-      .filter((m) => m.type === "CASH_OUT")
-      .reduce((sum, m) => sum + m.amount, 0);
-  }, [currentShiftMovements]);
-
-  const expectedDrawerCash = startingCash + cashSales + totalCashIn - totalCashOut;
+  // Current shift figures come from the same helper that reconciles the shift on close.
+  const drawer = useMemo(
+    () => (activeShift ? expectedDrawerCash(activeShift, orders, cashMovements) : null),
+    [activeShift, orders, cashMovements],
+  );
+  const startingCash = activeShift?.startingCash ?? 0;
+  const currentShiftOrders = drawer?.paidOrders ?? [];
+  const cashSales = drawer?.cashSales ?? 0;
+  const nonCashSales = useMemo(
+    () => currentShiftOrders.filter((o) => o.method !== "tunai").reduce((sum, o) => sum + o.total, 0),
+    [currentShiftOrders],
+  );
+  const totalCashIn = drawer?.cashIn ?? 0;
+  const totalCashOut = drawer?.cashOut ?? 0;
+  const expectedCash = drawer?.expected ?? 0;
 
   // Calculated physical cash from denomination counts
   const totalPhysicalCash = useMemo(() => {
@@ -153,7 +120,7 @@ export default function CashDrawer() {
     );
   }, [denomCounts, useDenomCalculator, customManualCash]);
 
-  const cashDifference = totalPhysicalCash - expectedDrawerCash;
+  const cashDifference = totalPhysicalCash - expectedCash;
 
   // Filtered movements for table
   const displayedMovements = useMemo(() => {
@@ -163,9 +130,9 @@ export default function CashDrawer() {
 
   // Handlers
   const handleOpenDrawer = () => {
-    triggerOpenDrawer();
-    toast.success("Perintah buka laci kas (Drawer Kick) dikirim!", {
-      description: "Sinyal pulsa ESC/POS pin telah dikirim ke printer kasir.",
+    playDrawerBeep();
+    toast.success("Bunyi laci kas diputar", {
+      description: "Perintah buka laci ke printer belum didukung; buka laci secara manual.",
       icon: <Vault className="w-5 h-5 text-accent-dark" />,
     });
   };
@@ -188,10 +155,10 @@ export default function CashDrawer() {
         category: movementCategory,
         amount,
         description: movementDesc.trim(),
-        cashierName: activeShift?.cashierName || "Jamie Morgan",
+        cashierName: currentStaff.name,
       });
 
-      triggerOpenDrawer();
+      playDrawerBeep();
       setMovementModalOpen(false);
       setMovementAmount("");
       setMovementDesc("");
@@ -215,10 +182,14 @@ export default function CashDrawer() {
   const handleOpenShiftSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const sc = Number.parseInt(startingCashInput.replace(/\D/g, ""), 10) || 0;
-    await openShift(cashierNameInput.trim() || "Kasir", sc);
-    setOpenShiftModalOpen(false);
-    triggerOpenDrawer();
-    toast.success(`Shift kasir dibuka dengan modal awal ${formatIDR(sc)}`);
+    try {
+      await openShift(cashierNameInput.trim() || "Kasir", sc);
+      setOpenShiftModalOpen(false);
+      playDrawerBeep();
+      toast.success(`Shift kasir dibuka dengan modal awal ${formatIDR(sc)}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal membuka shift.");
+    }
   };
 
   const handleCloseShiftSubmit = async (e: React.FormEvent) => {
@@ -229,7 +200,7 @@ export default function CashDrawer() {
         if (v > 0) denomRecord[k] = v;
       });
 
-      const closed = await closeShift(totalPhysicalCash, closingNotes, denomRecord);
+      const closed = await closeShift(totalPhysicalCash, closingNotes, useDenomCalculator ? denomRecord : undefined);
       setCloseShiftModalOpen(false);
       setSelectedShiftForReceipt(closed);
       setReceiptModalOpen(true);
@@ -283,11 +254,11 @@ export default function CashDrawer() {
                 )}
               </div>
               <p className="text-xs sm:text-sm text-ink/55 mt-0.5 flex items-center gap-2">
-                <span>Kasir: <strong className="text-ink font-semibold">{activeShift?.cashierName || "Jamie Morgan"}</strong></span>
+                <span>Kasir: <strong className="text-ink font-semibold">{activeShift?.cashierName ?? currentStaff.name}</strong></span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-ink/40" />
-                  Dibuka: {new Date(shiftStartTime).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                  Dibuka: {activeShift ? new Date(activeShift.openedAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—"}
                 </span>
               </p>
             </div>
@@ -341,7 +312,7 @@ export default function CashDrawer() {
               </span>
             </div>
             <p className="mt-2 font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink">
-              {formatIDR(expectedDrawerCash)}
+              {formatIDR(expectedCash)}
             </p>
             <div className="text-xs text-ink/55 mt-2 flex items-center justify-between">
               <span>Modal Awal: {formatIDR(startingCash)}</span>
@@ -1151,7 +1122,7 @@ export default function CashDrawer() {
                 <div className="flex items-center justify-between text-xs text-ink/60">
                   <span>Kas Diharapkan Sistem:</span>
                   <span className="font-bold font-mono text-ink">
-                    {formatIDR(expectedDrawerCash)}
+                    {formatIDR(expectedCash)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-ink/60">

@@ -18,7 +18,10 @@ import { toast } from "sonner";
 import { FocusModeHeader } from "../components/FocusModeHeader";
 import { useAuth } from "../components/AuthContext";
 import { Button } from "../components/ui/Button";
-import { usePos, type KitchenStatus, type OrderRow } from "../components/PosContext";
+import type { KitchenStatus } from "@wakro/shared";
+import { updateKitchenStatus, useOrders } from "../state/orders";
+import { useDataReady } from "../state/session";
+import type { OrderRow } from "../types/domain";
 import { cn } from "../lib/cn";
 import { isAudioReady, playKitchenBell, unlockAudio } from "../lib/audioFeedback";
 import { isKitchenActive, isPaid, kitchenStatusOf, NEXT_KITCHEN_STATUS, tableLabel } from "../lib/orderStatus";
@@ -27,7 +30,8 @@ type KdsFilter = "SEMUA" | "queued" | "preparing" | "ready";
 
 export default function Kitchen() {
   const { currentStaff } = useAuth();
-  const { orders, ready, updateKitchenStatus } = usePos();
+  const orders = useOrders();
+  const ready = useDataReady();
   const [filter, setFilter] = useState<KdsFilter>("SEMUA");
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [, setTick] = useState(0);

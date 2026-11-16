@@ -1,10 +1,44 @@
 import QRCode from "qrcode";
-import type { TableRow } from "./db";
-import { getNetworkHostInfo } from "../services/localSyncServer";
+import type { TableRow } from "../types/domain";
+import { getNetworkHostInfo } from "../services/networkHost";
 
 /** Customer self-order URL for a table; the stable table id survives renames. */
-export function tableOrderUrl(table: Pick<TableRow, "id">): string {
-  return `${getNetworkHostInfo().baseUrl}/order/${encodeURIComponent(table.id)}`;
+export function tableOrderUrl(table: Pick<TableRow, "id">, baseUrl: string = getNetworkHostInfo().baseUrl): string {
+  return `${baseUrl}/order/${encodeURIComponent(table.id)}`;
+}
+
+function safeDecode(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
+/**
+ * Extracts the table key from scanned or pasted QR text: an `/order/<key>` URL (absolute or
+ * relative) or a bare `meja-01` / `Meja 01` code. Returns null for anything else, e.g. a product barcode.
+ */
+export function parseTableQr(text: string): string | null {
+  const value = text.trim();
+  const fromUrl = /\/order\/([A-Za-z0-9_.:%-]+)/.exec(value);
+  if (fromUrl) return safeDecode(fromUrl[1]);
+  const bare = /^(meja|rooftop)[ -]?(\d+)$/i.exec(value);
+  return bare ? `${bare[1].toLowerCase()}-${bare[2]}` : null;
+}
+
+/**
+ * Finds the table for a QR key. Stickers carry the table id; older ones carried a name slug
+ * (`meja-01`). Only exact matches count: a partial match could seat guests at the wrong table.
+ */
+export function resolveTable(tables: readonly TableRow[], key: string | null | undefined): TableRow | undefined {
+  if (!key) return undefined;
+  const lower = key.toLowerCase();
+  return (
+    tables.find((t) => t.id === key) ??
+    tables.find((t) => t.id.toLowerCase() === lower) ??
+    tables.find((t) => t.name.toLowerCase().replace(/\s+/g, "-") === lower)
+  );
 }
 
 export function tableQrDataUrl(table: Pick<TableRow, "id">, width = 320): Promise<string> {

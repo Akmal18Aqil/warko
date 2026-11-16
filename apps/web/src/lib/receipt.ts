@@ -1,5 +1,6 @@
 import { formatIDR } from "../data/menu";
-import type { OrderRow, PayMethod } from "./db";
+import type { PayMethod } from "@wakro/shared";
+import type { OrderRow } from "../types/domain";
 import { isPaid, tableLabel } from "./orderStatus";
 import type { ReceiptPayload } from "../services/printer";
 

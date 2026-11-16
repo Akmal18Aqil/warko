@@ -3,7 +3,7 @@ import { Sparkles, Trash2, X, Plus, Check, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import type { MenuItem, MenuKind } from "../data/menu";
 import { Button } from "./ui/Button";
-import { usePos } from "./PosContext";
+import { addCategory, useCategories } from "../state/catalog";
 import { cn } from "../lib/cn";
 import { ProductImagePicker, CULINARY_GALLERY } from "./ProductImagePicker";
 import { BarcodeScanner } from "./BarcodeScanner";
@@ -23,7 +23,7 @@ export function ProductModal({
   onSave,
   onDelete,
 }: ProductModalProps) {
-  const { categories, addCategory } = usePos();
+  const categories = useCategories();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<string>("Makanan");
   const [price, setPrice] = useState("");
@@ -97,7 +97,7 @@ export function ProductModal({
       const itemData: MenuItem = {
         id,
         name: name.trim(),
-        category: category as any,
+        category,
         kind,
         prepMinutes: itemToEdit?.prepMinutes ?? 5,
         price: numericPrice,

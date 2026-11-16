@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { usePos } from "./PosContext";
-import type { CategoryRow } from "../lib/db";
+import { addCategory, deleteCategory, updateCategory, useCategories, useProducts } from "../state/catalog";
+import type { CategoryRow } from "../types/domain";
 import { Button } from "./ui/Button";
 import {
   Plus,
@@ -36,7 +36,8 @@ const CATEGORY_COLORS = [
 ];
 
 export function CategoryManagerModal({ open, onClose }: CategoryManagerModalProps) {
-  const { categories, products, addCategory, updateCategory, deleteCategory } = usePos();
+  const categories = useCategories();
+  const products = useProducts();
 
   // Form State for Add / Direct Edit
   const [editingCatId, setEditingCatId] = useState<string | null>(null);

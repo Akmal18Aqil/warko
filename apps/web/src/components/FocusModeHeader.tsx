@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { KasaMark } from "./KasaLogo";
 import { useAuth } from "./AuthContext";
-import { getNetworkHostInfo } from "../services/localSyncServer";
+import { getNetworkHostInfo } from "../services/networkHost";
 import { cn } from "../lib/cn";
 import { NetworkHubModal } from "./NetworkHubModal";
 

@@ -1,4 +1,5 @@
-import type { KitchenStatus, OrderRow, OrderStatus, PaymentStatus, TableRow } from "./db";
+import type { KitchenStatus, OrderStatus, PaymentStatus } from "@wakro/shared";
+import type { OrderRow, TableRow } from "../types/domain";
 
 /**
  * Orders carry two independent lifecycles. Payment (`paymentStatus`) and kitchen progress
@@ -42,6 +43,21 @@ export function legacyStatusFor(kitchen: KitchenStatus): OrderStatus {
     case "served":
       return "sudah-dibayar";
   }
+}
+
+/** Whether `staff` is the waiter who took this order. Matches by id only; names are not unique. */
+export function isHandledBy(order: Pick<OrderRow, "waiterId">, staff: { id: string }): boolean {
+  return order.waiterId !== undefined && order.waiterId === staff.id;
+}
+
+function isToday(ts?: number): boolean {
+  if (!ts) return false;
+  return new Date(ts).toDateString() === new Date().toDateString();
+}
+
+/** Revenue of orders paid today. */
+export function salesToday(orders: readonly OrderRow[]): number {
+  return orders.filter((o) => isPaid(o) && isToday(o.paidAt)).reduce((sum, o) => sum + o.total, 0);
 }
 
 /** Kitchen tickets still in progress (shown on the KDS). */
@@ -101,6 +117,10 @@ export function floorsOf(tables: TableRow[]): string[] {
     if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     return a.localeCompare(b, undefined, { numeric: true });
   });
+}
+
+export function runningOrdersCount(orders: readonly OrderRow[]): number {
+  return orders.filter(isKitchenActive).length;
 }
 
 /** Random URL-safe idempotency key (≥128 bits) for one submit attempt. */

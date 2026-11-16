@@ -2,14 +2,15 @@ import { Banknote, Vault } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { Button } from "./ui/Button";
-import { runningOrdersCount, salesToday, usePos } from "./PosContext";
+import { playDrawerBeep } from "../lib/audioFeedback";
+import { useOrders } from "../state/orders";
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
-import { isPaid } from "../lib/orderStatus";
+import { isPaid, runningOrdersCount, salesToday } from "../lib/orderStatus";
 
 export function MetricStrip() {
   const [, setLocation] = useLocation();
-  const { orders, triggerOpenDrawer } = usePos();
+  const orders = useOrders();
   const running = runningOrdersCount(orders);
   const paidOrders = orders.filter(isPaid);
   const avgOrder =
@@ -20,9 +21,9 @@ export function MetricStrip() {
       : 0;
 
   const handleOpenDrawerClick = () => {
-    triggerOpenDrawer();
-    toast.success("Laci Kas Dibuka (Drawer Kick)", {
-      description: "Sinyal pulsa ESC/POS fisik RJ11 dikirim ke printer kasir.",
+    playDrawerBeep();
+    toast.success("Bunyi laci kas diputar", {
+      description: "Perintah buka laci ke printer belum didukung; buka laci secara manual.",
       icon: <Vault size={16} className="text-accent-dark" />,
       action: {
         label: "Buka Modul Kas",

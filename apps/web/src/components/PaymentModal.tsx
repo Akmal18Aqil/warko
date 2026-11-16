@@ -3,9 +3,12 @@ import { Banknote, CreditCard, QrCode, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
-import type { OrderRow } from "../lib/db";
+import type { PayMethod } from "@wakro/shared";
+import type { OrderRow } from "../types/domain";
 import { tableLabel } from "../lib/orderStatus";
-import { usePos, type PayMethod } from "./PosContext";
+import { useAuth } from "./AuthContext";
+import { payOrder, useCart } from "../state/cart";
+import { settleOrder, useNextOrderNo } from "../state/orders";
 import { usePrint } from "./PrintContext";
 import { Button } from "./ui/Button";
 import { cn } from "../lib/cn";
@@ -15,7 +18,9 @@ import { cn } from "../lib/cn";
  * unpaid order (self-order / waiter order settled at the register). Settlement is idempotent server-side.
  */
 export function PaymentModal({ open, onClose, order }: { open: boolean; onClose: () => void; order?: OrderRow }) {
-  const { orderNo, totals, payOrder, settleOrder } = usePos();
+  const { totals } = useCart();
+  const orderNo = useNextOrderNo();
+  const { currentStaff } = useAuth();
   const { printOrderReceipt } = usePrint();
   const [submitting, setSubmitting] = useState(false);
   const [method, setMethod] = useState<PayMethod>("tunai");
@@ -53,7 +58,7 @@ export function PaymentModal({ open, onClose, order }: { open: boolean; onClose:
     try {
       const cashReceived = method === "tunai" ? cashNum : undefined;
       const result = order
-        ? await settleOrder(order.no, method, cashReceived)
+        ? await settleOrder(order.no, method, currentStaff.name, cashReceived)
         : { ...(await payOrder(method, cashReceived)), alreadyPaid: false };
       const paid = result.order;
       const printAction = {

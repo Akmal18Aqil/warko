@@ -10,10 +10,11 @@ import {
   Delete,
   CheckCircle2,
 } from "lucide-react";
-import { useAuth, type StaffUser, type StaffRole } from "./AuthContext";
+import type { StaffRole } from "@wakro/shared";
+import { useAuth, type StaffUser } from "./AuthContext";
 import { cn } from "../lib/cn";
 import { Button } from "./ui/Button";
-import { isRemoteDataSource } from "../lib/remote";
+import { isRemoteDataSource } from "../data";
 
 export function QuickSwitchRoleModal() {
   const {

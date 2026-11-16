@@ -1,7 +1,9 @@
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
 import { receiptFromOrder } from "../lib/receipt";
-import { usePos } from "./PosContext";
+import { useCart } from "../state/cart";
+import { useProducts } from "../state/catalog";
+import { useNextOrderNo } from "../state/orders";
 import { usePrint } from "./PrintContext";
 
 export function PrintLayer() {
@@ -118,8 +120,9 @@ function OrderReceiptPrint() {
 }
 
 function ReceiptPrint() {
-  const pos = usePos();
-  const { orderNo, orderType, selectedTable, guests, lines, totals } = pos;
+  const { orderType, selectedTable, guests, lines, totals } = useCart();
+  const orderNo = useNextOrderNo();
+  const products = useProducts();
   const hasItems = lines.length > 0;
 
   return (
@@ -152,7 +155,7 @@ function ReceiptPrint() {
             <table className="rp-items">
               <tbody>
                 {lines.map((line) => {
-                  const item = pos.products.find((p) => p.id === line.itemId);
+                  const item = products.find((p) => p.id === line.itemId);
                   if (!item) return null;
                   return (
                     <tr key={line.itemId}>

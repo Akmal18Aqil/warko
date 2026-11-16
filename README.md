@@ -260,7 +260,7 @@ Sistem dilengkapi tombol ganti akun cepat (*Quick Switch*) dengan proteksi PIN 4
 - **Indikator Asal Pesanan**: Label jelas untuk membedakan pesanan Pelayan (Budi/Siti), Kasir, atau Self-Order Meja.
 
 ### 4. 🚶 Mode Pelayan Fokus (`/pelayan`)
-- **Isolasi Draft**: Sesi keranjang tersimpan per staf (`kasa_waiter_cart_${staffId}`) mencegah tumpang tindih pesanan.
+- **Isolasi Draft**: Sesi keranjang tersimpan per staf (`wakro_waiter_cart_${staffId}`) mencegah tumpang tindih pesanan.
 - **Table Lock Protection**: Memberi tahu jika meja tertentu sedang aktif ditangani oleh pelayan lain.
 - **3 Tab Operasional**: *1. Catat Pesanan*, *2. Pesanan Saya (Active Orders)*, dan *3. Denah Meja (Layout)*.
 

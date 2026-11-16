@@ -20,14 +20,19 @@ import { Header } from "../components/Header";
 import { Button } from "../components/ui/Button";
 import { TableModal } from "../components/TableModal";
 import { PaymentModal } from "../components/PaymentModal";
-import { usePos, type OrderRow, type TableRow } from "../components/PosContext";
+import { selectTable, useCart } from "../state/cart";
+import { deleteTable, saveTable, useTables } from "../state/catalog";
+import { useOrders } from "../state/orders";
+import type { OrderRow, TableRow } from "../types/domain";
 import { cn } from "../lib/cn";
 import { floorsOf, isPaid, KITCHEN_LABEL, kitchenStatusOf, openOrdersForTable } from "../lib/orderStatus";
 import { printTableQrSheets, tableOrderUrl, tableQrDataUrl } from "../lib/tableQr";
 import { toast } from "sonner";
 
 export default function Tables() {
-  const pos = usePos();
+  const tables = useTables();
+  const orders = useOrders();
+  const cart = useCart();
   const [, setLocation] = useLocation();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<TableRow | null>(null);
@@ -37,18 +42,18 @@ export default function Tables() {
   const [hasCopied, setHasCopied] = useState(false);
   const [payingOrder, setPayingOrder] = useState<OrderRow | null>(null);
 
-  const availableAreas = useMemo(() => floorsOf(pos.tables), [pos.tables]);
+  const availableAreas = useMemo(() => floorsOf(tables), [tables]);
 
   const filteredTables = useMemo(() => {
-    const list = activeAreaFilter === "Semua" ? pos.tables : pos.tables.filter((tbl) => tbl.area === activeAreaFilter);
+    const list = activeAreaFilter === "Semua" ? tables : tables.filter((tbl) => tbl.area === activeAreaFilter);
     return [...list].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-  }, [pos.tables, activeAreaFilter]);
+  }, [tables, activeAreaFilter]);
 
   const occupancy = useMemo(() => {
     const map = new Map<string, OrderRow[]>();
-    for (const table of pos.tables) map.set(table.id, openOrdersForTable(pos.orders, table));
+    for (const table of tables) map.set(table.id, openOrdersForTable(orders, table));
     return map;
-  }, [pos.orders, pos.tables]);
+  }, [orders, tables]);
 
   const occupiedCount = filteredTables.filter((tbl) => (occupancy.get(tbl.id)?.length ?? 0) > 0).length;
 
@@ -70,22 +75,18 @@ export default function Tables() {
   };
 
   const handleSave = async (table: TableRow) => {
-    if (selectedTable) {
-      await pos.updateTable(table);
-    } else {
-      await pos.addTable(table);
-    }
+    await saveTable(table);
   };
 
   const handleDelete = async (id: string) => {
     if ((occupancy.get(id)?.length ?? 0) > 0) {
       throw new Error("Meja masih memiliki pesanan aktif atau belum dibayar.");
     }
-    await pos.deleteTable(id);
+    await deleteTable(id);
   };
 
   const handleSelectTableAndOrder = (table: TableRow) => {
-    pos.selectTable(table);
+    selectTable(table);
     setLocation("/");
   };
 
@@ -171,7 +172,7 @@ export default function Tables() {
                   : "border border-ink/10 bg-white text-ink/65 hover:bg-ink/5",
               )}
             >
-              Semua ({pos.tables.length})
+              Semua ({tables.length})
             </button>
             {availableAreas.map((area) => (
               <button
@@ -185,7 +186,7 @@ export default function Tables() {
                     : "border border-ink/10 bg-white text-ink/65 hover:bg-ink/5",
                 )}
               >
-                {area} ({pos.tables.filter((tbl) => tbl.area === area).length})
+                {area} ({tables.filter((tbl) => tbl.area === area).length})
               </button>
             ))}
           </div>
@@ -194,7 +195,7 @@ export default function Tables() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredTables.map((table) => {
             const openOrders = occupancy.get(table.id) ?? [];
-            const drafting = pos.orderType === "meja" && pos.tableId === table.id && pos.lines.length > 0;
+            const drafting = cart.orderType === "meja" && cart.tableId === table.id && cart.lines.length > 0;
             const isOccupied = openOrders.length > 0;
             const unpaid = openOrders.filter((o) => !isPaid(o));
             const unpaidTotal = unpaid.reduce((sum, o) => sum + o.total, 0);

@@ -17,35 +17,38 @@ import {
   Utensils,
 } from "lucide-react";
 import { toast } from "sonner";
-import { usePos, type CartLine } from "../components/PosContext";
+import { useCartLines } from "../hooks/useCartLines";
+import { usePublicCustomer } from "../hooks/usePublicCustomer";
+import { useCategories, useProducts, useTables } from "../state/catalog";
+import { createSelfOrder, useOrders } from "../state/orders";
+import { usePricing } from "../state/pricing";
+import { useDataReady, useDataSourceError } from "../state/session";
 import { usePrint } from "../components/PrintContext";
 import { OrderReceiptView } from "../components/OrderReceiptView";
 import { Button } from "../components/ui/Button";
 import { formatIDR, isLowStock, isSoldOut } from "../data/menu";
-import type { OrderRow, TableRow } from "../lib/db";
+import type { OrderRow } from "../types/domain";
+import { STORAGE_KEYS } from "../lib/storageKeys";
+import { resolveTable } from "../lib/tableQr";
 import { cn } from "../lib/cn";
 import { floorsOf, isPaid, kitchenStatusOf, newClientRef } from "../lib/orderStatus";
+import { RemoteDataError } from "../data";
 import {
-  isPublicCustomer,
   loadPublicOrder,
   loadPublicPaymentOptions,
-  RemoteDataError,
   startPublicQris,
   type QrisCharge,
-} from "../lib/remote";
+} from "../data/public";
 
 /** Orders this device placed: the key is the secret that unlocks status and e-receipt. */
 type TrackedOrder = { no: number; key: string; tableId: string; createdAt: number };
 
-const TRACKED_KEY = "wakro_self_orders_v1";
-const TABLE_KEY = "wakro_self_table_v1";
-const NAME_KEY = "wakro_self_customer_name";
 const TRACK_TTL_MS = 12 * 60 * 60 * 1000;
 const POLL_MS = 5000;
 
 function readTracked(): TrackedOrder[] {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(TRACKED_KEY) ?? "[]");
+    const parsed: unknown = JSON.parse(localStorage.getItem(STORAGE_KEYS.selfOrders) ?? "[]");
     if (!Array.isArray(parsed)) return [];
     const now = Date.now();
     return parsed.filter(
@@ -65,23 +68,8 @@ function readTracked(): TrackedOrder[] {
 
 function writeTracked(list: TrackedOrder[]): void {
   try {
-    localStorage.setItem(TRACKED_KEY, JSON.stringify(list.slice(0, 10)));
+    localStorage.setItem(STORAGE_KEYS.selfOrders, JSON.stringify(list.slice(0, 10)));
   } catch {}
-}
-
-/** QR stickers carry the table id; older stickers carried a name slug. Never guess a partial match. */
-function resolveTable(tables: TableRow[], param: string | undefined): TableRow | undefined {
-  if (!param) return undefined;
-  let key = param;
-  try {
-    key = decodeURIComponent(param);
-  } catch {}
-  const lower = key.toLowerCase();
-  return (
-    tables.find((t) => t.id === key) ??
-    tables.find((t) => t.id.toLowerCase() === lower) ??
-    tables.find((t) => t.name.toLowerCase().replace(/\s+/g, "-") === lower)
-  );
 }
 
 const STEPS = [
@@ -93,23 +81,19 @@ const STEPS = [
 
 export default function CustomerSelfOrder() {
   const { tableId: paramTableId } = useParams<{ tableId?: string }>();
-  const {
-    ready,
-    dataSourceError,
-    products,
-    categories,
-    tables,
-    orders,
-    createSelfOrder,
-    taxEnabled,
-    taxRate,
-    serviceChargeEnabled,
-    serviceChargeRate,
-  } = usePos();
+  const isPublicCustomer = usePublicCustomer();
+  const ready = useDataReady();
+  const dataSourceError = useDataSourceError();
+  const products = useProducts();
+  const categories = useCategories();
+  const tables = useTables();
+  const orders = useOrders();
+  const pricing = usePricing();
+  const { taxEnabled, taxRate, serviceChargeEnabled, serviceChargeRate } = pricing;
   const { printOrderReceipt } = usePrint();
 
   const activeTables = useMemo(() => tables.filter((t) => t.active !== false), [tables]);
-  const [selectedTableId, setSelectedTableId] = useState<string | null>(() => localStorage.getItem(TABLE_KEY));
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(() => localStorage.getItem(STORAGE_KEYS.selfTable));
   const [isTableSelectorOpen, setIsTableSelectorOpen] = useState(false);
   const [floorFilter, setFloorFilter] = useState<string | null>(null);
 
@@ -130,20 +114,20 @@ export default function CustomerSelfOrder() {
   }, [ready, paramTableId, activeTables]);
 
   useEffect(() => {
-    if (selectedTableId) localStorage.setItem(TABLE_KEY, selectedTableId);
+    if (selectedTableId) localStorage.setItem(STORAGE_KEYS.selfTable, selectedTableId);
   }, [selectedTableId]);
 
   const currentTable = activeTables.find((t) => t.id === selectedTableId) ?? null;
   const floors = useMemo(() => floorsOf(activeTables), [activeTables]);
 
-  const [customerName, setCustomerName] = useState(() => localStorage.getItem(NAME_KEY) || "");
+  const [customerName, setCustomerName] = useState(() => localStorage.getItem(STORAGE_KEYS.selfCustomerName) || "");
   useEffect(() => {
-    if (customerName) localStorage.setItem(NAME_KEY, customerName);
+    if (customerName) localStorage.setItem(STORAGE_KEYS.selfCustomerName, customerName);
   }, [customerName]);
 
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState("");
-  const [cartLines, setCartLines] = useState<CartLine[]>([]);
+  const cart = useCartLines({ products, pricing });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   /** Kept across a failed network attempt so a retry cannot create a second order. */
@@ -224,61 +208,20 @@ export default function CustomerSelfOrder() {
       .catch(() => setQrisImage(""));
   }, [qrisCharge]);
 
-  const qtyInCart = (itemId: string) => cartLines.find((l) => l.itemId === itemId)?.qty ?? 0;
-
   const handleAddItem = (itemId: string) => {
-    const product = products.find((p) => p.id === itemId);
-    if (!product) return;
-    if (isSoldOut(product)) {
-      toast.error(`${product.name} sedang HABIS`);
-      return;
-    }
-    if (product.stock !== undefined && product.stock !== null && qtyInCart(itemId) >= product.stock) {
-      toast.error(`Stok ${product.name} tinggal ${product.stock}`);
-      return;
-    }
-    setCartLines((prev) => {
-      const idx = prev.findIndex((l) => l.itemId === itemId);
-      if (idx >= 0) return prev.map((l, i) => (i === idx ? { ...l, qty: l.qty + 1 } : l));
-      return [...prev, { itemId, qty: 1 }];
-    });
+    if (products.some((p) => p.id === itemId)) cart.add(itemId);
   };
 
-  const handleDecreaseItem = (itemId: string) => {
-    setCartLines((prev) =>
-      prev.map((l) => (l.itemId === itemId ? { ...l, qty: l.qty - 1 } : l)).filter((l) => l.qty > 0),
-    );
-  };
-
-  const handleSetNote = (itemId: string, note: string) => {
-    setCartLines((prev) => prev.map((l) => (l.itemId === itemId ? { ...l, note: note.slice(0, 200) } : l)));
-  };
+  const handleSetNote = (itemId: string, note: string) => cart.setNote(itemId, note.slice(0, 200));
 
   // Drop cart lines whose product disappeared or sold out after a menu refresh.
   useEffect(() => {
-    setCartLines((prev) => {
-      const next = prev.filter((l) => {
-        const p = products.find((x) => x.id === l.itemId);
-        return p !== undefined && !isSoldOut(p);
-      });
-      return next.length === prev.length ? prev : next;
+    const next = cart.lines.filter((l) => {
+      const p = products.find((x) => x.id === l.itemId);
+      return p !== undefined && !isSoldOut(p);
     });
-  }, [products]);
-
-  const cartSummary = useMemo(() => {
-    let rawSubtotal = 0;
-    let count = 0;
-    for (const line of cartLines) {
-      const prod = products.find((p) => p.id === line.itemId);
-      if (prod) {
-        rawSubtotal += prod.price * line.qty;
-        count += line.qty;
-      }
-    }
-    const serviceCharge = serviceChargeEnabled ? Math.round((rawSubtotal * serviceChargeRate) / 100) : 0;
-    const tax = taxEnabled ? Math.round(((rawSubtotal + serviceCharge) * taxRate) / 100) : 0;
-    return { rawSubtotal, tax, serviceCharge, total: rawSubtotal + serviceCharge + tax, count };
-  }, [cartLines, products, serviceChargeEnabled, serviceChargeRate, taxEnabled, taxRate]);
+    if (next.length !== cart.lines.length) cart.setLines(next);
+  }, [products, cart.lines, cart.setLines]);
 
   const filteredProducts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -296,7 +239,7 @@ export default function CustomerSelfOrder() {
       toast.error("Pilih lantai dan meja terlebih dahulu");
       return null;
     }
-    if (cartLines.length === 0) {
+    if (cart.lines.length === 0) {
       toast.error("Keranjang pesanan masih kosong");
       return null;
     }
@@ -307,7 +250,7 @@ export default function CustomerSelfOrder() {
       const created = await createSelfOrder({
         tableId: currentTable.id,
         customerName: customerName.trim() || `Tamu ${currentTable.name}`,
-        lines: cartLines,
+        lines: cart.lines,
         clientRef: key,
         paymentChoice,
       });
@@ -317,7 +260,7 @@ export default function CustomerSelfOrder() {
       setTracked(next);
       writeTracked(next);
       if (isPublicCustomer) setRemoteOrders((prev) => ({ ...prev, [created.no]: created }));
-      setCartLines([]);
+      cart.clear();
       setIsCartOpen(false);
       return { order: created, key };
     } catch (err) {
@@ -341,7 +284,7 @@ export default function CustomerSelfOrder() {
   const handlePayQris = async () => {
     if (!isPublicCustomer) {
       // Local demo mode: no gateway; the payment is simulated and labelled as such.
-      if (!currentTable || cartLines.length === 0) {
+      if (!currentTable || cart.lines.length === 0) {
         await submitOrder("paid-now");
         return;
       }
@@ -499,7 +442,7 @@ export default function CustomerSelfOrder() {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {filteredProducts.map((product) => {
-            const qty = qtyInCart(product.id);
+            const qty = cart.lines.find((l) => l.itemId === product.id)?.qty ?? 0;
             const soldOut = isSoldOut(product);
             const low = isLowStock(product);
             return (
@@ -545,7 +488,7 @@ export default function CustomerSelfOrder() {
                     <div className="flex items-center gap-2 rounded-xl bg-slate-100 p-1">
                       <button
                         type="button"
-                        onClick={() => handleDecreaseItem(product.id)}
+                        onClick={() => cart.decrease(product.id)}
                         className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-ink shadow-sm"
                         aria-label={`Kurangi ${product.name}`}
                       >
@@ -585,7 +528,7 @@ export default function CustomerSelfOrder() {
         )}
       </main>
 
-      {cartSummary.count > 0 && (
+      {cart.totals.count > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-40 p-4">
           <div className="mx-auto max-w-lg">
             <button
@@ -595,11 +538,11 @@ export default function CustomerSelfOrder() {
             >
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-sm font-bold text-white">
-                  {cartSummary.count}
+                  {cart.totals.count}
                 </span>
                 <div className="text-left">
                   <div className="text-xs text-white/70">{currentTable ? currentTable.name : "Pilih meja"}</div>
-                  <div className="font-display text-base font-bold">{formatIDR(cartSummary.total)}</div>
+                  <div className="font-display text-base font-bold">{formatIDR(cart.totals.total)}</div>
                 </div>
               </div>
               <span className="flex items-center gap-2 text-sm font-bold">
@@ -631,7 +574,7 @@ export default function CustomerSelfOrder() {
             </div>
 
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              {cartLines.map((line) => {
+              {cart.lines.map((line) => {
                 const prod = products.find((p) => p.id === line.itemId);
                 if (!prod) return null;
                 return (
@@ -654,7 +597,7 @@ export default function CustomerSelfOrder() {
                         <button
                           type="button"
                           aria-label={`Kurangi ${prod.name}`}
-                          onClick={() => handleDecreaseItem(line.itemId)}
+                          onClick={() => cart.decrease(line.itemId)}
                           className="flex h-7 w-7 items-center justify-center rounded text-ink hover:bg-slate-100"
                         >
                           <Minus size={13} />
@@ -676,24 +619,24 @@ export default function CustomerSelfOrder() {
 
               <div className="space-y-1.5 rounded-xl bg-slate-100/70 p-3 text-xs">
                 <div className="flex justify-between text-ink/70">
-                  <span>Subtotal ({cartSummary.count} item)</span>
-                  <span>{formatIDR(cartSummary.rawSubtotal)}</span>
+                  <span>Subtotal ({cart.totals.count} item)</span>
+                  <span>{formatIDR(cart.totals.rawSubtotal)}</span>
                 </div>
                 {serviceChargeEnabled && (
                   <div className="flex justify-between text-ink/70">
                     <span>Biaya layanan ({serviceChargeRate}%)</span>
-                    <span>{formatIDR(cartSummary.serviceCharge)}</span>
+                    <span>{formatIDR(cart.totals.serviceCharge)}</span>
                   </div>
                 )}
                 {taxEnabled && (
                   <div className="flex justify-between text-ink/70">
                     <span>Pajak ({taxRate}%)</span>
-                    <span>{formatIDR(cartSummary.tax)}</span>
+                    <span>{formatIDR(cart.totals.tax)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-slate-200 pt-2 font-display text-sm font-bold text-ink">
                   <span>Total</span>
-                  <span>{formatIDR(cartSummary.total)}</span>
+                  <span>{formatIDR(cart.totals.total)}</span>
                 </div>
               </div>
             </div>
@@ -733,7 +676,7 @@ export default function CustomerSelfOrder() {
             <p className="text-xs text-ink/60">
               Mode demo tidak terhubung ke payment gateway. Tombol di bawah hanya menyimulasikan pembayaran berhasil.
             </p>
-            <p className="font-display text-xl font-bold text-ink">{formatIDR(cartSummary.total)}</p>
+            <p className="font-display text-xl font-bold text-ink">{formatIDR(cart.totals.total)}</p>
             <Button className="h-11 w-full font-bold" disabled={isSubmitting} onClick={() => void handleDemoQrisConfirm()}>
               <CheckCircle2 size={16} /> Simulasikan pembayaran berhasil
             </Button>

@@ -13,7 +13,22 @@ import {
 import { toast } from "sonner";
 import { formatIDR } from "../data/menu";
 import { t } from "../locales/en";
-import { usePos } from "./PosContext";
+import {
+  clearCart,
+  decreaseItem,
+  increaseItem,
+  removeItem,
+  saveDraft,
+  selectTable,
+  setDiscount,
+  setGuests,
+  setItemNote,
+  setOrderType,
+  useCart,
+} from "../state/cart";
+import { useProducts, useTables } from "../state/catalog";
+import { useNextOrderNo } from "../state/orders";
+import { usePricing } from "../state/pricing";
 import { getPrinterDriver } from "../services/printer";
 import { FoodImage } from "./FoodImage";
 import { Button } from "./ui/Button";
@@ -25,30 +40,11 @@ export function CartPanel({
 }: {
   onPay: () => void;
 }) {
-  const pos = usePos();
-  const {
-    orderNo,
-    orderType,
-    selectedTable,
-    guests,
-    lines,
-    totals,
-    discountType,
-    discountValue,
-    taxEnabled,
-    taxRate,
-    serviceChargeEnabled,
-    serviceChargeRate,
-    setOrderType,
-    setGuests,
-    setDiscount,
-    setItemNote,
-    increaseLine,
-    decreaseLine,
-    removeItem,
-    clearOrder,
-    saveDraft,
-  } = pos;
+  const { orderType, tableId, selectedTable, guests, lines, totals, discountType, discountValue } = useCart();
+  const orderNo = useNextOrderNo();
+  const products = useProducts();
+  const tables = useTables();
+  const { taxEnabled, taxRate, serviceChargeEnabled, serviceChargeRate } = usePricing();
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState("");
@@ -63,7 +59,7 @@ export function CartPanel({
 
   const handleClear = () => {
     if (lines.length === 0) return;
-    clearOrder();
+    clearCart();
     toast(t.toasts.clearedTitle, { description: t.toasts.clearedBody });
   };
 
@@ -168,10 +164,10 @@ export function CartPanel({
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-ink/60">Meja:</span>
               <select
-                value={pos.tableId ?? ""}
+                value={tableId ?? ""}
                 onChange={(e) => {
-                  const table = pos.tables.find((tbl) => tbl.id === e.target.value);
-                  if (table) pos.selectTable(table);
+                  const table = tables.find((tbl) => tbl.id === e.target.value);
+                  if (table) selectTable(table);
                 }}
                 aria-label="Pilih meja"
                 className="h-7 rounded-lg border border-ink/15 bg-white px-2 text-xs font-bold text-ink focus:border-ink/40 focus:outline-none focus:ring-2 focus:ring-accent/60"
@@ -179,9 +175,9 @@ export function CartPanel({
                 <option value="" disabled>
                   Pilih meja…
                 </option>
-                {floorsOf(pos.tables).map((floor) => (
+                {floorsOf(tables).map((floor) => (
                   <optgroup key={floor} label={floor}>
-                    {pos.tables
+                    {tables
                       .filter((tbl) => tbl.area === floor && tbl.active !== false)
                       .map((tbl) => (
                         <option key={tbl.id} value={tbl.id}>
@@ -242,7 +238,7 @@ export function CartPanel({
       ) : (
         <ul className="flex-1 min-h-0 min-[1200px]:min-h-[230px] overflow-y-auto px-3.5 py-3 space-y-2 bg-mineral/20 overscroll-contain divide-y-0">
           {lines.map((line) => {
-            const item = pos.products.find((p) => p.id === line.itemId);
+            const item = products.find((p) => p.id === line.itemId);
             if (!item) return null;
             const isEditingNote = editingNoteId === line.itemId;
 
@@ -276,7 +272,7 @@ export function CartPanel({
                       <div className="flex items-center gap-0.5 bg-mineral/60 rounded-lg p-0.5 border border-ink/10">
                         <QtyButton
                           label={`${t.cart.itemQtyDecrease}: ${item.name}`}
-                          onClick={() => decreaseLine(line.itemId)}
+                          onClick={() => decreaseItem(line.itemId)}
                         >
                           <Minus size={11} strokeWidth={2.6} />
                         </QtyButton>
@@ -288,7 +284,7 @@ export function CartPanel({
                         </span>
                         <QtyButton
                           label={`${t.cart.itemQtyIncrease}: ${item.name}`}
-                          onClick={() => increaseLine(line.itemId)}
+                          onClick={() => increaseItem(line.itemId)}
                         >
                           <Plus size={11} strokeWidth={2.6} />
                         </QtyButton>
@@ -496,7 +492,7 @@ export function CartPanel({
               orderNo,
               total: formatIDR(totals.total),
               lines: lines.map((l) => {
-                const prod = pos.products.find((p) => p.id === l.itemId);
+                const prod = products.find((p) => p.id === l.itemId);
                 return {
                   qty: l.qty,
                   name: prod ? (l.note ? `${prod.name} (${l.note})` : prod.name) : "Item",

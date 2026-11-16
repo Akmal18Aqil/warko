@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import { DEFAULT_FLOORS, type TableRow } from "../lib/db";
+import { DEFAULT_FLOORS } from "../data/seed";
+import type { TableRow } from "../types/domain";
 import { Button } from "./ui/Button";
 import { cn } from "../lib/cn";
 

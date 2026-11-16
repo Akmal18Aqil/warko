@@ -84,6 +84,31 @@ export function playScanErrorBeep(): void {
   }
 }
 
+/**
+ * Short chime played when the cash drawer screen "opens the drawer". It only makes a sound: no
+ * ESC/POS drawer-kick command is sent to a printer.
+ */
+export function playDrawerBeep(): void {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(587.33, now); // D5
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  } catch (error) {
+    console.warn("Gagal memutar bunyi laci kas:", error);
+  }
+}
+
 /** True once the browser allows audio playback (after a user gesture). */
 export function isAudioReady(): boolean {
   return audioCtx !== null && audioCtx.state === "running";
