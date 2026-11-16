@@ -154,6 +154,25 @@ describe("placing orders", () => {
   });
 });
 
+describe("public self-order retry", () => {
+  it("replays the original order after a lost response even if its price changes", async () => {
+    const clientRef = randomRef();
+    const body = { tableId: "table-1", clientRef, items: [{ itemId: "A1", qty: 1 }], expectedTotal: 11_100 };
+    const first = await api("/api/public/orders", { body });
+    expect(first.status).toBe(201);
+    const original = await readJson(first);
+    await env.DB.prepare("UPDATE products SET price = 20000 WHERE barcode = 'A1'").run();
+    const retry = await api("/api/public/orders", { body });
+    expect(retry.status).toBe(200);
+    const replay = await readJson(retry);
+    expect(replay.replayed).toBe(true);
+    expect(replay.data.no).toBe(original.data.no);
+    expect(replay.data.total).toBe(11_100);
+    expect(await orderCount()).toBe(1);
+    expect(await stockOf("A1")).toBe(4);
+  });
+});
+
 describe("kitchen status", () => {
   async function newOrder(): Promise<{ no: number; session: string }> {
     const { session } = await signIn("kasir");
