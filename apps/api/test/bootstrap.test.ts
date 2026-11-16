@@ -40,5 +40,12 @@ describe("GET /api/bootstrap", () => {
     const { data } = await readJson(await api("/api/bootstrap", { session: waiter.session }));
     expect(data.shifts).toEqual([]);
     expect(data.cashMovements).toEqual([]);
+    // Waiters still learn whether cash payments are accepted.
+    expect(data.cashShiftOpen).toBe(true);
+  });
+
+  it("reports that cash is not accepted while no shift is open", async () => {
+    const { session } = await signIn("pelayan");
+    expect((await readJson(await api("/api/bootstrap", { session }))).data.cashShiftOpen).toBe(false);
   });
 });

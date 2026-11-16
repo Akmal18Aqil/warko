@@ -8,9 +8,12 @@ import { t } from "../locales/id";
 
 export const useActiveShift = () => useStore(shiftStore, (s) => s.activeShift);
 export const useCashMovements = () => useStore(shiftStore, (s) => s.cashMovements);
+/** Whether cash payments are accepted right now (a shift is open). */
+export const useCashShiftOpen = () => useStore(shiftStore, (s) => s.cashShiftOpen);
 
 export async function reloadActiveShift(): Promise<void> {
-  shiftStore.set({ activeShift: (await dataSource.loadActiveShift()) ?? null });
+  const activeShift = (await dataSource.loadActiveShift()) ?? null;
+  shiftStore.set({ activeShift, cashShiftOpen: activeShift !== null });
 }
 
 export async function reloadCashMovements(): Promise<void> {
@@ -31,7 +34,7 @@ export async function openShift(cashierName: string, startingCash: number): Prom
     startingCash,
     status: "OPEN",
   });
-  shiftStore.set({ activeShift: saved });
+  shiftStore.set({ activeShift: saved, cashShiftOpen: true });
   broadcastSync({ type: "SHIFT_CHANGED", payload: { shift: saved } });
   return saved;
 }
@@ -55,7 +58,7 @@ export async function closeShift(
     status: "CLOSED",
     notes,
   });
-  shiftStore.set({ activeShift: null });
+  shiftStore.set({ activeShift: null, cashShiftOpen: false });
   broadcastSync({ type: "SHIFT_CHANGED", payload: { shift: closed } });
   return closed;
 }

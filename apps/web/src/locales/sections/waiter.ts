@@ -80,6 +80,7 @@ export const waiter = {
     `Order #${no} · ${total} (${method})${change ? ` · Kembalian ${change}` : ""} · Pelayan: ${waiter}`,
   payFailed: "Gagal memproses pembayaran meja.",
   methodCash: "Tunai (Cash)",
+  cashNeedsShift: "Tunai belum bisa diterima: minta kasir membuka shift.",
   methodCashCode: "TUNAI",
   methodQris: "QRIS",
 

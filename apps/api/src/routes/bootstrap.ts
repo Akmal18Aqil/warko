@@ -28,8 +28,8 @@ async function bootstrap({ request, env, staff }: AuthedContext): Promise<Respon
   const finance = FINANCE_ROLES.includes(staff.role);
   const now = Date.now();
   // One D1 batch = one consistent snapshot. Cash statements return no rows for non-finance roles.
-  const [products, orders, items, tables, categories, pricing, shifts, movements] = await batchTyped<
-    [ProductRow, OrderDbRow, OrderItemDbRow, TableRow, CategoryRow, PricingRow, ShiftRow, CashMovementRow]
+  const [products, orders, items, tables, categories, pricing, shifts, movements, openShift] = await batchTyped<
+    [ProductRow, OrderDbRow, OrderItemDbRow, TableRow, CategoryRow, PricingRow, ShiftRow, CashMovementRow, { open: number }]
   >(env.DB, [
     env.DB.prepare(PRODUCT_LIST_SQL),
     ...operationalOrderStatements(env, now),
@@ -38,6 +38,8 @@ async function bootstrap({ request, env, staff }: AuthedContext): Promise<Respon
     pricingStatement(env),
     recentShiftsStatement(env, now, finance ? BOOTSTRAP_LIMITS.shifts : 0),
     recentMovementsStatement(env, now, finance ? BOOTSTRAP_LIMITS.movements : 0),
+    // Every role may know whether cash can be taken (the API refuses cash without an open shift).
+    env.DB.prepare("SELECT EXISTS (SELECT 1 FROM shifts WHERE status = 'OPEN') AS open"),
   ]);
 
   const body = JSON.stringify({
@@ -49,6 +51,7 @@ async function bootstrap({ request, env, staff }: AuthedContext): Promise<Respon
       pricing: parsePricing(pricing),
       shifts: shifts.map(serializeShift),
       cashMovements: movements.map(serializeCashMovement),
+      cashShiftOpen: openShift[0]?.open === 1,
     },
   });
   const etag = `"${await sha256Hex(body)}"`;

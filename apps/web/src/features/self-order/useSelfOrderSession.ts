@@ -17,7 +17,7 @@ import type { PricingSettings } from "@wakro/shared";
 import { useLiveOrders } from "./useLiveOrders";
 import { useQrisPayment, type QrisPayment } from "./useQrisPayment";
 import { useSelfTable, type SelfTable } from "./useSelfTable";
-import { PENDING_ORDER_KEY, readPendingOrder, shouldClearSubmittedCart, type PendingOrder } from "./pendingOrder";
+import { readPendingOrder, cartUnchanged, type PendingOrder } from "./pendingOrder";
 
 type PaymentChoice = "paid-now" | "pay-later";
 
@@ -42,6 +42,8 @@ interface SelfOrderSession {
   setCartOpen: (open: boolean) => void;
   submitting: boolean;
   pendingOrder: PendingOrder | null;
+  /** Re-sends the stored order whose response was lost, with the same idempotency key. */
+  retryPendingOrder: () => Promise<void>;
   liveOrders: OrderRow[];
   qris: QrisPayment;
   payAtCashier: () => Promise<void>;
@@ -99,18 +101,27 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
     if (next.length !== cart.lines.length) cart.setLines(next);
   }, [products, cart.lines, cart.setLines]);
 
-  const submitOrder = async (paymentChoice: PaymentChoice): Promise<{ order: OrderRow; key: string } | null> => {
+  /**
+   * `new` submits the cart; `recover` re-sends the stored payload of an order whose outcome is unknown.
+   * While such an order exists, new submissions are blocked so the customer cannot order twice by accident.
+   */
+  const submitOrder = async (paymentChoice: PaymentChoice, mode: "new" | "recover" = "new"): Promise<{ order: OrderRow; key: string } | null> => {
     if (submittingRef.current) return null;
-    if (!pendingRef.current && !currentTable) {
+    if (mode === "recover" && !pendingRef.current) return null;
+    if (mode === "new" && pendingRef.current) {
+      toast.error(t.selfOrder.pending.blocked);
+      return null;
+    }
+    if (mode === "new" && !currentTable) {
       table.openPicker();
       toast.error(t.selfOrder.table.required);
       return null;
     }
-    if (!pendingRef.current && cart.lines.length === 0) {
+    if (mode === "new" && cart.lines.length === 0) {
       toast.error(t.selfOrder.order.emptyCart);
       return null;
     }
-    const recovering = pendingRef.current !== null;
+    const submittedLines = cart.lines;
     const key = pendingRef.current?.clientRef ?? newClientRef();
     const pending: PendingOrder | null = isPublicCustomer ? pendingRef.current ?? {
       tableId: currentTable!.id,
@@ -121,7 +132,7 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
       expectedTotal: cart.totals.total,
     } : null;
     if (pending) {
-      localStorage.setItem(PENDING_ORDER_KEY, JSON.stringify(pending));
+      localStorage.setItem(STORAGE_KEYS.selfPendingOrder, JSON.stringify(pending));
       pendingRef.current = pending;
       setPendingOrder(pending);
     }
@@ -138,15 +149,22 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
       track({ no: created.no, key, tableId: pending?.tableId ?? currentTable!.id, createdAt: Date.now() }, created);
       pendingRef.current = null;
       setPendingOrder(null);
-      localStorage.removeItem(PENDING_ORDER_KEY);
-      if (shouldClearSubmittedCart(recovering, cart.lines, currentCart.current)) cart.clear();
+      localStorage.removeItem(STORAGE_KEYS.selfPendingOrder);
+      if (mode === "new" && cartUnchanged(submittedLines, currentCart.current)) cart.clear();
       setCartOpen(false);
       return { order: created, key };
     } catch (err) {
-      if (err instanceof RemoteDataError && err.status !== undefined && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429) {
+      const final = err instanceof RemoteDataError && err.status !== undefined && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429;
+      if (final) {
         pendingRef.current = null;
         setPendingOrder(null);
-        localStorage.removeItem(PENDING_ORDER_KEY);
+        localStorage.removeItem(STORAGE_KEYS.selfPendingOrder);
+        // The server rejected the stored order (e.g. a price changed): hand its items back to the cart.
+        if (mode === "recover" && pending && currentCart.current.length === 0) cart.setLines(pending.lines);
+      } else if (pending && mode === "new") {
+        // The stored payload now stands for this order; anything added to the cart afterwards is a new order.
+        cart.clear();
+        setCartOpen(false);
       }
       toast.error(err instanceof Error ? err.message : t.selfOrder.order.sendFailed);
       return null;
@@ -160,6 +178,14 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
     const result = await submitOrder("pay-later");
     if (!result) return;
     toast.success(t.selfOrder.order.accepted(result.order.no), {
+      description: t.selfOrder.order.acceptedBody(result.order.no),
+    });
+  };
+
+  const retryPendingOrder = async () => {
+    const result = await submitOrder("pay-later", "recover");
+    if (!result) return;
+    toast.success(t.selfOrder.pending.recovered(result.order.no), {
       description: t.selfOrder.order.acceptedBody(result.order.no),
     });
   };
@@ -217,6 +243,7 @@ export function useSelfOrderSession(paramTableId: string | undefined): SelfOrder
     setCartOpen,
     submitting,
     pendingOrder,
+    retryPendingOrder,
     liveOrders: live,
     qris,
     payAtCashier,

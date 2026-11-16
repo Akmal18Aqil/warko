@@ -35,7 +35,7 @@ async function loadPublic(isActive: () => boolean): Promise<void> {
   pricingStore.set({ pricing: menu.pricing });
   catalogStore.set({ products: menu.products, tables: menu.tables, categories: categoriesFromProducts(menu.products) });
   ordersStore.set({ orders: [] });
-  shiftStore.set({ activeShift: null, cashMovements: [] });
+  shiftStore.set({ activeShift: null, cashShiftOpen: false, cashMovements: [] });
 }
 
 async function loadStaff(isActive: () => boolean): Promise<void> {
@@ -87,7 +87,7 @@ export function startDataSync(publicCustomer: boolean): () => void {
   // Never show the previous session's data (another staff member, or the staff app vs. public menu).
   catalogStore.set({ products: [], categories: [], tables: [] });
   ordersStore.set({ orders: [] });
-  shiftStore.set({ activeShift: null, cashMovements: [] });
+  shiftStore.set({ activeShift: null, cashShiftOpen: false, cashMovements: [] });
 
   void (async () => {
     try {

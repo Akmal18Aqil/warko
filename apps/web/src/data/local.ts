@@ -46,6 +46,13 @@ db.on("populate", (transaction) => {
   ]).then(() => undefined);
 });
 
+/** Same rule as the API: cash is only accepted while a shift is open, so every cash sale belongs to a shift. */
+async function assertCashShiftOpen(): Promise<void> {
+  if (!(await db.shifts.where("status").equals("OPEN").first())) {
+    throw new Error("Buka shift sebelum menerima pembayaran tunai.");
+  }
+}
+
 async function ensureSeeded(): Promise<void> {
   await db.open();
 }
@@ -65,7 +72,7 @@ export const localSource: DataSource = {
       this.loadCashMovements(),
       this.loadPricing(),
     ]);
-    return { products, orders, tables, categories, activeShift: activeShift ?? null, cashMovements, pricing };
+    return { products, orders, tables, categories, activeShift: activeShift ?? null, cashShiftOpen: activeShift !== undefined, cashMovements, pricing };
   },
 
   async loadPricing() {
@@ -170,9 +177,10 @@ export const localSource: DataSource = {
   },
 
   saveOrder(row, options) {
-    return db.transaction("rw", db.orders, db.products, async () => {
+    return db.transaction("rw", db.orders, db.products, db.shifts, async () => {
       const existing = await db.orders.where("clientRef").equals(options.clientRef).first();
       if (existing) return existing;
+      if (row.paymentStatus === "paid" && row.method === "tunai") await assertCashShiftOpen();
 
       const qtyByProduct = new Map<string, number>();
       for (const item of row.items ?? []) qtyByProduct.set(item.itemId, (qtyByProduct.get(item.itemId) ?? 0) + item.qty);
@@ -205,10 +213,11 @@ export const localSource: DataSource = {
   },
 
   settleOrder(no, method, paidBy, cashReceived) {
-    return db.transaction("rw", db.orders, async () => {
+    return db.transaction("rw", db.orders, db.shifts, async () => {
       const order = await db.orders.get(no);
       if (!order) throw new Error("Pesanan tidak ditemukan.");
       if (order.paymentStatus === "paid") return { order, alreadyPaid: true };
+      if (method === "tunai") await assertCashShiftOpen();
       if (order.paymentStatus === "refunded") throw new Error("Pesanan sudah direfund dan tidak dapat dibayar.");
       if (method === "tunai" && (cashReceived ?? -1) < order.total) throw new Error("Uang diterima kurang dari total.");
       const paid: OrderRow = {

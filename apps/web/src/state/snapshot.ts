@@ -10,7 +10,11 @@ export function applySnapshot(snapshot: Snapshot): void {
     tables: snapshot.tables,
   });
   ordersStore.setIfChanged({ orders: snapshot.orders });
-  shiftStore.setIfChanged({ activeShift: snapshot.activeShift, cashMovements: snapshot.cashMovements });
+  shiftStore.setIfChanged({
+    activeShift: snapshot.activeShift,
+    cashShiftOpen: snapshot.cashShiftOpen,
+    cashMovements: snapshot.cashMovements,
+  });
   pricingStore.setIfChanged({ pricing: snapshot.pricing });
 }
 

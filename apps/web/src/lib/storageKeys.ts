@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   selfOrders: "wakro_self_orders_v1",
   selfTable: "wakro_self_table_v1",
   selfCustomerName: "wakro_self_customer_name",
+  selfPendingOrder: "wakro_pending_self_order_v1",
 } as const;
 
 export const SYNC_CHANNEL_NAME = "wakro_sync_channel";

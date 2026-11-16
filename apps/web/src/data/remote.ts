@@ -34,6 +34,7 @@ type BootstrapPayload = {
   shifts: ShiftRecord[];
   cashMovements: CashMovementRow[];
   pricing: PricingSettings;
+  cashShiftOpen: boolean;
 };
 
 function toSnapshot(payload: BootstrapPayload): Snapshot {

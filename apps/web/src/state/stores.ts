@@ -23,6 +23,7 @@ export const ordersStore = createStore({
 
 export const shiftStore = createStore({
   activeShift: null as ShiftRecord | null,
+  cashShiftOpen: false,
   cashMovements: [] as CashMovementRow[],
 });
 

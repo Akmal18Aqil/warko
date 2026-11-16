@@ -126,6 +126,8 @@ export type Snapshot = {
   categories: CategoryRow[];
   /** The open shift, if any. */
   activeShift: ShiftRecord | null;
+  /** Whether any shift is open; known to every role (only finance roles receive `activeShift`). */
+  cashShiftOpen: boolean;
   cashMovements: CashMovementRow[];
   pricing: PricingSettings;
 };

@@ -100,6 +100,7 @@ export const pos = {
     cardHint: "Tap, masukkan kartu, atau pindai",
     cashMethod: "Tunai",
     cashHint: "Masukkan uang dari pelanggan",
+    cashNeedsShift: "Buka shift di Laci Kas untuk menerima tunai",
     qrisMethod: "QRIS / Dompet Digital",
     qrisHint: "Scan QRIS toko, verifikasi di aplikasi merchant",
     qrisSimulated: "Konfirmasi hanya setelah notifikasi dana masuk muncul di aplikasi merchant QRIS.",

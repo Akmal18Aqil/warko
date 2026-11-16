@@ -10,6 +10,7 @@ import { useAuth } from "../../state/auth";
 import { payOrder, useCart } from "../../state/cart";
 import { settleOrder, useNextOrderNo } from "../../state/orders";
 import { usePrint } from "../../state/print";
+import { useCashShiftOpen } from "../../state/shift";
 import { STORE_PROFILE } from "../../lib/storeProfile";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
@@ -30,7 +31,8 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
   const { currentStaff } = useAuth();
   const { printOrderReceipt } = usePrint();
   const [submitting, setSubmitting] = useState(false);
-  const [method, setMethod] = useState<PayMethod>("tunai");
+  const cashOpen = useCashShiftOpen();
+  const [method, setMethod] = useState<PayMethod>(cashOpen ? "tunai" : "kartu-qr");
   const [cash, setCash] = useState("");
   const statusId = useId();
   const amount = order ? order.total : totals.total;
@@ -39,7 +41,7 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
   const cashNum = Number.parseInt(cash.replace(/\D/g, ""), 10) || 0;
   const shortage = Math.max(0, amount - cashNum);
   const change = cashNum >= amount ? cashNum - amount : null;
-  const canPay = (method !== "tunai" || cashNum >= amount) && !submitting;
+  const canPay = (method !== "tunai" || (cashOpen && cashNum >= amount)) && !submitting;
 
   const handlePay = async () => {
     if (!canPay) return;
@@ -113,11 +115,12 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
             onSelect={() => setMethod("tunai")}
             icon={<Banknote size={20} aria-hidden="true" />}
             title={t.pos.payment.cashMethod}
-            hint={t.pos.payment.cashHint}
+            hint={cashOpen ? t.pos.payment.cashHint : t.pos.payment.cashNeedsShift}
+            disabled={!cashOpen}
           />
         </div>
 
-        {method === "tunai" && (
+        {method === "tunai" && cashOpen && (
           <div className="px-6 pt-4">
             <Input
               label={t.pos.payment.cashReceivedLabel}
@@ -184,28 +187,33 @@ function MethodCard({
   icon,
   title,
   hint,
+  disabled = false,
 }: {
   selected: boolean;
   onSelect: () => void;
   icon: ReactNode;
   title: string;
   hint: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
+      disabled={disabled}
       aria-pressed={selected}
       className={cn(
         "pressable flex min-h-32 flex-col justify-between rounded-xl border p-4 text-left transition-colors",
-        selected
-          ? "border-accent bg-accent/15 ring-2 ring-accent/50"
-          : "border-border bg-surface hover:border-accent/50 hover:bg-surface-muted/50",
+        disabled
+          ? "cursor-not-allowed border-border bg-surface-muted/60"
+          : selected
+            ? "border-accent bg-accent/15 ring-2 ring-accent/50"
+            : "border-border bg-surface hover:border-accent/50 hover:bg-surface-muted/50",
       )}
     >
-      <span className="text-ink">{icon}</span>
-      <span className="mt-2 block text-sm font-semibold text-ink">{title}</span>
-      <span className="mt-0.5 block text-xs2 leading-snug text-text-muted">{hint}</span>
+      <span className={disabled ? "text-text-muted" : "text-ink"}>{icon}</span>
+      <span className={cn("mt-2 block text-sm font-semibold", disabled ? "text-text-muted" : "text-ink")}>{title}</span>
+      <span className={cn("mt-0.5 block text-xs2 leading-snug", disabled ? "font-semibold text-warning-dark" : "text-text-muted")}>{hint}</span>
     </button>
   );
 }

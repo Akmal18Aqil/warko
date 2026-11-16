@@ -1,7 +1,7 @@
+import { STORAGE_KEYS } from "../../lib/storageKeys";
 import type { CartLine } from "../../types/domain";
 
-export const PENDING_ORDER_KEY = "wakro_pending_self_order_v1";
-
+/** A submitted self-order whose outcome is unknown (the response was lost); re-sent with the same key. */
 export type PendingOrder = {
   tableId: string;
   customerName: string;
@@ -12,7 +12,7 @@ export type PendingOrder = {
 };
 
 export function readPendingOrder(storage: Storage): PendingOrder | null {
-  const raw = storage.getItem(PENDING_ORDER_KEY);
+  const raw = storage.getItem(STORAGE_KEYS.selfPendingOrder);
   if (!raw) return null;
   try {
     const value: unknown = JSON.parse(raw);
@@ -30,6 +30,7 @@ export function readPendingOrder(storage: Storage): PendingOrder | null {
   }
 }
 
-export function shouldClearSubmittedCart(recovering: boolean, submitted: CartLine[], current: CartLine[]): boolean {
-  return !recovering && JSON.stringify(current) === JSON.stringify(submitted);
+/** True when the cart still holds exactly what was submitted (the customer did not edit it meanwhile). */
+export function cartUnchanged(submitted: readonly CartLine[], current: readonly CartLine[]): boolean {
+  return JSON.stringify(current) === JSON.stringify(submitted);
 }

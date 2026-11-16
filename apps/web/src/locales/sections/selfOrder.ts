@@ -69,6 +69,14 @@ export const selfOrder = {
     receipt: "Struk digital",
     details: "Rincian",
   },
+  pending: {
+    title: "Pesanan sebelumnya belum terkonfirmasi",
+    body: "Koneksi terputus saat pesanan dikirim, jadi kami belum tahu apakah pesanan sudah diterima. Kirim ulang untuk memastikan. Pesanan tidak akan tercatat dua kali.",
+    retry: "Kirim ulang pesanan sebelumnya",
+    retrying: "Mengirim ulang…",
+    blocked: "Pastikan dulu pesanan sebelumnya lewat tombol kirim ulang di atas.",
+    recovered: (no: number) => `Pesanan #${no} sudah tercatat.`,
+  },
   order: {
     emptyCart: "Keranjang pesanan masih kosong",
     sendFailed: "Gagal mengirim pesanan. Silakan coba lagi.",

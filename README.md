@@ -299,22 +299,48 @@ pnpm build     # build web mode remote
 
 ### Deploy Cloudflare
 
-Pembayaran tunai baru ditolak bila tidak ada shift terbuka; buka shift terlebih dahulu.
+Satu Worker (`kasa-pos`) melayani web dan `/api/*`, dengan database D1 `kasa-pos`. Semua perintah dijalankan dari `apps/api`.
 
-Jika respons pembuatan QRIS hilang, sistem mengulang permintaan dengan `Idempotency-Key` yang sama selama empat menit pertama. Setelah itu sistem memeriksa status transaksi; bila QR masih aktif tetapi kode QR tidak tersedia, pelanggan harus menunggu status akhir atau membayar di kasir. Pastikan tidak ada pembayaran QRIS yang sedang diproses sebelum menerima pembayaran lain untuk pesanan tersebut. Referensi: https://docs.midtrans.com/reference/api-headers dan https://docs.midtrans.com/reference/get-transaction-status
+**Penyiapan pertama (sekali saja)**
 
 ```bash
-cd apps/api
 pnpm exec wrangler secret put SESSION_SECRET
 pnpm exec wrangler secret put BOOTSTRAP_SECRET
-pnpm migrate:remote        # wajib sebelum deploy: menerapkan semua migrasi termasuk 0004 dan 0005
-pnpm deploy                # build web (mode remote) lalu wrangler deploy
+pnpm migrate:remote
+pnpm deploy
 ```
 
-- Admin pertama dibuat lewat `POST /api/setup/bootstrap` dengan header `X-Bootstrap-Secret` dan body JSON `username`, `name`, `password`. Setelah itu ganti `BOOTSTRAP_SECRET` dengan nilai < 32 karakter untuk menonaktifkan endpoint.
+Buat admin pertama dengan `POST /api/setup/bootstrap` (header `X-Bootstrap-Secret`, body JSON `username`, `name`, `password`). Setelah admin pertama ada, endpoint ini menolak permintaan berikutnya (`409`).
+
+**Setiap rilis**
+
+1. Pastikan `pnpm check`, `pnpm test`, dan `pnpm build` lulus.
+2. Periksa migrasi yang tertunda: `pnpm exec wrangler d1 migrations list DB --remote`. Jika ada migrasi, **hentikan transaksi** (kasir, dapur, self-order) sampai deploy selesai: Worker lama tidak dijamin cocok dengan skema baru.
+3. Cadangkan database: `pnpm exec wrangler d1 export DB --remote --output ../../backups/<tanggal>.sql`.
+4. Jika ada migrasi, uji dulu pada salinan backup:
+   ```bash
+   pnpm exec wrangler d1 execute DB --local --persist-to .wrangler/rehearsal --file ../../backups/<tanggal>.sql
+   pnpm exec wrangler d1 migrations apply DB --local --persist-to .wrangler/rehearsal
+   ```
+5. `pnpm migrate:remote`, lalu `pnpm deploy` (build web mode remote, lalu `wrangler deploy`).
+6. Verifikasi: buka situs, login staf, buka halaman self-order, dan pastikan `GET /api/public/menu` mengembalikan 200.
+
+**Rollback**
+
+- Kode: `pnpm exec wrangler rollback <version-id>` (lihat ID dengan `pnpm exec wrangler deployments list`).
+- Data tidak ikut kembali saat rollback kode. Untuk memulihkan database ke titik waktu tertentu gunakan `pnpm exec wrangler d1 time-travel restore DB --timestamp <waktu>`. Rollback kode ke versi sebelum migrasi hanya aman jika database juga dipulihkan.
+
+**Aturan operasional yang perlu diketahui**
+
+- Pembayaran tunai hanya diterima saat ada shift terbuka; tombol tunai nonaktif sampai kasir membuka shift di Laci Kas. Semua penjualan tunai tercatat ke shift yang terbuka saat pembayaran disimpan.
+- QRIS mandiri aktif bila `MIDTRANS_SERVER_KEY` diisi (lihat bagian QRIS di atas). Bila respons pembuatan QR hilang, sistem mengulang permintaan dengan `Idempotency-Key` yang sama selama empat menit, lalu memeriksa status transaksi di Midtrans. Referensi: [API Headers & Idempotency](https://docs.midtrans.com/reference/api-headers), [Get Transaction Status](https://docs.midtrans.com/reference/get-transaction-status).
 - Cron harian (`triggers.crons`) membersihkan sesi kedaluwarsa dan catatan throttle login.
-- Migrasi `0004_integrity_and_indexes.sql` memindahkan `products.category` (nama) menjadi `category_id` (FK) dan mewajibkan nama kategori unik tanpa membedakan huruf besar/kecil. Jika D1 produksi punya dua kategori yang hanya beda huruf besar/kecil, gabungkan dulu sebelum menjalankan migrasi; cadangkan data (`wrangler d1 export`) sebelum `migrate:remote`.
-- Migrasi `0005_cash_shift_attribution.sql` menghubungkan pembayaran tunai lama ke shift berdasarkan rentang `paid_at`; bila rentang tumpang tindih, shift dengan waktu buka paling baru dipilih. Tinjau pembayaran yang tidak cocok dan shift yang tumpang tindih sebelum migrasi. Hentikan sementara transaksi saat menerapkan migrasi dan deploy agar Worker lama tidak mencatat pembayaran tanpa atribusi setelah backfill.
+- Beberapa DNS operator seluler mengalihkan domain `*.workers.dev` ke halaman blokir. Untuk operasional, pasang domain sendiri pada Worker.
+
+**Catatan migrasi**
+
+- `0004_integrity_and_indexes.sql` mengganti `products.category` (nama) menjadi `category_id` (FK) dan mewajibkan nama kategori unik tanpa membedakan huruf besar/kecil.
+- `0005_cash_shift_attribution.sql` menambahkan `orders.cash_shift_id` dan mengisinya untuk pembayaran tunai lama berdasarkan rentang waktu shift. Pembayaran tunai lama yang tidak jatuh di shift mana pun dibiarkan kosong.
 
 ---
 

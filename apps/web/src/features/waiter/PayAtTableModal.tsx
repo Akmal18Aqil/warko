@@ -3,6 +3,7 @@ import { Banknote, QrCode } from "lucide-react";
 import { formatIDR } from "../../data/menu";
 import { t } from "../../locales/id";
 import { cn } from "../../lib/cn";
+import { useCashShiftOpen } from "../../state/shift";
 import { Button } from "../../ui/Button";
 import { Input } from "../../ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
@@ -24,7 +25,8 @@ const METHODS: readonly { id: WaiterPayMethod; label: string; icon: typeof Bankn
 ];
 
 export function PayAtTableModal({ tableName, waiterName, total, isSubmitting, onClose, onConfirm }: PayAtTableModalProps) {
-  const [method, setMethod] = useState<WaiterPayMethod>("tunai");
+  const cashOpen = useCashShiftOpen();
+  const [method, setMethod] = useState<WaiterPayMethod>(cashOpen ? "tunai" : "qris");
   const [cashInput, setCashInput] = useState("");
 
   const confirm = async () => {
@@ -43,24 +45,36 @@ export function PayAtTableModal({ tableName, waiterName, total, isSubmitting, on
         </div>
 
         <div role="radiogroup" aria-label={t.waiter.payMethodLabel} className="grid grid-cols-2 gap-2">
-          {METHODS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={method === id}
-              onClick={() => setMethod(id)}
-              className={cn(
-                "flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition-all",
-                method === id
-                  ? "border-ink bg-ink text-white shadow-sm"
-                  : "border-border bg-surface text-ink hover:bg-mineral",
-              )}
-            >
-              <Icon size={16} aria-hidden="true" />
-              {label}
-            </button>
-          ))}
+          {METHODS.map(({ id, label, icon: Icon }) => {
+            const disabled = id === "tunai" && !cashOpen;
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={method === id}
+                disabled={disabled}
+                onClick={() => setMethod(id)}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-xl border p-3 text-xs font-bold transition-all",
+                  disabled
+                    ? "cursor-not-allowed border-border bg-surface-muted/60 text-text-muted"
+                    : method === id
+                      ? "border-ink bg-ink text-white shadow-sm"
+                      : "border-border bg-surface text-ink hover:bg-mineral",
+                )}
+              >
+                <Icon size={16} aria-hidden="true" />
+                {label}
+              </button>
+            );
+          })}
         </div>
+
+        {!cashOpen && (
+          <p role="status" className="rounded-xl bg-warning/10 p-2.5 text-xs2 font-semibold text-warning-dark">
+            {t.waiter.cashNeedsShift}
+          </p>
+        )}
 
         {method === "tunai" ? (
           <Input
@@ -82,7 +96,7 @@ export function PayAtTableModal({ tableName, waiterName, total, isSubmitting, on
         <Button variant="outline" onClick={onClose}>
           {t.common.cancel}
         </Button>
-        <Button variant="primary" className="font-bold" onClick={confirm} loading={isSubmitting}>
+        <Button variant="primary" className="font-bold" onClick={confirm} loading={isSubmitting} disabled={method === "tunai" && !cashOpen}>
           {t.waiter.payConfirm}
         </Button>
       </ModalFooter>
