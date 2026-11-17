@@ -38,3 +38,4 @@ backups/
 apps/web/dist-demo/
 playwright-report/
 test-results/
+uat-results/

@@ -9,5 +9,5 @@
     "allowJs": true,
     "types": ["node"]
   },
-  "include": ["playwright.config.ts", "tests", "env.mjs"]
+  "include": ["playwright.config.ts", "playwright.uat.config.ts", "tests", "uat", "env.mjs"]
 }

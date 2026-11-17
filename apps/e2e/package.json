@@ -5,7 +5,8 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "install-browsers": "playwright install chromium"
+    "install-browsers": "playwright install chromium",
+    "test:uat": "playwright test -c playwright.uat.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
