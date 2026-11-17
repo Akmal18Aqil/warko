@@ -1,3 +1,4 @@
+import { MAX_MONEY } from "@wakro/shared";
 import { Banknote, QrCode } from "lucide-react";
 import { useState } from "react";
 import { formatIDR } from "../../data/menu";
@@ -28,9 +29,16 @@ export function PayAtTableModal({ tableName, waiterName, total, isSubmitting, on
   const cashOpen = useCashShiftOpen();
   const [method, setMethod] = useState<WaiterPayMethod>(cashOpen ? "tunai" : "qris");
   const [cashInput, setCashInput] = useState("");
+  const cashValid = /^\d+$/.test(cashInput) && Number(cashInput) <= MAX_MONEY;
+  const cashError =
+    cashInput && !/^\d+$/.test(cashInput)
+      ? t.pos.payment.cashInvalid
+      : cashInput && !cashValid
+        ? t.pos.payment.cashTooLarge(formatIDR(MAX_MONEY))
+        : undefined;
 
   const confirm = async () => {
-    const cashReceived = Number.parseInt(cashInput, 10) || 0;
+    const cashReceived = cashValid ? Number(cashInput) : 0;
     const paid = await onConfirm({ method, cashReceived: method === "tunai" ? cashReceived : undefined });
     if (paid) onClose();
   };
@@ -83,7 +91,8 @@ export function PayAtTableModal({ tableName, waiterName, total, isSubmitting, on
             inputMode="numeric"
             autoComplete="off"
             value={cashInput}
-            onChange={(e) => setCashInput(e.target.value.replace(/\D/g, ""))}
+            onChange={(e) => setCashInput(e.target.value)}
+            error={cashError}
             placeholder={String(total)}
             className="font-bold"
           />
@@ -95,7 +104,7 @@ export function PayAtTableModal({ tableName, waiterName, total, isSubmitting, on
         <Button variant="outline" onClick={onClose}>
           {t.common.cancel}
         </Button>
-        <Button variant="primary" className="font-bold" onClick={confirm} loading={isSubmitting} disabled={method === "tunai" && !cashOpen}>
+        <Button variant="primary" className="font-bold" onClick={confirm} loading={isSubmitting} disabled={method === "tunai" && (!cashOpen || !cashValid)}>
           {t.waiter.payConfirm}
         </Button>
       </ModalFooter>

@@ -1,5 +1,26 @@
 import { expect, test } from "@playwright/test";
 
+test("cash input keeps typed characters and explains invalid or excessive amounts", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Burger Keju, Rp .*Tambahkan ke pesanan$/ }).click();
+  await page.getByRole("button", { name: /^Bayar Rp/ }).click();
+  const dialog = page.getByRole("dialog");
+  const cash = dialog.getByLabel(/uang yang diterima/i);
+  const pay = dialog.getByRole("button", { name: "Selesaikan pembayaran" });
+  await cash.fill("100.000");
+  await expect(cash).toHaveValue("100.000");
+  await expect(dialog.getByRole("alert")).toContainText("Masukkan angka saja");
+  await expect(pay).toBeDisabled();
+  await cash.fill("1000000001");
+  await expect(cash).toHaveValue("1000000001");
+  await expect(dialog.getByRole("alert")).toContainText("Nominal maksimal");
+  await expect(pay).toBeDisabled();
+  await cash.fill("100000");
+  await expect(cash).toHaveValue("100000");
+  await expect(dialog.getByText(/Kembalian/)).toBeVisible();
+  await expect(pay).toBeEnabled();
+});
+
 test("demo mode is labelled, ready for cash sales, and resets", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Data contoh tersimpan hanya di browser ini", { exact: false })).toBeVisible();

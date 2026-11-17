@@ -213,6 +213,7 @@ Aturan peran sama dengan API: menambah/mengubah produk, kategori, meja, dan paja
 - **Kustomisasi Pesanan**: Tambahkan catatan per item (*less sugar, tanpa bawang, pedas sedang*).
 - **Kalkulasi Otomatis**: Subtotal, diskon (persen/nominal), biaya layanan (*Service Charge*), dan pajak (PPN, tarif dapat diatur; bawaan 11%).
 - **Multi-Metode Pembayaran**: Tunai dengan kalkulator uang kembalian cepat, QRIS Dinamis Mandiri, Kartu Debit/Kredit, dan Transfer Bank.
+- **Input tunai**: Masukkan nominal dalam rupiah menggunakan angka tanpa pemisah, misalnya `100000`. Format tidak valid dan nominal melebihi batas ditampilkan sebagai pesan pada kolom, tanpa menghapus input.
 - **Pembayaran atomik**: Aksi utama `Bayar & Kirim ke Dapur` mencatat pembayaran dan mengantrekan tiket KDS dalam satu alur.
 - **Status terpisah**: Status pembayaran tidak menimpa status proses dapur, sehingga pesanan bisa `Lunas` sekaligus `Dimasak`.
 - **Kasir di HP & tablet** (lebar < 1200px): menu tampil 2 kolom (3 di tablet) dengan badge jumlah di kartu; pencarian dan kategori tetap terlihat saat menggulir. Bar keranjang di bawah menampilkan jumlah item, tujuan pesanan, dan total, lalu membuka keranjang sebagai *bottom sheet*. Pembayaran tunai punya tombol nominal cepat (**Uang pas** dan pembulatan ke pecahan berikutnya). Navigasi bawah menampilkan 4 menu utama; sisanya di **Lainnya**.

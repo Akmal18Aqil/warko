@@ -1,4 +1,4 @@
-import type { PayMethod } from "@wakro/shared";
+import { MAX_MONEY, type PayMethod } from "@wakro/shared";
 import { Banknote, CreditCard, QrCode, Wallet } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
@@ -36,13 +36,21 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
   const [method, setMethod] = useState<PayMethod>(cashOpen ? "tunai" : "kartu-qr");
   const [cash, setCash] = useState("");
   const statusId = useId();
+  const cashInputId = `${statusId}-cash`;
   const amount = order ? order.total : totals.total;
   const displayNo = order ? order.no : orderNo;
 
-  const cashNum = Number.parseInt(cash.replace(/\D/g, ""), 10) || 0;
+  const cashValid = /^\d+$/.test(cash) && Number(cash) <= MAX_MONEY;
+  const cashNum = cashValid ? Number(cash) : 0;
+  const cashError =
+    cash && !/^\d+$/.test(cash)
+      ? t.pos.payment.cashInvalid
+      : cash && !cashValid
+        ? t.pos.payment.cashTooLarge(formatIDR(MAX_MONEY))
+        : undefined;
   const shortage = Math.max(0, amount - cashNum);
-  const change = cashNum >= amount ? cashNum - amount : null;
-  const canPay = (method !== "tunai" || (cashOpen && cashNum >= amount)) && !submitting;
+  const change = cashValid && cashNum >= amount ? cashNum - amount : null;
+  const canPay = (method !== "tunai" || (cashOpen && cashValid && cashNum >= amount)) && !submitting;
 
   const handlePay = async () => {
     if (!canPay) return;
@@ -123,14 +131,16 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
         {method === "tunai" && cashOpen && (
           <div className="px-5 pt-4 sm:px-6">
             <Input
+              id={cashInputId}
               label={t.pos.payment.cashReceivedLabel}
               size="lg"
               inputMode="numeric"
               autoComplete="off"
               value={cash}
-              onChange={(e) => setCash(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => setCash(e.target.value)}
+              error={cashError}
               placeholder={t.pos.payment.cashPlaceholder}
-              aria-describedby={statusId}
+              aria-describedby={cashError ? `${statusId} ${cashInputId}-error` : statusId}
               className="font-display font-bold"
             />
             <fieldset className="mt-2 grid min-w-0 grid-cols-3 gap-2">
@@ -153,7 +163,7 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
               ))}
             </fieldset>
             <p id={statusId} aria-live="polite" className="min-h-11 pt-2 text-sm">
-              {cash.length > 0 && shortage > 0 && (
+              {cashValid && shortage > 0 && (
                 <>
                   <span className="font-semibold text-error-dark">{t.pos.payment.shortageLabel(formatIDR(shortage))}</span>
                   {cashNum > 0 && (

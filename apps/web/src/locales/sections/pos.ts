@@ -124,6 +124,8 @@ export const pos = {
     quickAmountsLabel: "Nominal cepat",
     exactAmount: "Uang pas",
     cashPlaceholder: "Contoh: 100000",
+    cashInvalid: "Masukkan angka saja tanpa titik atau koma, misalnya 100000.",
+    cashTooLarge: (max: string) => `Nominal maksimal ${max}.`,
     shortageLabel: (amount: string) => `Kurang: ${amount}`,
     changeLabel: (amount: string) => `Kembalian: ${amount}`,
     shortageErrorTitle: "Uang tunai masih kurang",
