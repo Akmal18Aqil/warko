@@ -352,8 +352,9 @@ button {
 
 /* ---- Thermal receipt (print layer) ---- */
 
+/* Width comes from the selected paper roll (PrintLayer); centred between the print head's blank edges. */
 .receipt-print {
-  width: 64mm;
+  margin: 0 auto;
   color: var(--color-ink);
   font-family: var(--font-body);
   font-size: 10.5px;

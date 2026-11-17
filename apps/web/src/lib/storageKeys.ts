@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   pricing: "wakro_pricing_v1",
   customServerIp: "wakro_custom_server_ip",
   printerDriver: "wakro_printer_driver",
+  printerPaper: "wakro_printer_paper",
   deviceInfo: "wakro_device_info",
   syncEvent: "wakro_sync_event",
   sidebarCollapsed: "wakro_sidebar_collapsed",

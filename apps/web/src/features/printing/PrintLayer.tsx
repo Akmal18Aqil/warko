@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
 import { formatIDR } from "../../data/menu";
 import { receiptFromOrder } from "../../lib/receipt";
 import { STORE_PROFILE } from "../../lib/storeProfile";
 import { t } from "../../locales/id";
+import { getPaperWidth, PRINTABLE_MM } from "../../services/printer/paper";
 import { useAuth } from "../../state/auth";
 import { useCart } from "../../state/cart";
 import { useProducts } from "../../state/catalog";
@@ -23,6 +25,21 @@ export function PrintLayer() {
     case "cart":
       return <CartReceiptPrint />;
   }
+}
+
+/**
+ * A receipt sized to the printable width of the selected roll. Page margins are dropped while it is
+ * mounted: the 8 mm report margin alone would push a receipt off a 58 mm roll.
+ */
+function ReceiptPrint({ children }: { children: ReactNode }) {
+  return (
+    <div id="print-root" aria-hidden="true">
+      <style>{"@page { margin: 0; }"}</style>
+      <div className="receipt-print" style={{ width: `${PRINTABLE_MM[getPaperWidth()]}mm` }}>
+        {children}
+      </div>
+    </div>
+  );
 }
 
 function ReceiptHead() {
@@ -95,109 +112,105 @@ function SalesReportPrint({ report }: { report: ReportPayload }) {
 
 function ZReportPrint({ report }: { report: ZReportPayload }) {
   return (
-    <div id="print-root" aria-hidden="true">
-      <div className="receipt-print">
-        <ReceiptHead />
-        <div className="rp-sep" />
-        <p className="rp-strong rp-center">{t.printing.zReport.title}</p>
-        <table className="rp-summary">
-          <tbody>
-            <SummaryRows rows={report.details} />
-          </tbody>
-        </table>
-        <div className="rp-sep" />
-        <table className="rp-summary">
-          <tbody>
-            <SummaryRows rows={report.figures} />
-          </tbody>
-        </table>
-        {report.denominations.length > 0 ? (
-          <>
-            <div className="rp-sep" />
-            <p className="rp-strong">{t.printing.zReport.denominations}</p>
-            <table className="rp-summary">
-              <tbody>
-                <SummaryRows rows={report.denominations} />
-              </tbody>
-            </table>
-          </>
-        ) : null}
-        {report.notes ? (
-          <>
-            <div className="rp-sep" />
-            <p className="rp-muted">
-              {t.printing.zReport.notes}: {report.notes}
-            </p>
-          </>
-        ) : null}
-        <div className="rp-sep" />
-        <p className="rp-muted">{t.printing.zReport.signature}:</p>
-        <p className="rp-muted">&nbsp;</p>
-        <p className="rp-muted">&nbsp;</p>
-      </div>
-    </div>
+    <ReceiptPrint>
+      <ReceiptHead />
+      <div className="rp-sep" />
+      <p className="rp-strong rp-center">{t.printing.zReport.title}</p>
+      <table className="rp-summary">
+        <tbody>
+          <SummaryRows rows={report.details} />
+        </tbody>
+      </table>
+      <div className="rp-sep" />
+      <table className="rp-summary">
+        <tbody>
+          <SummaryRows rows={report.figures} />
+        </tbody>
+      </table>
+      {report.denominations.length > 0 ? (
+        <>
+          <div className="rp-sep" />
+          <p className="rp-strong">{t.printing.zReport.denominations}</p>
+          <table className="rp-summary">
+            <tbody>
+              <SummaryRows rows={report.denominations} />
+            </tbody>
+          </table>
+        </>
+      ) : null}
+      {report.notes ? (
+        <>
+          <div className="rp-sep" />
+          <p className="rp-muted">
+            {t.printing.zReport.notes}: {report.notes}
+          </p>
+        </>
+      ) : null}
+      <div className="rp-sep" />
+      <p className="rp-muted">{t.printing.zReport.signature}:</p>
+      <p className="rp-muted">&nbsp;</p>
+      <p className="rp-muted">&nbsp;</p>
+    </ReceiptPrint>
   );
 }
 
 function OrderReceiptPrint({ order }: { order: OrderRow }) {
   const r = receiptFromOrder(order);
   return (
-    <div id="print-root" aria-hidden="true">
-      <div className="receipt-print">
-        <ReceiptHead />
-        <div className="rp-sep" />
-        <p className="rp-strong">
-          {t.printing.receipt.orderPrefix} {r.orderNo}
-        </p>
-        <p className="rp-muted">
-          {r.details.map((line) => (
-            <span key={line}>
-              {line}
-              <br />
-            </span>
-          ))}
-        </p>
-        <div className="rp-sep" />
-        <table className="rp-items">
-          <tbody>
-            {r.lines.map((line) => (
-              <tr key={`${line.itemId}|${line.note ?? ""}`}>
-                <td className="rp-qty">{line.qty}×</td>
-                <td className="rp-name">
-                  {line.name}
-                  {line.note ? <span className="rp-unit"> ({line.note})</span> : null}
-                  <span className="rp-unit"> {t.printing.receipt.unitPrice(line.unit)}</span>
-                </td>
-                <td className="rp-amt">{line.amount}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="rp-sep" />
-        <table className="rp-summary">
-          <tbody>
-            {r.summary.map((row) => (
-              <tr key={row.label}>
-                <td>{row.label}</td>
-                <td className="rp-amt">{row.amount}</td>
-              </tr>
-            ))}
-            <tr className="rp-total-row">
-              <td>{t.printing.receipt.totalLabel}</td>
-              <td className="rp-amt">{r.total}</td>
+    <ReceiptPrint>
+      <ReceiptHead />
+      <div className="rp-sep" />
+      <p className="rp-strong">
+        {t.printing.receipt.orderPrefix} {r.orderNo}
+      </p>
+      <p className="rp-muted">
+        {r.details.map((line) => (
+          <span key={line}>
+            {line}
+            <br />
+          </span>
+        ))}
+      </p>
+      <div className="rp-sep" />
+      <table className="rp-items">
+        <tbody>
+          {r.lines.map((line) => (
+            <tr key={`${line.itemId}|${line.note ?? ""}`}>
+              <td className="rp-qty">{line.qty}×</td>
+              <td className="rp-name">
+                {line.name}
+                {line.note ? <span className="rp-unit"> ({line.note})</span> : null}
+                <span className="rp-unit"> {t.printing.receipt.unitPrice(line.unit)}</span>
+              </td>
+              <td className="rp-amt">{line.amount}</td>
             </tr>
-            {r.payment.map((row) => (
-              <tr key={row.label}>
-                <td>{row.label}</td>
-                <td className="rp-amt">{row.amount}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="rp-sep" />
-        <ReceiptFoot paid={r.paid} />
-      </div>
-    </div>
+          ))}
+        </tbody>
+      </table>
+      <div className="rp-sep" />
+      <table className="rp-summary">
+        <tbody>
+          {r.summary.map((row) => (
+            <tr key={row.label}>
+              <td>{row.label}</td>
+              <td className="rp-amt">{row.amount}</td>
+            </tr>
+          ))}
+          <tr className="rp-total-row">
+            <td>{t.printing.receipt.totalLabel}</td>
+            <td className="rp-amt">{r.total}</td>
+          </tr>
+          {r.payment.map((row) => (
+            <tr key={row.label}>
+              <td>{row.label}</td>
+              <td className="rp-amt">{row.amount}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="rp-sep" />
+      <ReceiptFoot paid={r.paid} />
+    </ReceiptPrint>
   );
 }
 
@@ -212,83 +225,81 @@ function CartReceiptPrint() {
   const text = t.printing.receipt;
 
   return (
-    <div id="print-root" aria-hidden="true">
-      <div className="receipt-print">
-        <ReceiptHead />
-        <div className="rp-sep" />
-        <p className="rp-strong">
-          {text.orderPrefix} {orderNo} ·{" "}
-          {orderType === "bawa-pulang"
-            ? text.orderTypeTakeaway
-            : text.orderTypeTable(selectedTable ? `${selectedTable.name} · ${selectedTable.area}` : "-")}
-          {orderType === "meja" ? ` · ${guests} ${text.guestsUnit}` : ""}
-        </p>
-        <p className="rp-muted">
-          {t.app.header.today(new Date())}
-          <br />
-          {text.cashierLine(currentStaff.name)}
-        </p>
-        <div className="rp-sep" />
+    <ReceiptPrint>
+      <ReceiptHead />
+      <div className="rp-sep" />
+      <p className="rp-strong">
+        {text.orderPrefix} {orderNo} ·{" "}
+        {orderType === "bawa-pulang"
+          ? text.orderTypeTakeaway
+          : text.orderTypeTable(selectedTable ? `${selectedTable.name} · ${selectedTable.area}` : "-")}
+        {orderType === "meja" ? ` · ${guests} ${text.guestsUnit}` : ""}
+      </p>
+      <p className="rp-muted">
+        {t.app.header.today(new Date())}
+        <br />
+        {text.cashierLine(currentStaff.name)}
+      </p>
+      <div className="rp-sep" />
 
-        {hasItems ? (
-          <>
-            <table className="rp-items">
-              <tbody>
-                {lines.map((line) => {
-                  const item = products.find((p) => p.id === line.itemId);
-                  if (!item) return null;
-                  return (
-                    <tr key={line.itemId}>
-                      <td className="rp-qty">{line.qty}×</td>
-                      <td className="rp-name">
-                        {item.name}
-                        <span className="rp-unit"> {text.unitPrice(formatIDR(item.price))}</span>
-                      </td>
-                      <td className="rp-amt">{formatIDR(item.price * line.qty)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div className="rp-sep" />
-            <table className="rp-summary">
-              <tbody>
+      {hasItems ? (
+        <>
+          <table className="rp-items">
+            <tbody>
+              {lines.map((line) => {
+                const item = products.find((p) => p.id === line.itemId);
+                if (!item) return null;
+                return (
+                  <tr key={line.itemId}>
+                    <td className="rp-qty">{line.qty}×</td>
+                    <td className="rp-name">
+                      {item.name}
+                      <span className="rp-unit"> {text.unitPrice(formatIDR(item.price))}</span>
+                    </td>
+                    <td className="rp-amt">{formatIDR(item.price * line.qty)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div className="rp-sep" />
+          <table className="rp-summary">
+            <tbody>
+              <tr>
+                <td>{text.subtotal}</td>
+                <td className="rp-amt">{formatIDR(totals.rawSubtotal)}</td>
+              </tr>
+              {totals.discountAmount > 0 ? (
                 <tr>
-                  <td>{text.subtotal}</td>
-                  <td className="rp-amt">{formatIDR(totals.rawSubtotal)}</td>
+                  <td>{text.discount}</td>
+                  <td className="rp-amt">-{formatIDR(totals.discountAmount)}</td>
                 </tr>
-                {totals.discountAmount > 0 ? (
-                  <tr>
-                    <td>{text.discount}</td>
-                    <td className="rp-amt">-{formatIDR(totals.discountAmount)}</td>
-                  </tr>
-                ) : null}
-                {totals.serviceCharge > 0 ? (
-                  <tr>
-                    <td>{text.serviceCharge(pricing.serviceChargeRate)}</td>
-                    <td className="rp-amt">{formatIDR(totals.serviceCharge)}</td>
-                  </tr>
-                ) : null}
-                {totals.tax > 0 ? (
-                  <tr>
-                    <td>{text.tax(pricing.taxRate)}</td>
-                    <td className="rp-amt">{formatIDR(totals.tax)}</td>
-                  </tr>
-                ) : null}
-                <tr className="rp-total-row">
-                  <td>{text.totalLabel}</td>
-                  <td className="rp-amt">{formatIDR(totals.total)}</td>
+              ) : null}
+              {totals.serviceCharge > 0 ? (
+                <tr>
+                  <td>{text.serviceCharge(pricing.serviceChargeRate)}</td>
+                  <td className="rp-amt">{formatIDR(totals.serviceCharge)}</td>
                 </tr>
-              </tbody>
-            </table>
-          </>
-        ) : (
-          <p className="rp-muted rp-center">{text.sampleNote}</p>
-        )}
+              ) : null}
+              {totals.tax > 0 ? (
+                <tr>
+                  <td>{text.tax(pricing.taxRate)}</td>
+                  <td className="rp-amt">{formatIDR(totals.tax)}</td>
+                </tr>
+              ) : null}
+              <tr className="rp-total-row">
+                <td>{text.totalLabel}</td>
+                <td className="rp-amt">{formatIDR(totals.total)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </>
+      ) : (
+        <p className="rp-muted rp-center">{text.sampleNote}</p>
+      )}
 
-        <div className="rp-sep" />
-        <ReceiptFoot />
-      </div>
-    </div>
+      <div className="rp-sep" />
+      <ReceiptFoot />
+    </ReceiptPrint>
   );
 }

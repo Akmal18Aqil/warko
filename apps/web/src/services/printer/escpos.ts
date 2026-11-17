@@ -1,4 +1,5 @@
 import { STORE_PROFILE } from "../../lib/storeProfile";
+import { LINE_CHARS, type PaperWidth } from "./paper";
 import type { ReceiptPayload } from "./types";
 
 /**
@@ -19,30 +20,70 @@ export const ESC_POS_COMMANDS = {
   DRAWER_KICK: [0x1b, 0x70, 0x00, 0x19, 0xfa], // ESC p 0 25 250
 };
 
-/**
- * Format two columns (left name/item, right price/total) with clean spacing
- */
-export function formatTwoColumns(left: string, right: string, maxChars: number = 32): string {
-  const spaceNeeded = maxChars - left.length - right.length;
-  if (spaceNeeded <= 0) {
-    const truncatedLeft = left.slice(0, Math.max(1, maxChars - right.length - 1));
-    return `${truncatedLeft} ${right}\n`;
+/** Splits `text` into lines of at most `width` characters, breaking at spaces where possible. */
+function wrap(text: string, width: number): string[] {
+  const lines: string[] = [];
+  let line = "";
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    let rest = word;
+    while (rest.length > width) {
+      if (line) lines.push(line);
+      lines.push(rest.slice(0, width));
+      rest = rest.slice(width);
+      line = "";
+    }
+    if (!line) line = rest;
+    else if (line.length + 1 + rest.length <= width) line = `${line} ${rest}`;
+    else {
+      lines.push(line);
+      line = rest;
+    }
   }
-  return `${left}${" ".repeat(spaceNeeded)}${right}\n`;
+  if (line || lines.length === 0) lines.push(line);
+  return lines;
+}
+
+/**
+ * Left text and right-aligned amount. A left side too long for one line wraps instead of being cut,
+ * so long menu names and their notes stay readable; the amount goes on its own line if it no longer fits.
+ */
+export function formatTwoColumns(left: string, right: string, maxChars: number): string {
+  const lines = wrap(left, maxChars);
+  const last = lines[lines.length - 1];
+  if (last.length + 1 + right.length <= maxChars) {
+    lines[lines.length - 1] = `${last}${" ".repeat(maxChars - last.length - right.length)}${right}`;
+  } else {
+    lines.push(right.padStart(maxChars));
+  }
+  return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Thermal printers decode text in a single-byte code page (usually PC437), not UTF-8, so every byte
+ * sent must be ASCII: accents are dropped (é → e), the no-break space `Intl` puts after "Rp" becomes
+ * a space, "·" and dashes become "-", and anything else becomes "?". Replacements are one character
+ * each, so the column layout computed before conversion still lines up.
+ */
+export function toPrinterText(text: string): string {
+  return text
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u00a0\u2007\u202f]/g, " ")
+    .replace(/[\u00b7\u2022\u2013\u2014]/g, "-")
+    .replace(/\u00d7/g, "x")
+    .replace(/[^\n\x20-\x7e]/g, "?");
 }
 
 /**
  * Generate ESC/POS Binary Buffer from ReceiptPayload
  */
-export function generateEscPosReceipt(payload: ReceiptPayload, paperWidth: 58 | 80 = 58): Uint8Array {
-  const maxChars = paperWidth === 58 ? 32 : 48;
+export function generateEscPosReceipt(payload: ReceiptPayload, paperWidth: PaperWidth): Uint8Array {
+  const maxChars = LINE_CHARS[paperWidth];
   const bytes: number[] = [];
 
   const append = (arr: number[]) => bytes.push(...arr);
   const appendText = (text: string) => {
-    const encoder = new TextEncoder();
-    const encoded = encoder.encode(text);
-    bytes.push(...Array.from(encoded));
+    for (const char of toPrinterText(text)) bytes.push(char.charCodeAt(0));
   };
 
   // 1. Initialize Printer

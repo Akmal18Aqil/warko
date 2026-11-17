@@ -6,12 +6,15 @@ export const settings = {
   },
   printer: {
     label: "Printer struk",
-    note: "Pilih pencetak struk: dialog cetak browser atau printer thermal Bluetooth (ESC/POS).",
+    note: "Pilih pencetak struk (dialog cetak browser atau printer thermal Bluetooth ESC/POS) dan lebar gulungan kertasnya.",
     drivers: "Driver printer",
     changed: (label: string) => `Driver printer diubah ke: ${label}`,
     testPrint: "Cetak percobaan",
     testItem: "Uji Struk Thermal",
     testFailed: "Cetak percobaan gagal.",
+    paperLabel: "Lebar kertas",
+    paper: (mm: number) => `Kertas ${mm} mm`,
+    paperChanged: (mm: number) => `Lebar kertas struk: ${mm} mm`,
   },
   pricing: {
     label: "Pajak & biaya layanan",

@@ -1,5 +1,6 @@
 import { t } from "../../locales/id";
 import { generateEscPosReceipt } from "./escpos";
+import { getPaperWidth } from "./paper";
 import type { PrinterDriver, ReceiptPayload } from "./types";
 
 /**
@@ -94,7 +95,7 @@ export class EscPosBluetoothDriver implements PrinterDriver {
         throw new Error(t.printing.printer.noWriteCharacteristic);
       }
 
-      const rawData = generateEscPosReceipt(payload, 58);
+      const rawData = generateEscPosReceipt(payload, getPaperWidth());
       // Small chunks avoid BLE buffer overflow on cheap printers.
       for (let i = 0; i < rawData.length; i += CHUNK_SIZE) {
         const chunk = rawData.slice(i, i + CHUNK_SIZE);

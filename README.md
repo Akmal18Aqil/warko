@@ -249,6 +249,7 @@ Aturan peran sama dengan API: menambah/mengubah produk, kategori, meja, dan paja
 - **Web Bluetooth GATT**: Terhubung langsung ke printer thermal portable 58mm / 80mm tanpa driver software desktop.
 - **Format Struk Lengkap**: Header nama resto, nomor meja/pelanggan, daftar pesanan + catatan, rincian diskon/pajak, QRIS, dan footer struk.
 - **Fallback Cetak Standar**: Opsi dialog print browser (`window.print()`) untuk printer kabel USB/LAN.
+- **Lebar Kertas 58 / 80 mm**: Dipilih di **Pengaturan → Printer struk**; berlaku untuk printer Bluetooth (32 / 48 kolom) dan cetak browser (lebar cetak 48 / 72 mm). Teks dikirim sebagai ASCII agar simbol seperti "Rp" dan "·" tercetak benar di code page printer; nama menu dan catatan yang panjang dibungkus ke baris berikutnya, tidak dipotong.
 
 ### 8. 🌐 Pusat Jaringan & Panduan Server Lokal
 - **Pairing QR Code**: Menampilkan alamat jaringan lokal perangkat (contoh: `192.168.1.10:5173`) untuk menghubungkan HP pelayan dan tablet dapur dengan satu scan.

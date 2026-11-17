@@ -5,6 +5,7 @@ import { formatIDR } from "../../data/menu";
 import { STORE_PROFILE } from "../../lib/storeProfile";
 import { t } from "../../locales/id";
 import { getAvailablePrinterDrivers, getPrinterDriver, setPrinterDriver } from "../../services/printer/index";
+import { getPaperWidth, PAPER_WIDTHS, type PaperWidth, setPaperWidth } from "../../services/printer/paper";
 import { Button } from "../../ui/Button";
 import { SettingsCard } from "./SettingsCard";
 
@@ -12,7 +13,15 @@ const TEST_PRINT_AMOUNT = 25_000;
 
 export function PrinterCard() {
   const [driver, setDriver] = useState(() => getPrinterDriver());
+  const [paper, setPaper] = useState(getPaperWidth);
   const drivers = getAvailablePrinterDrivers();
+
+  const choosePaper = (width: PaperWidth) => {
+    if (width === paper) return;
+    setPaperWidth(width);
+    setPaper(width);
+    toast.success(t.settings.printer.paperChanged(width));
+  };
 
   const choose = (id: (typeof drivers)[number]["id"]) => {
     if (id === driver.id) return;
@@ -40,7 +49,7 @@ export function PrinterCard() {
     <SettingsCard
       icon={<Printer size={19} aria-hidden="true" />}
       label={t.settings.printer.label}
-      value={driver.label}
+      value={`${driver.label} · ${t.settings.printer.paper(paper)}`}
       note={t.settings.printer.note}
     >
       <div className="flex flex-wrap gap-2">
@@ -55,6 +64,20 @@ export function PrinterCard() {
               onClick={() => choose(option.id)}
             >
               {option.label}
+            </Button>
+          ))}
+        </fieldset>
+        <fieldset className="flex min-w-0 flex-wrap gap-2">
+          <legend className="sr-only">{t.settings.printer.paperLabel}</legend>
+          {PAPER_WIDTHS.map((width) => (
+            <Button
+              key={width}
+              aria-pressed={width === paper}
+              variant={width === paper ? "ink" : "outline"}
+              size="sm"
+              onClick={() => choosePaper(width)}
+            >
+              {t.settings.printer.paper(width)}
             </Button>
           ))}
         </fieldset>
