@@ -38,5 +38,22 @@
   },
   "secrets": {
     "required": ["SESSION_SECRET", "BOOTSTRAP_SECRET"]
+  },
+  // Staging: separate Worker (kasa-pos-staging) and separate D1; deploy with `pnpm run deploy:staging`.
+  // Bindings and secrets are not inherited, so they are repeated here.
+  "env": {
+    "staging": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "kasa-pos-staging",
+          "migrations_dir": "migrations",
+          "database_id": "08923326-dc14-4077-8be9-4cbe9d68e649"
+        }
+      ],
+      "secrets": {
+        "required": ["SESSION_SECRET", "BOOTSTRAP_SECRET"]
+      }
+    }
   }
 }

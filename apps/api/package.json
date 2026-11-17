@@ -8,7 +8,9 @@
     "test": "vitest run",
     "migrate:local": "wrangler d1 migrations apply DB --local",
     "migrate:remote": "wrangler d1 migrations apply DB --remote",
-    "deploy": "pnpm --filter @wakro/web build && wrangler deploy"
+    "migrate:staging": "wrangler d1 migrations apply DB --remote --env staging",
+    "deploy": "pnpm --filter @wakro/web build && wrangler deploy",
+    "deploy:staging": "pnpm --filter @wakro/web build && wrangler deploy --env staging"
   },
   "dependencies": {
     "@wakro/shared": "workspace:*"

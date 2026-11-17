@@ -308,10 +308,16 @@ Untuk menghubungkan perangkat lain di WiFi yang sama, **wajib gunakan mode `remo
 ### Pemeriksaan
 
 ```bash
+pnpm lint      # Biome: format, lint, urutan import
 pnpm check     # TypeScript semua paket
 pnpm test      # Vitest: shared, web (fungsi murni), api (runtime Workers + D1)
 pnpm build     # build web mode remote
+pnpm test:e2e  # Playwright: alur kasir, dapur, self-order (Worker + D1 lokal) dan mode demo
 ```
+
+Test e2e (`apps/e2e`) membangun web, membuat D1 lokal baru dari migrasi + `apps/e2e/seed.sql` di setiap run, lalu menjalankan Worker di port 8799 dan build demo di port 4174. Pertama kali, pasang browser dengan `pnpm --filter @wakro/e2e install-browsers`. Alur server berbagi satu database dan berjalan berurutan, jadi tidak ada retry.
+
+**CI** (`.github/workflows/ci.yml`) menjalankan semua perintah di atas pada setiap push ke `main` dan setiap pull request. Laporan Playwright diunggah sebagai artefak bila gagal. CI tidak melakukan deploy.
 
 ### Deploy Cloudflare
 
@@ -330,16 +336,28 @@ Buat admin pertama dengan `POST /api/setup/bootstrap` (header `X-Bootstrap-Secre
 
 **Setiap rilis**
 
-1. Pastikan `pnpm check`, `pnpm test`, dan `pnpm build` lulus.
-2. Periksa migrasi yang tertunda: `pnpm exec wrangler d1 migrations list DB --remote`. Jika ada migrasi, **hentikan transaksi** (kasir, dapur, self-order) sampai deploy selesai: Worker lama tidak dijamin cocok dengan skema baru.
-3. Cadangkan database: `pnpm exec wrangler d1 export DB --remote --output ../../backups/<tanggal>.sql`.
-4. Jika ada migrasi, uji dulu pada salinan backup:
+1. Pastikan `pnpm lint`, `pnpm check`, `pnpm test`, `pnpm build`, dan `pnpm test:e2e` lulus (atau CI hijau).
+2. Deploy dan coba dulu di **staging** (lihat di bawah).
+3. Periksa migrasi yang tertunda: `pnpm exec wrangler d1 migrations list DB --remote`. Jika ada migrasi, **hentikan transaksi** (kasir, dapur, self-order) sampai deploy selesai: Worker lama tidak dijamin cocok dengan skema baru.
+4. Cadangkan database: `pnpm exec wrangler d1 export DB --remote --output ../../backups/<tanggal>.sql`.
+5. Jika ada migrasi, uji dulu pada salinan backup:
    ```bash
    pnpm exec wrangler d1 execute DB --local --persist-to .wrangler/rehearsal --file ../../backups/<tanggal>.sql
    pnpm exec wrangler d1 migrations apply DB --local --persist-to .wrangler/rehearsal
    ```
-5. `pnpm migrate:remote`, lalu `pnpm run deploy` (build web mode remote, lalu `wrangler deploy`).
-6. Verifikasi: buka situs, login staf, buka halaman self-order, dan pastikan `GET /api/public/menu` mengembalikan 200.
+6. `pnpm migrate:remote`, lalu `pnpm run deploy` (build web mode remote, lalu `wrangler deploy`).
+7. Verifikasi: buka situs, login staf, buka halaman self-order, dan pastikan `GET /api/public/menu` mengembalikan 200.
+
+**Staging**
+
+Worker terpisah `kasa-pos-staging` (`https://kasa-pos-staging.sahabat-legal.workers.dev`) dengan database D1 terpisah `kasa-pos-staging` (`env.staging` di `wrangler.jsonc`). Data staging tidak pernah menyentuh produksi.
+
+```bash
+pnpm migrate:staging        # migrasi ke D1 staging
+pnpm run deploy:staging     # build web, lalu wrangler deploy --env staging
+```
+
+Secret staging diatur terpisah: `pnpm exec wrangler secret put <NAMA> --env staging`. Admin staging sudah dibuat dan bootstrap staging sudah dinonaktifkan (`BOOTSTRAP_SECRET` diganti dengan nilai kurang dari 32 karakter).
 
 **Rollback**
 
