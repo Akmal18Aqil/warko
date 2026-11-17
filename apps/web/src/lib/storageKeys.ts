@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   deviceInfo: "wakro_device_info",
   syncEvent: "wakro_sync_event",
   sidebarCollapsed: "wakro_sidebar_collapsed",
+  posOrderType: "wakro_pos_order_type",
   selfOrders: "wakro_self_orders_v1",
   selfTable: "wakro_self_table_v1",
   selfCustomerName: "wakro_self_customer_name",

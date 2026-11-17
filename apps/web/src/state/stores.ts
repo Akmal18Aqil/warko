@@ -1,5 +1,6 @@
 import { DEFAULT_PRICING, type OrderType, type PricingSettings } from "@wakro/shared";
 import type { MenuItem } from "../data/menu";
+import { STORAGE_KEYS } from "../lib/storageKeys";
 import type { CartDiscount, CartLine, CashMovementRow, CategoryRow, OrderRow, ShiftRecord, TableRow } from "../types/domain";
 import { createStore } from "./store";
 
@@ -33,9 +34,18 @@ export const pricingStore = createStore({
 
 export type CartEntry = { lines: CartLine[]; discount: CartDiscount };
 
+/** The order type this device used last, so a dine-in restaurant does not start every order as takeaway. */
+function lastOrderType(): OrderType {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.posOrderType) === "meja" ? "meja" : "bawa-pulang";
+  } catch {
+    return "bawa-pulang";
+  }
+}
+
 /** One cart per table plus one for takeaway; each keeps its own lines and discount. */
 export const cartStore = createStore({
-  orderType: "bawa-pulang" as OrderType,
+  orderType: lastOrderType(),
   /** Selected dine-in table (stable id); null when none is chosen yet. */
   tableId: null as string | null,
   guests: 2,

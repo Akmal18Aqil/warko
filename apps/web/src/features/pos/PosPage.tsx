@@ -17,8 +17,8 @@ import { SegmentedTabs } from "../../ui/SegmentedTabs";
 import { BarcodeScanner } from "../scanner/BarcodeScanner";
 import { CartPanel } from "./CartPanel";
 import { PaymentModal } from "./PaymentModal";
-import { PosCartBar } from "./PosCartBar";
 import { PosMetricStrip } from "./PosMetricStrip";
+import { PosOrderDock } from "./PosOrderDock";
 import { ProductCard } from "./ProductCard";
 
 export default function PosPage() {
@@ -194,7 +194,7 @@ export default function PosPage() {
         )}
       </div>
 
-      {!railCart && lines.length > 0 && <PosCartBar onOpen={() => setCartOpen(true)} />}
+      {!railCart && <PosOrderDock onOpenCart={() => setCartOpen(true)} />}
       {!railCart && cartOpen && (
         <Modal onClose={() => setCartOpen(false)} placement="sheet" ariaLabel={t.pos.cart.title} initialFocusRef={cartCloseRef}>
           <CartPanel onPay={openPayment} onClose={() => setCartOpen(false)} closeRef={cartCloseRef} />

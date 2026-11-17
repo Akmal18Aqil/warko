@@ -41,22 +41,32 @@ test("switching between takeaway and dine-in keeps the order being built", async
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 412, height: 839 }, isMobile: true, hasTouch: true });
 
-  test("the cashier reaches the order from the cart bar and takes exact cash", async ({ page }) => {
+  test("the cashier picks a table first, pays from the dock and the dine-in choice is remembered", async ({ page }) => {
     await page.goto("/");
+    await page.getByRole("button", { name: /^Jenis pesanan: Bawa pulang/ }).click();
+    await page
+      .getByRole("dialog", { name: "Jenis pesanan" })
+      .getByRole("button", { name: /^Meja 01/ })
+      .click();
+    await expect(page.getByRole("button", { name: /^Jenis pesanan: Meja 01/ })).toBeVisible();
+
     await page.getByRole("button", { name: /^Burger Keju, Rp .*Tambahkan ke pesanan$/ }).click();
     await expect(page.getByRole("button", { name: /^Burger Keju, Rp .*Tambah satu porsi lagi/ })).toContainText("1 di pesanan");
 
     await page.getByRole("button", { name: /Lihat pesanan$/ }).click();
-    await page
-      .getByRole("dialog", { name: "Pesanan saat ini" })
-      .getByRole("button", { name: /^Bayar Rp/ })
-      .click();
+    const cart = page.getByRole("dialog", { name: "Pesanan saat ini" });
+    await expect(cart.getByText(/1 item dipilih · Meja 01/)).toBeVisible();
+    await cart.getByRole("button", { name: /^Bayar Rp/ }).click();
 
     const payment = page.getByRole("dialog", { name: "Terima pembayaran" });
     await payment.getByRole("button", { name: "Uang pas" }).click();
     await payment.getByRole("button", { name: "Selesaikan pembayaran" }).click();
     await expect(page.getByText(/^Pesanan #\d+ · /)).toBeVisible();
-    // The paid order clears the cart, so the bar disappears.
+    // The paid order clears the cart, so only the order-type side of the dock remains.
     await expect(page.getByRole("button", { name: /Lihat pesanan$/ })).toHaveCount(0);
+
+    // A reload starts the next order as dine-in again; only the table has to be picked.
+    await page.reload();
+    await expect(page.getByRole("button", { name: /^Jenis pesanan: Pilih meja/ })).toBeVisible();
   });
 });

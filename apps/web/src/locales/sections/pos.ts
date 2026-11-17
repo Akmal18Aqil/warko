@@ -84,6 +84,15 @@ export const pos = {
   cartBar: {
     items: (n: number) => `${n} item`,
     open: "Lihat pesanan",
+    empty: "Pilih menu untuk mulai",
+    changeType: (destination: string) => `Jenis pesanan: ${destination}. Ubah`,
+  },
+  orderTypeSheet: {
+    title: "Jenis pesanan",
+    takeawayHint: "Pesanan dibungkus",
+    dineInHeading: "Makan di tempat · pilih meja",
+    seats: (n: number) => `${n} kursi`,
+    noTables: "Belum ada meja aktif. Tambahkan di menu Meja.",
   },
   discount: {
     title: "Terapkan diskon / potongan",

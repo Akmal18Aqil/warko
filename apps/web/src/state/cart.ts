@@ -6,6 +6,7 @@ import { addLine, decreaseLine, increaseLine, mergeLines, removeLine, setLineNot
 import { buildOrderRow } from "../lib/orderBuilder";
 import { newClientRef } from "../lib/orderStatus";
 import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
+import { STORAGE_KEYS } from "../lib/storageKeys";
 import { t } from "../locales/id";
 import type { CartDiscount, CartLine, OrderRow, TableRow } from "../types/domain";
 import { useProducts, useTables } from "./catalog";
@@ -67,6 +68,11 @@ export function useCart() {
  * order the switch simply opens the destination's draft.
  */
 function changeSelection(next: { orderType: OrderType; tableId?: string | null; guests?: number }): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.posOrderType, next.orderType);
+  } catch {
+    // Storage unavailable (private mode): the next start simply defaults to takeaway.
+  }
   const state = cartStore.get();
   const from = cartKeyOf(state);
   const to = cartKeyOf({ orderType: next.orderType, tableId: next.tableId === undefined ? state.tableId : next.tableId });
@@ -95,7 +101,9 @@ function changeSelection(next: { orderType: OrderType; tableId?: string | null; 
   }
 }
 
-export const setOrderType = (orderType: OrderType) => changeSelection({ orderType });
+export function setOrderType(orderType: OrderType): void {
+  changeSelection({ orderType });
+}
 export const setGuests = (guests: number) => cartStore.set({ guests });
 
 export function selectTable(table: TableRow): void {
