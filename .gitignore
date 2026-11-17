@@ -33,3 +33,8 @@ Master Prompt*.md
 
 # Database exports (contain production data)
 backups/
+
+# End-to-end test output
+apps/web/dist-demo/
+playwright-report/
+test-results/

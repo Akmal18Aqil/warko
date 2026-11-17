@@ -1,0 +1,15 @@
+{
+  "name": "@wakro/e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "install-browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "24",
+    "typescript": "^5.9.2"
+  }
+}
