@@ -17,7 +17,7 @@ export const pos = {
     shortcutK: "⌘ K",
     categoriesLabel: "Kategori menu",
     allCategories: "Semua",
-    inOrder: "Di pesanan",
+    inOrderQty: (qty: number) => `${qty} di pesanan`,
     minutesSuffix: "menit",
     emptyResult: "Tidak ada menu yang cocok",
     emptyResultBody: "Coba kata kunci lain atau pilih kategori berbeda.",
@@ -79,6 +79,10 @@ export const pos = {
     sendFailed: "Pesanan gagal dikirim. Belum tercatat di server.",
     printFailed: "Struk gagal dicetak.",
   },
+  cartBar: {
+    items: (n: number) => `${n} item`,
+    open: "Lihat pesanan",
+  },
   discount: {
     title: "Terapkan diskon / potongan",
     subtitle: "Pilih diskon persentase atau nominal rupiah langsung.",
@@ -106,6 +110,8 @@ export const pos = {
     qrisSimulated: "Konfirmasi hanya setelah notifikasi dana masuk muncul di aplikasi merchant QRIS.",
     qrisScanNote: (outlet: string) => `Minta pelanggan memindai QRIS resmi ${outlet} di kasir`,
     cashReceivedLabel: "Uang yang diterima",
+    quickAmountsLabel: "Nominal cepat",
+    exactAmount: "Uang pas",
     cashPlaceholder: "Contoh: 100000",
     shortageLabel: (amount: string) => `Kurang: ${amount}`,
     changeLabel: (amount: string) => `Kembalian: ${amount}`,

@@ -62,7 +62,9 @@ export function OrderTypeSelector() {
             <QtyButton label={t.pos.cart.guestsDecrease} onClick={() => setGuests(Math.max(1, guests - 1))}>
               <Minus size={11} strokeWidth={2.6} aria-hidden="true" />
             </QtyButton>
-            <span className="min-w-6 text-center font-display text-xs font-bold text-ink">{guests}</span>
+            <span className="min-w-8 text-center font-display text-sm font-bold text-ink min-[1200px]:min-w-6 min-[1200px]:text-xs">
+              {guests}
+            </span>
             <QtyButton label={t.pos.cart.guestsIncrease} onClick={() => setGuests(guests + 1)}>
               <Plus size={11} strokeWidth={2.6} aria-hidden="true" />
             </QtyButton>
@@ -80,7 +82,7 @@ function TypeToggle({ active, label, onClick }: { active: boolean; label: string
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "pressable h-8 rounded-lg text-xs font-semibold transition-all",
+        "pressable h-10 rounded-lg text-xs font-semibold transition-all min-[1200px]:h-8",
         active ? "bg-accent font-bold text-white shadow-xs" : "text-text-muted hover:text-ink",
       )}
     >
@@ -96,7 +98,7 @@ export function QtyButton({ label, onClick, children }: { label: string; onClick
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="pressable inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-ink transition-colors hover:border-border-hover hover:bg-mineral/40"
+      className="pressable inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-ink transition-colors hover:border-border-hover hover:bg-mineral/40 min-[1200px]:h-7 min-[1200px]:w-7"
     >
       {children}
     </button>

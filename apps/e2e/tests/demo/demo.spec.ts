@@ -22,3 +22,26 @@ test("demo mode is labelled, ready for cash sales, and resets", async ({ page })
   await expect(page.getByText(/Riwayat transaksi/)).toBeVisible();
   await expect(page.getByText(`#${orderNo}`, { exact: true })).toHaveCount(0);
 });
+
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 412, height: 839 }, isMobile: true, hasTouch: true });
+
+  test("the cashier reaches the order from the cart bar and takes exact cash", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /^Burger Keju, Rp .*Tambahkan ke pesanan$/ }).click();
+    await expect(page.getByRole("button", { name: /^Burger Keju, Rp .*Tambah satu porsi lagi/ })).toContainText("1 di pesanan");
+
+    await page.getByRole("button", { name: /Lihat pesanan$/ }).click();
+    await page
+      .getByRole("dialog", { name: "Pesanan saat ini" })
+      .getByRole("button", { name: /^Bayar Rp/ })
+      .click();
+
+    const payment = page.getByRole("dialog", { name: "Terima pembayaran" });
+    await payment.getByRole("button", { name: "Uang pas" }).click();
+    await payment.getByRole("button", { name: "Selesaikan pembayaran" }).click();
+    await expect(page.getByText(/^Pesanan #\d+ · /)).toBeVisible();
+    // The paid order clears the cart, so the bar disappears.
+    await expect(page.getByRole("button", { name: /Lihat pesanan$/ })).toHaveCount(0);
+  });
+});

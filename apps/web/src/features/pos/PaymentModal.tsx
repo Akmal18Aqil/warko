@@ -3,6 +3,7 @@ import { Banknote, CreditCard, QrCode, Wallet } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { toast } from "sonner";
 import { formatIDR } from "../../data/menu";
+import { cashSuggestions } from "../../lib/cash";
 import { cn } from "../../lib/cn";
 import { tableLabel } from "../../lib/orderStatus";
 import { STORE_PROFILE } from "../../lib/storeProfile";
@@ -82,18 +83,18 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
   };
 
   return (
-    <Modal onClose={onClose} size="md">
+    <Modal onClose={onClose} size="md" placement="sheet">
       <ModalHeader
         title={t.pos.payment.title}
         subtitle={`${t.pos.payment.orderLabel(displayNo)}${order ? ` · ${tableLabel(order)}` : ""}`}
       />
       <div className="min-h-0 flex-1 overflow-y-auto pb-2">
-        <div className="px-6 pt-4">
+        <div className="px-5 pt-4 sm:px-6">
           <p className="label-caps text-xs2 font-medium text-text-muted">{t.pos.payment.amountLabel}</p>
-          <p className="font-display text-4xl font-bold tracking-tight text-ink">{formatIDR(amount)}</p>
+          <p className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">{formatIDR(amount)}</p>
         </div>
 
-        <fieldset className="grid min-w-0 grid-cols-1 gap-2 px-6 pt-4 sm:grid-cols-3">
+        <fieldset className="grid min-w-0 grid-cols-3 gap-2 px-5 pt-4 sm:px-6">
           <legend className="sr-only">{t.pos.payment.methodsLabel}</legend>
           <MethodCard
             selected={method === "kartu-qr"}
@@ -120,7 +121,7 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
         </fieldset>
 
         {method === "tunai" && cashOpen && (
-          <div className="px-6 pt-4">
+          <div className="px-5 pt-4 sm:px-6">
             <Input
               label={t.pos.payment.cashReceivedLabel}
               size="lg"
@@ -132,6 +133,25 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
               aria-describedby={statusId}
               className="font-display font-bold"
             />
+            <fieldset className="mt-2 grid min-w-0 grid-cols-3 gap-2">
+              <legend className="sr-only">{t.pos.payment.quickAmountsLabel}</legend>
+              {cashSuggestions(amount).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={cashNum === value}
+                  onClick={() => setCash(String(value))}
+                  className={cn(
+                    "pressable min-h-11 rounded-lg border px-2 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                    cashNum === value
+                      ? "border-accent bg-accent/15 text-accent-dark"
+                      : "border-border bg-surface text-ink hover:border-accent/50",
+                  )}
+                >
+                  {value === amount ? t.pos.payment.exactAmount : formatIDR(value)}
+                </button>
+              ))}
+            </fieldset>
             <p id={statusId} aria-live="polite" className="min-h-11 pt-2 text-sm">
               {cash.length > 0 && shortage > 0 && (
                 <>
@@ -152,7 +172,7 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
         )}
 
         {method === "qris" && (
-          <div className="px-6 pt-4">
+          <div className="px-5 pt-4 sm:px-6">
             <div className="flex flex-col items-center rounded-xl border border-border bg-surface p-4 text-center shadow-clay">
               <QrCode size={44} className="text-text-muted" aria-hidden="true" />
               <p className="mt-3 text-sm font-medium text-ink">{t.pos.payment.qrisScanNote(STORE_PROFILE.outlet)}</p>
@@ -162,7 +182,7 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
         )}
 
         {method === "kartu-qr" && (
-          <p className="flex items-center gap-2 px-6 pt-4 text-sm text-text-muted">
+          <p className="flex items-center gap-2 px-5 pt-4 text-sm text-text-muted sm:px-6">
             <QrCode size={16} aria-hidden="true" />
             {t.pos.payment.cardHint}
           </p>
@@ -202,7 +222,7 @@ function MethodCard({
       disabled={disabled}
       aria-pressed={selected}
       className={cn(
-        "pressable flex min-h-32 flex-col justify-between rounded-xl border p-4 text-left transition-colors",
+        "pressable flex min-h-20 flex-col justify-between rounded-xl border p-3 text-left transition-colors sm:min-h-32 sm:p-4",
         disabled
           ? "cursor-not-allowed border-border bg-surface-muted/60"
           : selected
@@ -211,8 +231,13 @@ function MethodCard({
       )}
     >
       <span className={disabled ? "text-text-muted" : "text-ink"}>{icon}</span>
-      <span className={cn("mt-2 block text-sm font-semibold", disabled ? "text-text-muted" : "text-ink")}>{title}</span>
-      <span className={cn("mt-0.5 block text-xs2 leading-snug", disabled ? "font-semibold text-warning-dark" : "text-text-muted")}>
+      <span className={cn("mt-2 block text-sm font-semibold leading-tight", disabled ? "text-text-muted" : "text-ink")}>{title}</span>
+      <span
+        className={cn(
+          "mt-0.5 text-xs2 leading-snug",
+          disabled ? "block font-semibold text-warning-dark" : "hidden text-text-muted sm:block",
+        )}
+      >
         {hint}
       </span>
     </button>

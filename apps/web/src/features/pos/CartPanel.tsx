@@ -1,14 +1,21 @@
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
+import type { Ref } from "react";
 import { toast } from "sonner";
+import { cn } from "../../lib/cn";
 import { t } from "../../locales/id";
 import { clearCart, useCart } from "../../state/cart";
 import { useNextOrderNo } from "../../state/orders";
+import { IconButton } from "../../ui/Button";
 import { CartLines } from "./CartLines";
 import { CartSummary } from "./CartSummary";
 import { OrderTypeSelector } from "./OrderTypeSelector";
 
-/** The current-order ticket: header, order type / table / guests, lines, and the summary with actions. */
-export function CartPanel({ onPay }: { onPay: () => void }) {
+/**
+ * The current-order ticket: header, order type / table / guests, lines, and the summary with actions.
+ * Without `onClose` it fills the desktop side rail; with it, it fills the phone/tablet cart sheet, and
+ * `closeRef` lets the sheet focus its close button rather than the destructive "clear" action.
+ */
+export function CartPanel({ onPay, onClose, closeRef }: { onPay: () => void; onClose?: () => void; closeRef?: Ref<HTMLButtonElement> }) {
   const { orderType, selectedTable, lines } = useCart();
   const orderNo = useNextOrderNo();
   const itemCount = lines.reduce((sum, line) => sum + line.qty, 0);
@@ -21,7 +28,10 @@ export function CartPanel({ onPay }: { onPay: () => void }) {
   return (
     <section
       aria-label={t.pos.cart.title}
-      className="service-ticket receipt-paper flex h-auto max-h-none min-h-0 flex-col overflow-y-auto overflow-x-hidden rounded-xl max-[1199px]:min-h-[520px] min-[1200px]:h-full min-[1200px]:max-h-full"
+      className={cn(
+        "service-ticket receipt-paper flex min-h-0 flex-col overflow-y-auto overflow-x-hidden",
+        onClose ? "flex-1 border-0" : "h-full max-h-full rounded-xl",
+      )}
     >
       <div className="shrink-0 border-b border-border bg-surface px-4 pb-3 pt-3.5">
         <div className="flex items-center justify-between gap-2">
@@ -41,17 +51,24 @@ export function CartPanel({ onPay }: { onPay: () => void }) {
             </p>
           </div>
 
-          {lines.length > 0 && (
-            <button
-              type="button"
-              aria-label={t.pos.cart.clearAria}
-              onClick={handleClear}
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-error transition-colors hover:bg-error/10"
-            >
-              <Trash2 size={13} aria-hidden="true" />
-              {t.pos.cart.clear}
-            </button>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {lines.length > 0 && (
+              <button
+                type="button"
+                aria-label={t.pos.cart.clearAria}
+                onClick={handleClear}
+                className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-error transition-colors hover:bg-error/10 min-[1200px]:min-h-0"
+              >
+                <Trash2 size={13} aria-hidden="true" />
+                {t.pos.cart.clear}
+              </button>
+            )}
+            {onClose && (
+              <IconButton ref={closeRef} label={t.common.close} onClick={onClose}>
+                <X size={18} aria-hidden="true" />
+              </IconButton>
+            )}
+          </div>
         </div>
         <OrderTypeSelector />
       </div>

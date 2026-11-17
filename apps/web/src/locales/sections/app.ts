@@ -17,6 +17,8 @@ export const app = {
     kitchenShort: "Dapur",
     cashDrawer: "Laci Kas",
     mainLabel: "Navigasi utama",
+    more: "Lainnya",
+    moreTitle: "Menu lainnya",
   },
 
   header: {

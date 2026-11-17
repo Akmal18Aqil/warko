@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CirclePlus,
+  Ellipsis,
   KeyRound,
   Package,
   ReceiptText,
@@ -23,6 +24,7 @@ import { t } from "../locales/id";
 import { useAuth } from "../state/auth";
 import { useOrders } from "../state/orders";
 import { KasaLogoBlock, StatusDot } from "../ui/KasaLogo";
+import { Modal, ModalHeader } from "../ui/Modal";
 
 type NavEntry = { href: string; label: string; icon: LucideIcon; badge?: number };
 
@@ -193,9 +195,13 @@ export function Sidebar() {
   );
 }
 
+/** Bottom-bar slots before the rest moves into the "Lainnya" sheet; keeps every slot at least ~70px wide on a phone. */
+const MOBILE_NAV_SLOTS = 4;
+
 export function MobileNav() {
   const [location] = useLocation();
   const { currentStaff, openSwitchModal } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const entries: NavEntry[] = useMemo(() => {
     const role = currentStaff.role;
@@ -217,11 +223,12 @@ export function MobileNav() {
       ];
     }
 
+    // Ordered by how often a cashier needs them during service.
     return [
       { href: "/", label: t.app.nav.newPos, icon: CirclePlus },
-      { href: "/laci-kas", label: t.app.nav.cashDrawer, icon: Vault },
-      { href: "/dapur", label: t.app.nav.kitchenShort, icon: ChefHat },
       { href: "/pesanan", label: t.app.nav.orders, icon: ReceiptText },
+      { href: "/dapur", label: t.app.nav.kitchenShort, icon: ChefHat },
+      { href: "/laci-kas", label: t.app.nav.cashDrawer, icon: Vault },
       { href: "/meja", label: t.app.nav.tables, icon: Armchair },
       { href: "/produk", label: t.app.nav.products, icon: Package },
       { href: "/laporan", label: t.app.nav.reports, icon: BarChart3 },
@@ -229,43 +236,106 @@ export function MobileNav() {
     ];
   }, [currentStaff.role]);
 
+  const primary = entries.slice(0, MOBILE_NAV_SLOTS);
+  const overflow = entries.slice(MOBILE_NAV_SLOTS);
+  const overflowActive = overflow.some((entry) => entry.href === location);
+
+  const switchRole = () => {
+    setMoreOpen(false);
+    openSwitchModal();
+  };
+
   return (
-    <nav
-      aria-label={t.app.nav.mainLabel}
-      className="fixed inset-x-0 bottom-0 z-40 flex max-w-full items-stretch justify-start gap-1 overflow-x-auto scrollbar-none border-t border-ink/10 bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
-    >
-      {entries.map((entry) => {
-        const Icon = entry.icon;
-        const active = location === entry.href;
-        return (
-          <Link
-            key={entry.href}
-            href={entry.href}
-            aria-current={active ? "page" : undefined}
-            aria-label={entry.label}
-            title={entry.label}
-            className={cn(
-              "pressable flex min-h-14 min-w-[64px] flex-none flex-col items-center justify-center gap-1 px-1 py-2 text-xs2",
-              active ? "bg-accent/15 text-accent font-bold" : "text-ink-soft",
-            )}
-          >
-            <Icon size={21} strokeWidth={active ? 2.4 : 1.8} />
-            <span className="max-w-full truncate px-1">{entry.label}</span>
-          </Link>
-        );
-      })}
-      <button
-        type="button"
-        onClick={openSwitchModal}
-        className="pressable flex min-h-14 min-w-[64px] flex-none flex-col items-center justify-center gap-1 px-1 py-2 text-xs2 text-ink-soft hover:text-accent"
-        title={t.app.sidebar.switchRole}
+    <>
+      <nav
+        aria-label={t.app.nav.mainLabel}
+        className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-ink/10 bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
-        <span className={cn("h-5 w-5 rounded-full flex items-center justify-center font-bold text-2xs", currentStaff.avatarColor)}>
-          {currentStaff.initials}
-        </span>
-        <span className="max-w-full truncate">{t.app.sidebar.switchShort}</span>
-      </button>
-    </nav>
+        {primary.map((entry) => (
+          <MobileNavLink key={entry.href} entry={entry} active={location === entry.href} />
+        ))}
+        {overflow.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            aria-haspopup="dialog"
+            className={cn(MOBILE_NAV_ITEM, overflowActive ? "bg-accent/15 font-bold text-accent" : "text-ink-soft")}
+          >
+            <Ellipsis size={21} strokeWidth={overflowActive ? 2.4 : 1.8} aria-hidden="true" />
+            <span className="max-w-full truncate px-1">{t.app.nav.more}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={openSwitchModal}
+            className={cn(MOBILE_NAV_ITEM, "text-ink-soft hover:text-accent")}
+            title={t.app.sidebar.switchRole}
+          >
+            <StaffInitials initials={currentStaff.initials} color={currentStaff.avatarColor} />
+            <span className="max-w-full truncate">{t.app.sidebar.switchShort}</span>
+          </button>
+        )}
+      </nav>
+
+      {moreOpen && (
+        <Modal onClose={() => setMoreOpen(false)} placement="sheet" size="sm">
+          <ModalHeader title={t.app.nav.moreTitle} />
+          <nav aria-label={t.app.nav.moreTitle} className="grid grid-cols-2 gap-2 overflow-y-auto p-4">
+            {overflow.map((entry) => {
+              const Icon = entry.icon;
+              const active = location === entry.href;
+              return (
+                <Link
+                  key={entry.href}
+                  href={entry.href}
+                  onClick={() => setMoreOpen(false)}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "pressable flex min-h-14 items-center gap-3 rounded-xl border px-4 text-sm font-semibold",
+                    active ? "border-accent bg-accent/15 text-accent-dark" : "border-border bg-surface text-ink",
+                  )}
+                >
+                  <Icon size={20} aria-hidden="true" />
+                  {entry.label}
+                </Link>
+              );
+            })}
+            <button
+              type="button"
+              onClick={switchRole}
+              className="pressable col-span-2 flex min-h-14 items-center gap-3 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-ink"
+            >
+              <StaffInitials initials={currentStaff.initials} color={currentStaff.avatarColor} />
+              {t.app.sidebar.switchRole}
+            </button>
+          </nav>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+const MOBILE_NAV_ITEM = "pressable flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-xs2";
+
+function MobileNavLink({ entry, active }: { entry: NavEntry; active: boolean }) {
+  const Icon = entry.icon;
+  return (
+    <Link
+      href={entry.href}
+      aria-current={active ? "page" : undefined}
+      className={cn(MOBILE_NAV_ITEM, active ? "bg-accent/15 font-bold text-accent" : "text-ink-soft")}
+    >
+      <Icon size={21} strokeWidth={active ? 2.4 : 1.8} aria-hidden="true" />
+      <span className="max-w-full truncate px-1">{entry.label}</span>
+    </Link>
+  );
+}
+
+function StaffInitials({ initials, color }: { initials: string; color: string }) {
+  return (
+    <span aria-hidden="true" className={cn("flex h-5 w-5 items-center justify-center rounded-full text-2xs font-bold", color)}>
+      {initials}
+    </span>
   );
 }
 

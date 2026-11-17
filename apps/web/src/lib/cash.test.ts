@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CashMovementRow, OrderRow } from "../types/domain";
-import { expectedDrawerCash } from "./cash";
+import { cashSuggestions, expectedDrawerCash } from "./cash";
 
 const shift = { id: "s1", openedAt: 1_000, closedAt: undefined as number | undefined, startingCash: 200_000 };
 
@@ -78,5 +78,22 @@ describe("expectedDrawerCash", () => {
       [movement("a", { shiftId: "other", amount: 99_000 }), movement("b", { shiftId: undefined, amount: 99_000 })],
     );
     expect(result).toMatchObject({ cashIn: 0, cashOut: 0, expected: 200_000 });
+  });
+});
+
+describe("cashSuggestions", () => {
+  it("offers the exact amount, then each note rounding above it", () => {
+    expect(cashSuggestions(33_300)).toEqual([33_300, 35_000, 40_000, 50_000, 100_000]);
+    expect(cashSuggestions(88_800)).toEqual([88_800, 90_000, 100_000]);
+    expect(cashSuggestions(121_500)).toEqual([121_500, 125_000, 130_000, 140_000, 150_000, 200_000]);
+  });
+
+  it("still offers a larger note when the bill is already a round amount", () => {
+    expect(cashSuggestions(50_000)).toEqual([50_000, 60_000, 100_000]);
+    expect(cashSuggestions(100_000)).toEqual([100_000, 200_000]);
+  });
+
+  it("offers nothing for an empty bill", () => {
+    expect(cashSuggestions(0)).toEqual([]);
   });
 });

@@ -215,6 +215,7 @@ Aturan peran sama dengan API: menambah/mengubah produk, kategori, meja, dan paja
 - **Multi-Metode Pembayaran**: Tunai dengan kalkulator uang kembalian cepat, QRIS Dinamis Mandiri, Kartu Debit/Kredit, dan Transfer Bank.
 - **Pembayaran atomik**: Aksi utama `Bayar & Kirim ke Dapur` mencatat pembayaran dan mengantrekan tiket KDS dalam satu alur.
 - **Status terpisah**: Status pembayaran tidak menimpa status proses dapur, sehingga pesanan bisa `Lunas` sekaligus `Dimasak`.
+- **Kasir di HP & tablet** (lebar < 1200px): menu tampil 2 kolom (3 di tablet) dengan badge jumlah di kartu; pencarian dan kategori tetap terlihat saat menggulir. Bar keranjang di bawah menampilkan jumlah item, tujuan pesanan, dan total, lalu membuka keranjang sebagai *bottom sheet*. Pembayaran tunai punya tombol nominal cepat (**Uang pas** dan pembulatan ke pecahan berikutnya). Navigasi bawah menampilkan 4 menu utama; sisanya di **Lainnya**.
 
 ### 2. 📲 QR Self-Order Pelanggan (`/order/:tableId`)
 - **Tanpa Unduh Aplikasi**: Pelanggan cukup scan QR Code yang tertempel di meja makan mereka.

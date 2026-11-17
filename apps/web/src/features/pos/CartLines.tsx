@@ -67,8 +67,10 @@ function CartLineItem({
         <FoodImage item={item} className="h-12 w-12 shrink-0 rounded-lg border border-border object-cover" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-1.5">
-            <p className="truncate text-xs font-bold leading-snug text-ink">{item.name}</p>
-            <p className="shrink-0 font-display text-xs font-bold tracking-tight text-ink">{formatIDR(item.price * line.qty)}</p>
+            <p className="truncate text-sm font-bold leading-snug text-ink min-[1200px]:text-xs">{item.name}</p>
+            <p className="shrink-0 font-display text-sm font-bold tracking-tight text-ink min-[1200px]:text-xs">
+              {formatIDR(item.price * line.qty)}
+            </p>
           </div>
           <p className="mt-0.5 text-xs2 text-text-muted">{t.pos.cart.unitPrice(formatIDR(item.price))}</p>
 
@@ -77,7 +79,10 @@ function CartLineItem({
               <QtyButton label={t.pos.cart.qtyDecrease(item.name)} onClick={() => decreaseItem(line.itemId)}>
                 <Minus size={11} strokeWidth={2.6} aria-hidden="true" />
               </QtyButton>
-              <span aria-live="polite" className="min-w-6 text-center font-display text-xs font-bold text-ink">
+              <span
+                aria-live="polite"
+                className="min-w-8 text-center font-display text-sm font-bold text-ink min-[1200px]:min-w-6 min-[1200px]:text-xs"
+              >
                 {line.qty}
               </span>
               <QtyButton label={t.pos.cart.qtyIncrease(item.name)} onClick={() => increaseItem(line.itemId)}>
@@ -89,7 +94,7 @@ function CartLineItem({
               type="button"
               onClick={onEditNote}
               className={cn(
-                "inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs2 font-semibold transition-colors",
+                "inline-flex min-h-10 items-center gap-1 whitespace-nowrap rounded-lg border px-3 py-0.5 text-xs font-semibold transition-colors min-[1200px]:min-h-0 min-[1200px]:px-2 min-[1200px]:text-xs2",
                 line.note
                   ? "border-warning/60 bg-warning/10 font-bold text-warning-dark"
                   : "border-border bg-surface text-text-muted hover:border-border-hover hover:text-ink",
@@ -104,9 +109,9 @@ function CartLineItem({
               aria-label={t.pos.cart.removeLine(item.name)}
               title={t.pos.cart.removeLine(item.name)}
               onClick={() => removeItem(line.itemId)}
-              className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-text-light transition-colors hover:bg-error/10 hover:text-error"
+              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-md text-text-light transition-colors hover:bg-error/10 hover:text-error min-[1200px]:h-6 min-[1200px]:w-6"
             >
-              <Trash2 size={12} aria-hidden="true" />
+              <Trash2 size={14} aria-hidden="true" />
             </button>
           </div>
         </div>

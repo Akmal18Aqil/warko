@@ -1,9 +1,10 @@
 import { ScanLine, Search } from "lucide-react";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Header } from "../../app/Header";
 import type { MenuItem } from "../../data/menu";
 import { useBarcodeGunScanner } from "../../hooks/useBarcodeGunScanner";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { parseTableQr, resolveTable } from "../../lib/tableQr";
 import { t } from "../../locales/id";
 import { addItem, selectTable, useCart } from "../../state/cart";
@@ -11,10 +12,12 @@ import { useCategories, useProducts, useTables } from "../../state/catalog";
 import { IconButton } from "../../ui/Button";
 import { Empty } from "../../ui/Empty";
 import { Input } from "../../ui/Input";
+import { Modal } from "../../ui/Modal";
 import { SegmentedTabs } from "../../ui/SegmentedTabs";
 import { BarcodeScanner } from "../scanner/BarcodeScanner";
 import { CartPanel } from "./CartPanel";
 import { PaymentModal } from "./PaymentModal";
+import { PosCartBar } from "./PosCartBar";
 import { PosMetricStrip } from "./PosMetricStrip";
 import { ProductCard } from "./ProductCard";
 
@@ -27,7 +30,11 @@ export default function PosPage() {
   const [category, setCategory] = useState<string>(ALL_CATEGORIES);
   const [payOpen, setPayOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const cartCloseRef = useRef<HTMLButtonElement>(null);
   const searchId = useId();
+  // Wide screens keep the ticket beside the catalog; narrower ones reach it through the cart bar and sheet.
+  const railCart = useMediaQuery(RAIL_CART_QUERY);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -58,13 +65,19 @@ export default function PosPage() {
     });
   }, [products, query, category]);
 
-  const inOrderIds = useMemo(() => new Set(lines.map((line) => line.itemId)), [lines]);
+  const qtyById = useMemo(() => new Map(lines.map((line) => [line.itemId, line.qty])), [lines]);
 
   const handleAdd = (item: MenuItem) => {
     addItem(item.id);
-    if (!inOrderIds.has(item.id)) {
+    // On narrow screens the cart bar and the card badge already show the change; a toast would cover the catalog.
+    if (railCart && !qtyById.has(item.id)) {
       toastAdd(item.name);
     }
+  };
+
+  const openPayment = () => {
+    setCartOpen(false);
+    setPayOpen(true);
   };
 
   const handleScanProduct = (item: MenuItem) => {
@@ -102,19 +115,19 @@ export default function PosPage() {
   return (
     <div className="service-rail-surface flex min-h-screen flex-col min-[1200px]:h-screen min-[1200px]:overflow-hidden">
       <Header title={t.app.header.readyTitle} showSavedStatus />
-      <div className="shrink-0 px-5 pt-5 md:px-10 md:pt-6">
+      <div className="hidden shrink-0 px-5 pt-5 md:block md:px-10 md:pt-6">
         <PosMetricStrip />
       </div>
 
-      <div className="flex flex-1 min-h-0 flex-col gap-8 p-5 md:px-10 md:pb-6 min-[1200px]:flex-row min-[1200px]:gap-8 min-[1200px]:overflow-hidden">
+      <div className="flex flex-1 min-h-0 flex-col gap-8 px-5 pb-5 md:px-10 md:pb-6 min-[1200px]:flex-row min-[1200px]:gap-8 min-[1200px]:overflow-hidden min-[1200px]:pt-5">
         <section aria-label={t.pos.catalog.title} className="min-w-0 flex-1 flex flex-col min-h-0 min-[1200px]:overflow-hidden">
-          <div className="shrink-0 space-y-4 pb-2">
+          <div className="sticky top-0 z-20 -mx-5 shrink-0 space-y-3 bg-mineral/95 px-5 py-3 backdrop-blur md:max-[1199px]:-mx-10 md:max-[1199px]:px-10 min-[1200px]:static min-[1200px]:mx-0 min-[1200px]:space-y-4 min-[1200px]:bg-transparent min-[1200px]:px-0 min-[1200px]:pb-2 min-[1200px]:pt-0 min-[1200px]:backdrop-blur-none">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
+              <div className="max-[1199px]:sr-only">
                 <p className="label-caps text-2xs font-bold text-text-muted">{t.pos.catalog.eyebrow}</p>
                 <h2 className="font-display text-lg font-bold tracking-tight text-ink">{t.pos.catalog.title}</h2>
               </div>
-              <div className="flex w-full max-w-md items-center gap-2">
+              <div className="flex w-full items-center gap-2 min-[1200px]:max-w-md">
                 <div className="relative min-w-0 flex-1">
                   <Search
                     size={16}
@@ -123,13 +136,13 @@ export default function PosPage() {
                   />
                   <Input
                     id={searchId}
-                    size="sm"
+                    size={railCart ? "sm" : "lg"}
                     type="search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     aria-label={t.pos.catalog.searchLabel}
                     placeholder={t.pos.catalog.searchPlaceholder}
-                    className="h-9.5 pl-9"
+                    className={railCart ? "h-9.5 pl-9" : "pl-9"}
                   />
                 </div>
                 <IconButton
@@ -153,11 +166,11 @@ export default function PosPage() {
               tabs={[ALL_CATEGORIES, ...categories.map((c) => c.name)].map((name) => ({ id: name, label: name }))}
               value={category}
               onChange={setCategory}
-              className="flex-wrap"
+              className="scrollbar-none flex-nowrap overflow-x-auto *:min-h-10 *:flex-none *:whitespace-nowrap min-[1200px]:flex-wrap min-[1200px]:*:min-h-9 min-[1200px]:*:flex-1"
             />
           </div>
 
-          <div className="min-h-0 overflow-visible pr-1 min-[1200px]:flex-1 min-[1200px]:overflow-y-auto">
+          <div className="min-h-0 overflow-visible pt-2 min-[1200px]:flex-1 min-[1200px]:overflow-y-auto min-[1200px]:pr-1 min-[1200px]:pt-0">
             {filteredItems.length === 0 ? (
               <Empty
                 className="mt-6 rounded-xl border border-dashed border-border"
@@ -165,19 +178,28 @@ export default function PosPage() {
                 subtitle={t.pos.catalog.emptyResultBody}
               />
             ) : (
-              <div className="grid grid-cols-1 gap-5 pb-3 sm:grid-cols-2 min-[1500px]:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 pb-3 sm:gap-5 md:max-[1199px]:grid-cols-3 min-[1500px]:grid-cols-3">
                 {filteredItems.map((item) => (
-                  <ProductCard key={item.id} item={item} inOrder={inOrderIds.has(item.id)} onAdd={handleAdd} />
+                  <ProductCard key={item.id} item={item} qty={qtyById.get(item.id) ?? 0} onAdd={handleAdd} />
                 ))}
               </div>
             )}
           </div>
         </section>
 
-        <aside className="h-auto w-full shrink-0 pb-16 md:pb-0 min-[1200px]:h-full min-[1200px]:w-[390px] min-[1536px]:w-[410px]">
-          <CartPanel onPay={() => setPayOpen(true)} />
-        </aside>
+        {railCart && (
+          <aside className="h-full w-[390px] shrink-0 min-[1536px]:w-[410px]">
+            <CartPanel onPay={openPayment} />
+          </aside>
+        )}
       </div>
+
+      {!railCart && lines.length > 0 && <PosCartBar onOpen={() => setCartOpen(true)} />}
+      {!railCart && cartOpen && (
+        <Modal onClose={() => setCartOpen(false)} placement="sheet" ariaLabel={t.pos.cart.title} initialFocusRef={cartCloseRef}>
+          <CartPanel onPay={openPayment} onClose={() => setCartOpen(false)} closeRef={cartCloseRef} />
+        </Modal>
+      )}
 
       <PaymentModal open={payOpen} onClose={() => setPayOpen(false)} />
       <BarcodeScanner open={scanOpen} onClose={() => setScanOpen(false)} onProduct={handleScanProduct} onScanCode={handleScanCode} />
@@ -186,6 +208,7 @@ export default function PosPage() {
 }
 
 const ALL_CATEGORIES = t.pos.catalog.allCategories;
+const RAIL_CART_QUERY = "(min-width: 1200px)";
 
 function toastAdd(name: string) {
   toast.success(t.pos.toasts.addedTitle(name), { description: t.pos.toasts.addedBody });

@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
 import { cn } from "../lib/cn";
 
 type Variant = "primary" | "secondary" | "ink" | "outline" | "ghost" | "danger" | "danger-ghost" | "success";
@@ -68,12 +68,7 @@ export function Button({
   );
 }
 
-export function IconButton({
-  label,
-  className,
-  children,
-  ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; children?: ReactNode }) {
+export function IconButton({ label, className, children, ...rest }: ComponentProps<"button"> & { label: string; children?: ReactNode }) {
   return (
     <button
       type="button"

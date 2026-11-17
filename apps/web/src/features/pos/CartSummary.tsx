@@ -62,7 +62,7 @@ export function CartSummary({ onPay }: { onPay: () => void }) {
           <button
             type="button"
             onClick={() => setDiscountOpen(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-text-muted transition-colors hover:text-ink"
+            className="inline-flex min-h-10 items-center gap-1.5 text-xs font-bold text-text-muted transition-colors hover:text-ink min-[1200px]:min-h-0"
           >
             <Tag size={12} className="text-accent-dark" aria-hidden="true" />
             {discountValue > 0 ? (
@@ -78,7 +78,7 @@ export function CartSummary({ onPay }: { onPay: () => void }) {
               type="button"
               aria-label={t.pos.cart.removeDiscount}
               onClick={() => setDiscount("percent", 0)}
-              className="text-xs2 font-semibold text-error hover:underline"
+              className="min-h-10 px-1 text-xs2 font-semibold text-error hover:underline min-[1200px]:min-h-0"
             >
               {t.common.delete}
             </button>
