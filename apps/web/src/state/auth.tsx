@@ -106,8 +106,15 @@ export function AuthProvider({ children, remoteStaff }: { children: ReactNode; r
     remoteStaff ? withNormalizedAvatar(remoteStaff) : getInitialCurrentStaff(staffList),
   );
   const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const isRemote = remoteStaff !== undefined;
+
+  // The provider mounts once per sign-in (remote) or app start (demo). Landing on the cashier screen
+  // with a role that cannot use it goes straight to that role's own module instead of a locked page.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a landing redirect only; later navigation is left alone.
+  useEffect(() => {
+    if (location === "/" && !roleAllows(currentStaff.role, "/")) setLocation(defaultRouteFor(currentStaff.role), { replace: true });
+  }, []);
 
   useEffect(() => {
     if (isRemote) return;

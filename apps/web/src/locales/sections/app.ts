@@ -89,8 +89,8 @@ export const app = {
     pageTitle: "Akses Dibatasi",
     defaultModule: "Modul ini",
     lockedTitle: "Akses Terkunci untuk Peran Ini",
-    body: (moduleName: string) => `Halaman ${moduleName} dikhususkan untuk Kasir atau Manajer. Profil aktif saat ini adalah:`,
-    switchStaff: "Ganti Staf / Masukkan PIN Kasir",
+    body: (moduleName: string) => `Halaman ${moduleName} tidak tersedia untuk peran Anda. Profil aktif saat ini adalah:`,
+    switchStaff: "Ganti Staf / Masukkan PIN",
     backTo: (title: string) => `Kembali ke Modul ${title}`,
   },
 
