@@ -17,7 +17,8 @@ export function ImageGalleryTab({ value, onSelect }: { value: string; onSelect: 
 
   return (
     <div className="space-y-2">
-      <div role="group" aria-label={t.products.picker.gallery.filterLabel} className="flex flex-wrap gap-1">
+      <fieldset className="flex min-w-0 flex-wrap gap-1">
+        <legend className="sr-only">{t.products.picker.gallery.filterLabel}</legend>
         <button type="button" aria-pressed={category === null} onClick={() => setCategory(null)} className={chipClass(category === null)}>
           {t.products.picker.gallery.all}
         </button>
@@ -32,7 +33,7 @@ export function ImageGalleryTab({ value, onSelect }: { value: string; onSelect: 
             {name}
           </button>
         ))}
-      </div>
+      </fieldset>
       <GalleryGrid images={images} value={value} onSelect={onSelect} className="max-h-44 sm:grid-cols-4" />
     </div>
   );

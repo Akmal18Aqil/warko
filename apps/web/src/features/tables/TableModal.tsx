@@ -33,6 +33,7 @@ export function TableModal({ open, tableToEdit, availableAreas = DEFAULT_AREAS, 
 
   const mergedAreas = Array.from(new Set([...availableAreas, ...DEFAULT_AREAS]));
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `open` re-initialises the form on every reopen, including when `tableToEdit` stays the same (e.g. adding twice).
   useEffect(() => {
     setName(tableToEdit?.name ?? "");
     setSeats(tableToEdit ? String(tableToEdit.seats) : DEFAULT_SEATS);

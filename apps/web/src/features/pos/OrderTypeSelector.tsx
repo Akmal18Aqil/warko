@@ -14,14 +14,15 @@ export function OrderTypeSelector() {
 
   return (
     <>
-      <div role="group" aria-label={t.pos.cart.orderTypeLabel} className="mt-2.5 grid grid-cols-2 gap-1.5 rounded-md bg-surface-muted p-1">
+      <fieldset className="mt-2.5 grid min-w-0 grid-cols-2 gap-1.5 rounded-md bg-surface-muted p-1">
+        <legend className="sr-only">{t.pos.cart.orderTypeLabel}</legend>
         <TypeToggle active={orderType === "bawa-pulang"} label={t.pos.cart.takeaway} onClick={() => setOrderType("bawa-pulang")} />
         <TypeToggle
           active={orderType === "meja"}
           label={selectedTable ? t.pos.cart.dineInTable(selectedTable.name) : t.pos.cart.dineIn}
           onClick={() => setOrderType("meja")}
         />
-      </div>
+      </fieldset>
 
       <div className="mt-2 flex items-center justify-between gap-2 pt-0.5">
         {orderType === "meja" ? (

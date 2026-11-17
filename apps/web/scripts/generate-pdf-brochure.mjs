@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import puppeteer from "puppeteer";
 import { fileURLToPath } from "node:url";
+import puppeteer from "puppeteer";
 
 // Repository root (this file lives in apps/web/scripts); docs/ sits at the root.
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -24,20 +24,13 @@ const imgDapurKds = getBase64Image("02-dapur-kds.png");
 const imgManajemenMeja = getBase64Image("03-manajemen-meja.png");
 const imgKatalogProduk = getBase64Image("04-katalog-produk.png");
 const imgLaporanPenjualan = getBase64Image("05-laporan-penjualan.png");
-const imgPengaturanShift = getBase64Image("06-pengaturan-shift.png");
 const imgLaciKas = getBase64Image("10-laci-kas.png");
-const imgKelolaKategori = getBase64Image("11-kelola-kategori.png");
-const imgGantiPeran = getBase64Image("21-ganti-peran-modal.png");
 const imgPelayanSiti = getBase64Image("28-pelayan-2-siti-terisolasi.png");
 const imgDenahMultiPelayan = getBase64Image("30-denah-meja-multi-pelayan.png");
-const imgDapurMultiTickets = getBase64Image("31-dapur-multi-pelayan-tickets.png");
 const imgSelfOrderMenu = getBase64Image("33-customer-self-order-menu.png");
 const imgCookingStatus = getBase64Image("34-customer-live-cooking-status.png");
-const imgDapurSelfOrder = getBase64Image("35-dapur-self-order-ticket.png");
 const imgWifiQrScannable = getBase64Image("38-pusat-jaringan-wifi-qr-scannable.png");
-const imgQrisMandiri = getBase64Image("39-qris-mandiri-scannable-matrix.png");
 const imgBarcodeModal = getBase64Image("41-barcode-scanner-modal-camera.png");
-const imgBarcodeManual = getBase64Image("46-barcode-scanner-manual-input.png");
 
 const htmlContent = `<!DOCTYPE html>
 <html lang="id">

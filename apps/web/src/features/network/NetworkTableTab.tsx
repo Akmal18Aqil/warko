@@ -42,15 +42,14 @@ export function NetworkTableTab({ baseUrl, copiedUrl, onCopy }: NetworkTableTabP
             </span>
             <span className="text-xs2 font-semibold text-text-light">{t.network.hub.table.count(tables.length)}</span>
           </div>
-          <div role="radiogroup" aria-labelledby="network-table-picker" className="flex max-h-52 flex-wrap gap-2 overflow-y-auto pr-1">
+          <fieldset aria-labelledby="network-table-picker" className="flex max-h-52 min-w-0 flex-wrap gap-2 overflow-y-auto pr-1">
             {tables.map((row) => {
               const selected = row.id === table.id;
               return (
                 <button
                   key={row.id}
                   type="button"
-                  role="radio"
-                  aria-checked={selected}
+                  aria-pressed={selected}
                   onClick={() => setSelectedId(row.id)}
                   className={cn(
                     "flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
@@ -70,7 +69,7 @@ export function NetworkTableTab({ baseUrl, copiedUrl, onCopy }: NetworkTableTabP
                 </button>
               );
             })}
-          </div>
+          </fieldset>
         </div>
 
         <LinkRow

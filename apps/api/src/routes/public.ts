@@ -17,6 +17,7 @@ const PUBLIC_TABLE_LIMIT_PER_MINUTE = 6;
 /** One restaurant Wi-Fi shares an address, so the per-IP budget is far above the per-table one. */
 const PUBLIC_IP_LIMIT_PER_MINUTE = 60;
 const PUBLIC_GLOBAL_LIMIT_PER_MINUTE = 120;
+// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control characters from public input is the whole point.
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
 
 async function publicMenu({ env }: RouteContext): Promise<Response> {

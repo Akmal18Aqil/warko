@@ -58,7 +58,7 @@ export function CategoryForm({ editing, onDone }: { editing: CategoryRow | null;
         <KindPicker label={text.kind} value={kind} onChange={setKind} />
       </div>
 
-      <FieldGroup label={text.color} role="radiogroup">
+      <FieldGroup label={text.color}>
         <div className="flex items-center gap-2">
           {CATEGORY_COLORS.map((swatch) => {
             const label = t.products.categories.colors[swatch.id];
@@ -67,8 +67,7 @@ export function CategoryForm({ editing, onDone }: { editing: CategoryRow | null;
               <button
                 key={swatch.id}
                 type="button"
-                role="radio"
-                aria-checked={selected}
+                aria-pressed={selected}
                 aria-label={label}
                 title={label}
                 onClick={() => setColor(swatch.id)}

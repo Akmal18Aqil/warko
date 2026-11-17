@@ -93,7 +93,8 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
           <p className="font-display text-4xl font-bold tracking-tight text-ink">{formatIDR(amount)}</p>
         </div>
 
-        <div role="group" aria-label={t.pos.payment.methodsLabel} className="grid grid-cols-1 gap-2 px-6 pt-4 sm:grid-cols-3">
+        <fieldset className="grid min-w-0 grid-cols-1 gap-2 px-6 pt-4 sm:grid-cols-3">
+          <legend className="sr-only">{t.pos.payment.methodsLabel}</legend>
           <MethodCard
             selected={method === "kartu-qr"}
             onSelect={() => setMethod("kartu-qr")}
@@ -116,7 +117,7 @@ function PaymentDialog({ onClose, order }: { onClose: () => void; order?: OrderR
             hint={cashOpen ? t.pos.payment.cashHint : t.pos.payment.cashNeedsShift}
             disabled={!cashOpen}
           />
-        </div>
+        </fieldset>
 
         {method === "tunai" && cashOpen && (
           <div className="px-6 pt-4">

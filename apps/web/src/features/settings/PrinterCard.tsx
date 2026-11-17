@@ -44,12 +44,12 @@ export function PrinterCard() {
       note={t.settings.printer.note}
     >
       <div className="flex flex-wrap gap-2">
-        <div role="radiogroup" aria-label={t.settings.printer.drivers} className="flex flex-wrap gap-2">
+        <fieldset className="flex min-w-0 flex-wrap gap-2">
+          <legend className="sr-only">{t.settings.printer.drivers}</legend>
           {drivers.map((option) => (
             <Button
               key={option.id}
-              role="radio"
-              aria-checked={option.id === driver.id}
+              aria-pressed={option.id === driver.id}
               variant={option.id === driver.id ? "ink" : "outline"}
               size="sm"
               onClick={() => choose(option.id)}
@@ -57,7 +57,7 @@ export function PrinterCard() {
               {option.label}
             </Button>
           ))}
-        </div>
+        </fieldset>
         <Button variant="outline" size="sm" onClick={() => void testPrint()}>
           {t.settings.printer.testPrint}
         </Button>

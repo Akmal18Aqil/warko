@@ -69,8 +69,11 @@ function ModalPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const closeOnEscapeRef = useRef(closeOnEscape);
+  closeOnEscapeRef.current = closeOnEscape;
   const contextValue = useMemo(() => ({ titleId, onClose: () => onCloseRef.current() }), [titleId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: focus handling runs once per open; a later `initialFocusRef` change must not steal focus.
   useEffect(() => {
     const id = Symbol("modal");
     openStack.push(id);
@@ -81,7 +84,7 @@ function ModalPanel({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (openStack[openStack.length - 1] !== id || !panel) return;
-      if (event.key === "Escape" && closeOnEscape) {
+      if (event.key === "Escape" && closeOnEscapeRef.current) {
         event.preventDefault();
         event.stopPropagation();
         onCloseRef.current();
@@ -117,11 +120,10 @@ function ModalPanel({
       if (index >= 0) openStack.splice(index, 1);
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
-    // Focus handling runs once per open; later prop changes must not steal focus.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return createPortal(
+    // biome-ignore lint/a11y/noStaticElementInteractions: pointer-only backdrop dismissal; keyboard users close the dialog with Escape or its close/cancel buttons.
     <div
       className={cn(
         "fixed inset-0 z-50 flex justify-center bg-ink/60 p-4 backdrop-blur-sm print:hidden",

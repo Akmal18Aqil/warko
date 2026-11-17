@@ -51,7 +51,8 @@ export function StockModal({ item, onClose }: { item: MenuItem; onClose: () => v
       <ModalBody className="space-y-4">
         <p className="text-xs text-text-muted">{text.explain}</p>
 
-        <div role="group" aria-label={text.modeLabel} className="grid grid-cols-2 gap-2">
+        <fieldset className="grid min-w-0 grid-cols-2 gap-2">
+          <legend className="sr-only">{text.modeLabel}</legend>
           <button
             type="button"
             disabled={!tracked}
@@ -64,7 +65,7 @@ export function StockModal({ item, onClose }: { item: MenuItem; onClose: () => v
           <button type="button" aria-pressed={mode === "set"} onClick={() => setMode("set")} className={modeClass(mode === "set")}>
             {text.modeSet}
           </button>
-        </div>
+        </fieldset>
 
         <Input
           type="number"

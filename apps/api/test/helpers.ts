@@ -29,6 +29,7 @@ export function api(path: string, options: RequestOptions = {}): Promise<Respons
   );
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: test helper; callers read arbitrary response bodies without declaring a shape.
 export async function readJson<T = any>(response: Response): Promise<T> {
   return (await response.json()) as T;
 }

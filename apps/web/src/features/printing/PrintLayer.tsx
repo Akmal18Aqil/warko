@@ -160,8 +160,8 @@ function OrderReceiptPrint({ order }: { order: OrderRow }) {
         <div className="rp-sep" />
         <table className="rp-items">
           <tbody>
-            {r.lines.map((line, i) => (
-              <tr key={i}>
+            {r.lines.map((line) => (
+              <tr key={`${line.itemId}|${line.note ?? ""}`}>
                 <td className="rp-qty">{line.qty}×</td>
                 <td className="rp-name">
                   {line.name}

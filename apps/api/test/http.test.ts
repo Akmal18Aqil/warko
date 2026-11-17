@@ -40,7 +40,10 @@ describe("Reader", () => {
 
   it("reports nested errors under their path", () => {
     const errors = errorsOf(
-      (r) => r.array("items", { min: 1, max: 3 }).forEach((entry, i) => r.child(entry, `items.${i}`).integer("qty", { min: 1 })),
+      (r) =>
+        r.array("items", { min: 1, max: 3 }).forEach((entry, i) => {
+          r.child(entry, `items.${i}`).integer("qty", { min: 1 });
+        }),
       { items: [{ qty: 1 }, { qty: 0 }] },
     );
     expect(Object.keys(errors)).toEqual(["items.1.qty"]);

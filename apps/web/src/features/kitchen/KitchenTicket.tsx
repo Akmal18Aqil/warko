@@ -139,7 +139,7 @@ export function KitchenTicket({ order, position, checkedItems, busy, onToggleIte
               const isDone = Boolean(checkedItems[`${order.no}_${idx}`]);
               return (
                 <button
-                  key={idx}
+                  key={`${item.itemId}|${item.note ?? ""}`}
                   type="button"
                   aria-pressed={isDone}
                   onClick={() => onToggleItem(order.no, idx)}

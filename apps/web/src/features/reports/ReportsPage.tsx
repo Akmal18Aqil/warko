@@ -100,6 +100,7 @@ export default function ReportsPage() {
 
   // Reload on range change, on new live orders/payments, and periodically.
   const liveSignature = liveOrders.map((o) => `${o.no}:${o.paymentStatus}`).join(",");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `liveSignature` is the reload trigger for new live orders/payments.
   useEffect(() => {
     setLoading(true);
     void reload();

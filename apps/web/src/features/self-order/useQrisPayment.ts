@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { loadPublicPaymentOptions, type QrisCharge, startPublicQris } from "../../data/public";
 import { isPaid } from "../../lib/orderStatus";
@@ -25,6 +25,8 @@ export function useQrisPayment(isPublicCustomer: boolean, liveOrders: OrderRow[]
   const [orderNo, setOrderNo] = useState<number | null>(null);
   const [charge, setCharge] = useState<QrisCharge | null>(null);
   const [image, setImage] = useState("");
+  const onPaidRef = useRef(onPaid);
+  onPaidRef.current = onPaid;
 
   useEffect(() => {
     if (!isPublicCustomer) return;
@@ -57,10 +59,8 @@ export function useQrisPayment(isPublicCustomer: boolean, liveOrders: OrderRow[]
       toast.success(t.selfOrder.qris.received(paidOrder.no));
       setOrderNo(null);
       setCharge(null);
-      onPaid(paidOrder);
+      onPaidRef.current(paidOrder);
     }
-    // onPaid is a state setter in the caller; the effect must only react to the order changing.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paidOrder]);
 
   useEffect(() => {

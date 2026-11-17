@@ -139,12 +139,12 @@ export default function PosPage() {
                 >
                   <ScanLine size={17} aria-hidden="true" />
                 </IconButton>
-                <kbd
+                <span
                   aria-hidden="true"
-                  className="kbd-hint shrink-0 rounded border border-border bg-surface px-1.5 py-0.5 text-2xs font-semibold text-text-muted"
+                  className="kbd-hint font-mono shrink-0 rounded border border-border bg-surface px-1.5 py-0.5 text-2xs font-semibold text-text-muted"
                 >
                   {t.pos.catalog.shortcutK}
-                </kbd>
+                </span>
               </div>
             </div>
 

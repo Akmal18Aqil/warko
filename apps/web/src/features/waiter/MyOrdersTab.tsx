@@ -101,8 +101,8 @@ function MyOrderCard({ order }: { order: OrderRow }) {
         </div>
 
         <ul className="space-y-1 rounded-xl bg-mineral/40 p-2.5 text-xs">
-          {order.items?.map((item, index) => (
-            <li key={`${item.name}-${index}`} className="flex items-start justify-between">
+          {order.items?.map((item) => (
+            <li key={`${item.itemId}|${item.note ?? ""}`} className="flex items-start justify-between">
               <span className="font-medium text-ink">
                 <strong className="font-bold">{item.qty}x</strong> {item.name}
                 {item.note && <span className="block text-2xs italic text-text-muted">{t.waiter.itemNote(item.note)}</span>}

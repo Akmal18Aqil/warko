@@ -73,7 +73,10 @@ function cartOrder({
 }
 
 let refCounter = 0;
-const ref = () => `ref-${(refCounter += 1)}`;
+const ref = () => {
+  refCounter += 1;
+  return `ref-${refCounter}`;
+};
 
 const totalsOf = (o: Pick<OrderRow, "subtotal" | "discount" | "serviceCharge" | "tax" | "total" | "itemCount">) => ({
   subtotal: o.subtotal,

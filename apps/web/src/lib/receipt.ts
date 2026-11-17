@@ -16,7 +16,7 @@ export type ReceiptRow = { label: string; amount: string };
 export type ReceiptModel = {
   orderNo: number;
   details: string[];
-  lines: Array<{ qty: number; name: string; note?: string; unit: string; amount: string }>;
+  lines: Array<{ itemId: string; qty: number; name: string; note?: string; unit: string; amount: string }>;
   summary: ReceiptRow[];
   total: string;
   payment: ReceiptRow[];
@@ -55,6 +55,7 @@ export function receiptFromOrder(order: OrderRow): ReceiptModel {
     orderNo: order.no,
     details,
     lines: (order.items ?? []).map((i) => ({
+      itemId: i.itemId,
       qty: i.qty,
       name: i.name,
       note: i.note || undefined,

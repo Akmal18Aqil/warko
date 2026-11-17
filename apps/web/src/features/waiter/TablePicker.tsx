@@ -42,7 +42,7 @@ export function TablePicker({ draft, activeOrders }: TablePickerProps) {
           <span id={guestsLabelId} className="text-xs font-medium text-text-muted">
             {t.waiter.guestsLabel}
           </span>
-          <div role="radiogroup" aria-labelledby={guestsLabelId} className="flex items-center gap-1">
+          <fieldset aria-labelledby={guestsLabelId} className="flex min-w-0 items-center gap-1">
             {GUEST_OPTIONS.map((count) => (
               <button
                 key={count}
@@ -58,11 +58,12 @@ export function TablePicker({ draft, activeOrders }: TablePickerProps) {
                 {count}
               </button>
             ))}
-          </div>
+          </fieldset>
         </div>
       </div>
 
-      <div role="group" aria-label={t.waiter.tablesLabel} className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
+      <fieldset className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
+        <legend className="sr-only">{t.waiter.tablesLabel}</legend>
         {tables.map((table) => {
           const order = activeOrders.get(table.id);
           const isSelected = table.id === selectedTable?.id;
@@ -113,7 +114,7 @@ export function TablePicker({ draft, activeOrders }: TablePickerProps) {
             </button>
           );
         })}
-      </div>
+      </fieldset>
 
       {selectedTable && selectedOrder ? (
         <TableOccupancyNotice tableName={selectedTable.name} order={selectedOrder} mine={isHandledBy(selectedOrder, currentStaff)} />

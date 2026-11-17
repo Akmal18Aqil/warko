@@ -158,9 +158,8 @@ export default function TablesPage() {
             return (
               <article
                 key={table.id}
-                onClick={() => selectTableAndOrder(table)}
                 className={cn(
-                  "card-hover cursor-pointer rounded-2xl border-2 bg-surface p-5 shadow-clay transition-all hover:shadow-md",
+                  "card-hover relative cursor-pointer rounded-2xl border-2 bg-surface p-5 shadow-clay transition-all hover:shadow-md",
                   isOccupied ? "border-warning bg-warning/10" : "border-success bg-success/10",
                 )}
               >
@@ -183,7 +182,7 @@ export default function TablesPage() {
                       title={t.tables.qrButtonTitle}
                       aria-label={t.tables.qrLabel(table.name)}
                       onClick={(e) => openQr(table, e)}
-                      className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-accent/20 hover:text-ink"
+                      className="relative z-10 rounded-lg p-1.5 text-text-muted transition-colors hover:bg-accent/20 hover:text-ink"
                     >
                       <QrCode size={17} aria-hidden="true" />
                     </button>
@@ -192,7 +191,7 @@ export default function TablesPage() {
                         type="button"
                         aria-label={t.tables.editLabel(table.name)}
                         onClick={(e) => openEdit(table, e)}
-                        className="rounded-lg p-1.5 text-text-muted hover:bg-ink/5 hover:text-ink"
+                        className="relative z-10 rounded-lg p-1.5 text-text-muted hover:bg-ink/5 hover:text-ink"
                       >
                         <Edit size={15} aria-hidden="true" />
                       </button>
@@ -201,7 +200,16 @@ export default function TablesPage() {
                 </div>
 
                 <div className="mt-3 flex items-baseline justify-between">
-                  <h3 className="font-display text-base font-bold tracking-tight text-ink">{table.name}</h3>
+                  <h3 className="font-display text-base font-bold tracking-tight text-ink">
+                    {/* The stretched overlay makes the whole card clickable while the inner buttons stay above it. */}
+                    <button
+                      type="button"
+                      onClick={() => selectTableAndOrder(table)}
+                      className="cursor-pointer text-left after:absolute after:-inset-0.5 after:rounded-2xl focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-accent"
+                    >
+                      {table.name}
+                    </button>
+                  </h3>
                   <Badge tone={isOccupied ? "warning" : "success"} className="text-2xs font-bold">
                     {isOccupied ? t.tables.occupied : t.tables.empty}
                   </Badge>
@@ -234,7 +242,7 @@ export default function TablesPage() {
                               e.stopPropagation();
                               setPayingOrder(o);
                             }}
-                            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-error px-2 py-0.5 text-2xs font-bold text-white hover:bg-error/90"
+                            className="relative z-10 inline-flex shrink-0 items-center gap-1 rounded-full bg-error px-2 py-0.5 text-2xs font-bold text-white hover:bg-error/90"
                           >
                             <Banknote size={11} aria-hidden="true" /> {t.tables.pay(formatIDR(o.total))}
                           </button>

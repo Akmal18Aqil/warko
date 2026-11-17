@@ -40,13 +40,13 @@ export function DiscountEditor({
     <Modal onClose={onClose} size="sm">
       <ModalHeader title={t.pos.discount.title} subtitle={t.pos.discount.subtitle} />
       <ModalBody>
-        <div role="radiogroup" aria-label={t.pos.discount.typeLabel} className="grid grid-cols-2 gap-2">
+        <fieldset className="grid min-w-0 grid-cols-2 gap-2">
+          <legend className="sr-only">{t.pos.discount.typeLabel}</legend>
           {TYPES.map((option) => (
             <button
               key={option.id}
               type="button"
-              role="radio"
-              aria-checked={type === option.id}
+              aria-pressed={type === option.id}
               onClick={() => setType(option.id)}
               className={cn(
                 "rounded-xl border py-2 text-xs font-bold transition-colors",
@@ -56,7 +56,7 @@ export function DiscountEditor({
               {option.label}
             </button>
           ))}
-        </div>
+        </fieldset>
         <Input
           wrapperClassName="mt-3"
           label={t.pos.discount.valueLabel(type)}

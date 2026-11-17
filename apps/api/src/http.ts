@@ -118,7 +118,10 @@ export class Reader {
   }
 
   addError(field: string, message: string): undefined {
-    (this.errors[this.prefix + field] ??= []).push(message);
+    const key = this.prefix + field;
+    const messages = this.errors[key] ?? [];
+    messages.push(message);
+    this.errors[key] = messages;
     return undefined;
   }
 

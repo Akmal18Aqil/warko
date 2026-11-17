@@ -145,7 +145,8 @@ export default function ProductsPage() {
           </div>
         )}
 
-        <div role="group" aria-label={text.categoryFilterLabel} className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <fieldset className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <legend className="sr-only">{text.categoryFilterLabel}</legend>
           <button
             type="button"
             aria-pressed={categoryFilter === null}
@@ -171,7 +172,7 @@ export default function ProductsPage() {
               </button>
             );
           })}
-        </div>
+        </fieldset>
 
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface shadow-clay">

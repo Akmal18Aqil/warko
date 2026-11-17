@@ -27,6 +27,7 @@ export function useCashDrawer(): CashDrawerData {
   const movements = useCashMovements();
   const [history, setHistory] = useState<readonly ShiftRecord[]>([]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `activeShift` is the reload trigger; opening or closing a shift changes the stored history.
   useEffect(() => {
     let cancelled = false;
     loadShiftHistory().then(

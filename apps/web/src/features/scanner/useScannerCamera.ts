@@ -64,7 +64,7 @@ export function useScannerCamera(active: boolean, onDecode: (text: string) => vo
           audio: false,
         });
         if (stopped) {
-          stream.getTracks().forEach((track) => track.stop());
+          for (const track of stream.getTracks()) track.stop();
           return;
         }
 
@@ -100,7 +100,7 @@ export function useScannerCamera(active: boolean, onDecode: (text: string) => vo
     return () => {
       stopped = true;
       controls?.stop();
-      stream?.getTracks().forEach((track) => track.stop());
+      if (stream) for (const track of stream.getTracks()) track.stop();
       trackRef.current = null;
       if (video) video.srcObject = null;
     };

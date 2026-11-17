@@ -28,7 +28,8 @@ export function MenuGrid({ cart, onScan }: { cart: WaiterDraft["cart"]; onScan: 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div role="group" aria-label={t.waiter.categoriesLabel} className="flex min-w-0 max-w-full flex-wrap gap-1.5 pb-1">
+        <fieldset className="flex min-w-0 max-w-full flex-wrap gap-1.5 pb-1">
+          <legend className="sr-only">{t.waiter.categoriesLabel}</legend>
           {[null, ...categories.map((c) => c.name)].map((name) => (
             <button
               key={name ?? "all"}
@@ -45,7 +46,7 @@ export function MenuGrid({ cart, onScan }: { cart: WaiterDraft["cart"]; onScan: 
               {name ?? t.waiter.allCategories}
             </button>
           ))}
-        </div>
+        </fieldset>
 
         <div className="flex w-full items-center gap-1.5 sm:w-auto">
           <div className="relative flex-1 sm:w-60">

@@ -21,14 +21,13 @@ export function KindIcon({ kind, size = 12 }: { kind: MenuKind; size?: number })
 
 export function KindPicker({ label, value, onChange }: { label: string; value: MenuKind; onChange: (kind: MenuKind) => void }) {
   return (
-    <FieldGroup label={label} role="radiogroup">
+    <FieldGroup label={label}>
       <div className="grid grid-cols-3 gap-1.5">
         {PRODUCT_KINDS.map((kind) => (
           <button
             key={kind}
             type="button"
-            role="radio"
-            aria-checked={value === kind}
+            aria-pressed={value === kind}
             onClick={() => onChange(kind)}
             className={cn(
               "flex min-h-9 items-center justify-center gap-1 rounded-lg border px-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",

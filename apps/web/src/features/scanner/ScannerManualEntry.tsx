@@ -82,7 +82,8 @@ export function ScannerManualEntry({ onSubmit }: ScannerManualEntryProps) {
         ) : null}
       </div>
 
-      <div role="group" aria-label={t.scanner.manual.keypad} className="grid grid-cols-3 gap-1.5">
+      <fieldset className="grid min-w-0 grid-cols-3 gap-1.5">
+        <legend className="sr-only">{t.scanner.manual.keypad}</legend>
         {KEYPAD.map((key) => (
           <button
             key={key}
@@ -101,7 +102,7 @@ export function ScannerManualEntry({ onSubmit }: ScannerManualEntryProps) {
             {key}
           </button>
         ))}
-      </div>
+      </fieldset>
     </div>
   );
 }

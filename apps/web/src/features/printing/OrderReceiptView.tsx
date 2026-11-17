@@ -22,8 +22,8 @@ export function OrderReceiptView({ order, className }: { order: OrderRow; classN
       ))}
       <div className="my-2 border-t border-dashed border-ink/25" />
       <ul className="space-y-1">
-        {r.lines.map((line, i) => (
-          <li key={i} className="flex justify-between gap-3">
+        {r.lines.map((line) => (
+          <li key={`${line.itemId}|${line.note ?? ""}`} className="flex justify-between gap-3">
             <span className="min-w-0">
               {line.qty}× {line.name}
               {line.note ? <span className="block text-2xs text-ink/50">({line.note})</span> : null}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { floorsOf } from "../../lib/orderStatus";
 import { STORAGE_KEYS } from "../../lib/storageKeys";
@@ -24,6 +24,9 @@ export function useSelfTable(ready: boolean, paramTableId: string | undefined): 
   const activeTables = useMemo(() => tables.filter((table) => table.active !== false), [tables]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(() => localStorage.getItem(STORAGE_KEYS.selfTable));
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Read inside the resolve effect without re-running it: resolution happens once per load / URL change.
+  const selectedTableIdRef = useRef(selectedTableId);
+  selectedTableIdRef.current = selectedTableId;
 
   useEffect(() => {
     if (!ready) return;
@@ -33,12 +36,10 @@ export function useSelfTable(ready: boolean, paramTableId: string | undefined): 
       return;
     }
     if (paramTableId) toast.error(t.selfOrder.table.unknownQr);
-    if (!activeTables.some((table) => table.id === selectedTableId)) {
+    if (!activeTables.some((table) => table.id === selectedTableIdRef.current)) {
       setSelectedTableId(null);
       setPickerOpen(true);
     }
-    // selectedTableId is intentionally not a dependency: resolve once per load / URL change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, paramTableId, activeTables]);
 
   useEffect(() => {

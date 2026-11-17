@@ -59,8 +59,8 @@ export function OrderStatusCard({ order, qrisAvailable, onReceipt, onPayQris }: 
       </ol>
 
       <div className="space-y-1 rounded-xl bg-mineral p-2.5 text-xs">
-        {order.items?.map((item, idx) => (
-          <div key={idx} className="flex justify-between text-ink/80">
+        {order.items?.map((item) => (
+          <div key={`${item.itemId}|${item.note ?? ""}`} className="flex justify-between text-ink/80">
             <span>
               <strong>{item.qty}×</strong> {item.name}
               {item.note && <span className="block text-2xs italic text-text-muted">({item.note})</span>}

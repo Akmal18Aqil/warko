@@ -66,17 +66,13 @@ export function MovementModal({ initialType, onClose }: MovementModalProps) {
       <ModalHeader title={incoming ? text.titleIn : text.titleOut} subtitle={incoming ? text.subtitleIn : text.subtitleOut} />
       <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
         <ModalBody className="space-y-4">
-          <div
-            role="radiogroup"
-            aria-label={text.typeLabel}
-            className="grid grid-cols-2 gap-2 rounded-xl border border-ink/10 bg-mineral/80 p-1"
-          >
+          <fieldset className="grid min-w-0 grid-cols-2 gap-2 rounded-xl border border-ink/10 bg-mineral/80 p-1">
+            <legend className="sr-only">{text.typeLabel}</legend>
             {MOVEMENT_TYPES.map((option) => (
               <button
                 key={option}
                 type="button"
-                role="radio"
-                aria-checked={type === option}
+                aria-pressed={type === option}
                 onClick={() => chooseType(option)}
                 className={cn(
                   "rounded-lg py-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
@@ -86,7 +82,7 @@ export function MovementModal({ initialType, onClose }: MovementModalProps) {
                 {t.cashDrawer.movementType[option]}
               </button>
             ))}
-          </div>
+          </fieldset>
 
           <Select label={text.category} value={category} onChange={(e) => setCategory(e.target.value as CashMovementCategory)}>
             {CATEGORIES_BY_TYPE[type].map((option) => (
@@ -107,7 +103,8 @@ export function MovementModal({ initialType, onClose }: MovementModalProps) {
               placeholder={text.amountPlaceholder}
               className="font-bold"
             />
-            <div role="group" aria-label={text.quickAmountsLabel} className="mt-2 flex flex-wrap gap-1.5">
+            <fieldset className="mt-2 flex min-w-0 flex-wrap gap-1.5">
+              <legend className="sr-only">{text.quickAmountsLabel}</legend>
               {QUICK_AMOUNTS.map((quick) => (
                 <button
                   key={quick}
@@ -118,7 +115,7 @@ export function MovementModal({ initialType, onClose }: MovementModalProps) {
                   {formatIDR(quick)}
                 </button>
               ))}
-            </div>
+            </fieldset>
           </div>
 
           <Textarea

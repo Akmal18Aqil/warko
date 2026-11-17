@@ -121,12 +121,12 @@ export function CartSummary({ onPay }: { onPay: () => void }) {
         onClick={handlePrint}
       >
         {t.pos.cart.print}
-        <kbd
+        <span
           aria-hidden="true"
-          className="kbd-hint ml-1.5 rounded border border-border bg-surface px-1.5 py-0.5 text-2xs font-semibold text-text-muted"
+          className="kbd-hint font-mono ml-1.5 rounded border border-border bg-surface px-1.5 py-0.5 text-2xs font-semibold text-text-muted"
         >
           {t.pos.cart.printShortcut}
-        </kbd>
+        </span>
       </Button>
 
       {discountOpen && <DiscountEditor initialType={discountType} initialValue={discountValue} onClose={() => setDiscountOpen(false)} />}

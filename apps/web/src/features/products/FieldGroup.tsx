@@ -1,27 +1,12 @@
-import { type ReactNode, useId } from "react";
+import type { ReactNode } from "react";
 import { cn } from "../../lib/cn";
 
-/** A captioned group of related controls (radio buttons, swatches) that has no single native label. */
-export function FieldGroup({
-  label,
-  role = "group",
-  className,
-  children,
-}: {
-  label: ReactNode;
-  role?: "group" | "radiogroup";
-  className?: string;
-  children: ReactNode;
-}) {
-  const captionId = useId();
+/** A captioned group of related controls (toggle buttons, swatches) that has no single native label. */
+export function FieldGroup({ label, className, children }: { label: ReactNode; className?: string; children: ReactNode }) {
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <p id={captionId} className="text-xs2 font-semibold uppercase tracking-wider text-text-muted">
-        {label}
-      </p>
-      <div role={role} aria-labelledby={captionId}>
-        {children}
-      </div>
-    </div>
+    <fieldset className={cn("min-w-0", className)}>
+      <legend className="mb-1.5 text-xs2 font-semibold uppercase tracking-wider text-text-muted">{label}</legend>
+      {children}
+    </fieldset>
   );
 }

@@ -44,7 +44,8 @@ export function PayAtTableModal({ tableName, waiterName, total, isSubmitting, on
           <p className="font-display text-2xl font-bold text-ink">{formatIDR(total)}</p>
         </div>
 
-        <div role="radiogroup" aria-label={t.waiter.payMethodLabel} className="grid grid-cols-2 gap-2">
+        <fieldset className="grid min-w-0 grid-cols-2 gap-2">
+          <legend className="sr-only">{t.waiter.payMethodLabel}</legend>
           {METHODS.map(({ id, label, icon: Icon }) => {
             const disabled = id === "tunai" && !cashOpen;
             return (
@@ -68,7 +69,7 @@ export function PayAtTableModal({ tableName, waiterName, total, isSubmitting, on
               </button>
             );
           })}
-        </div>
+        </fieldset>
 
         {!cashOpen && (
           <p role="status" className="rounded-xl bg-warning/10 p-2.5 text-xs2 font-semibold text-warning-dark">

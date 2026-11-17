@@ -1,5 +1,5 @@
 import { Plus, ScanLine, Sparkles, Trash2 } from "lucide-react";
-import { type FormEvent, type ReactNode, useId, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import type { MenuItem, MenuKind } from "../../data/menu";
 import { t } from "../../locales/id";
@@ -8,6 +8,7 @@ import { Button } from "../../ui/Button";
 import { Input, Select } from "../../ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../../ui/Modal";
 import { BarcodeScanner } from "../scanner/BarcodeScanner";
+import { FieldGroup } from "./FieldGroup";
 import { InlineCategoryForm } from "./InlineCategoryForm";
 import { ProductImagePicker } from "./ProductImagePicker";
 import { DEFAULT_PRODUCT_KIND } from "./productKinds";
@@ -41,7 +42,6 @@ interface ProductModalProps {
 export function ProductModal({ itemToEdit, onClose }: ProductModalProps) {
   const categories = useCategories();
   const text = t.products.form;
-  const photoCaptionId = useId();
 
   const [name, setName] = useState(itemToEdit?.name ?? "");
   const [category, setCategory] = useState(itemToEdit?.category ?? categories[0]?.name ?? "");
@@ -215,14 +215,9 @@ export function ProductModal({ itemToEdit, onClose }: ProductModalProps) {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <p id={photoCaptionId} className="text-xs2 font-semibold uppercase tracking-wider text-text-muted">
-                {text.photo}
-              </p>
-              <div role="group" aria-labelledby={photoCaptionId}>
-                <ProductImagePicker value={image} onChange={setImage} productName={name} />
-              </div>
-            </div>
+            <FieldGroup label={text.photo}>
+              <ProductImagePicker value={image} onChange={setImage} productName={name} />
+            </FieldGroup>
           </form>
         </ModalBody>
         <ModalFooter className="justify-between">
