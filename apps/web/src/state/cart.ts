@@ -2,7 +2,7 @@ import type { OrderType, PayMethod } from "@wakro/shared";
 import { useMemo } from "react";
 import { toast } from "sonner";
 import { RemoteDataError } from "../data/index";
-import { addLine, decreaseLine, increaseLine, removeLine, setLineNote, stockLimitMessage } from "../lib/cart";
+import { addLine, decreaseLine, increaseLine, mergeLines, removeLine, setLineNote, stockLimitMessage } from "../lib/cart";
 import { buildOrderRow } from "../lib/orderBuilder";
 import { newClientRef } from "../lib/orderStatus";
 import { computeTotals, NO_DISCOUNT } from "../lib/pricing";
@@ -60,11 +60,46 @@ export function useCart() {
   }, [state, products, tables, pricing]);
 }
 
-export const setOrderType = (orderType: OrderType) => cartStore.set({ orderType });
+/**
+ * Switches the order type / table. The order being built moves with the switch, so changing between
+ * takeaway and dine-in (or between tables) never hides it; when the destination already holds a draft
+ * (another table's open order), the two are merged and the cashier is told. With an empty current
+ * order the switch simply opens the destination's draft.
+ */
+function changeSelection(next: { orderType: OrderType; tableId?: string | null; guests?: number }): void {
+  const state = cartStore.get();
+  const from = cartKeyOf(state);
+  const to = cartKeyOf({ orderType: next.orderType, tableId: next.tableId === undefined ? state.tableId : next.tableId });
+  const source = state.carts[from];
+  if (from === to || !source || source.lines.length === 0) {
+    cartStore.set(next);
+    return;
+  }
+  const { [from]: _moved, ...others } = state.carts;
+  const target = others[to];
+  const merging = target !== undefined && target.lines.length > 0;
+  const carried: CartEntry = merging
+    ? { lines: mergeLines(target.lines, source.lines), discount: source.discount.value > 0 ? source.discount : target.discount }
+    : source;
+  cartStore.set({ ...next, carts: { ...others, [to]: carried } });
+
+  // A timed-out submit keeps its idempotency key only while the order it was for is unchanged.
+  const pending = pendingRefs.get(`pos:${from}`);
+  pendingRefs.delete(`pos:${from}`);
+  if (pending && !merging) pendingRefs.set(`pos:${to}`, pending);
+
+  if (merging) {
+    const table = catalogStore.get().tables.find((tbl) => tbl.id === (next.tableId ?? state.tableId));
+    const name = next.orderType === "bawa-pulang" ? t.pos.cart.takeaway : (table?.name ?? t.pos.cart.chooseTable);
+    toast(t.pos.cart.mergedTitle(name), { description: t.pos.cart.mergedBody });
+  }
+}
+
+export const setOrderType = (orderType: OrderType) => changeSelection({ orderType });
 export const setGuests = (guests: number) => cartStore.set({ guests });
 
 export function selectTable(table: TableRow): void {
-  cartStore.set({ orderType: "meja", tableId: table.id, guests: table.seats });
+  changeSelection({ orderType: "meja", tableId: table.id, guests: table.seats });
 }
 
 export function setDiscount(type: CartDiscount["type"], value: number): void {

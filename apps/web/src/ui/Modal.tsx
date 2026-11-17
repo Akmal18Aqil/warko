@@ -126,8 +126,9 @@ function ModalPanel({
     // biome-ignore lint/a11y/noStaticElementInteractions: pointer-only backdrop dismissal; keyboard users close the dialog with Escape or its close/cancel buttons.
     <div
       className={cn(
-        "fixed inset-0 z-50 flex justify-center bg-ink/60 p-4 backdrop-blur-sm print:hidden",
-        placement === "sheet" ? "items-end sm:items-center" : "items-center",
+        "fixed inset-0 z-50 flex justify-center bg-ink/60 backdrop-blur-sm print:hidden",
+        // On phones a sheet sits flush on the bottom edge; from `sm` up it is a centred dialog.
+        placement === "sheet" ? "items-end pt-6 sm:items-center sm:p-4" : "items-center p-4",
       )}
       onMouseDown={(event) => {
         if (closeOnBackdrop && event.target === event.currentTarget) onCloseRef.current();
@@ -144,6 +145,7 @@ function ModalPanel({
           className={cn(
             "flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl outline-none animate-modal-in",
             SIZE_CLASS[size],
+            placement === "sheet" && "max-sm:rounded-b-none max-sm:border-x-0 max-sm:border-b-0 max-sm:pb-[env(safe-area-inset-bottom)]",
             className,
           )}
         >

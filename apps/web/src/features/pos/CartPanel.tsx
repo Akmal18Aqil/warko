@@ -35,7 +35,7 @@ export function CartPanel({ onPay, onClose, closeRef }: { onPay: () => void; onC
     >
       <div className="shrink-0 border-b border-border bg-surface px-4 pb-3 pt-3.5">
         <div className="flex items-center justify-between gap-2">
-          <div>
+          <div className="min-w-0">
             <p className="label-caps mb-1 text-2xs font-bold text-text-muted">{t.pos.cart.eyebrow}</p>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-base font-bold tracking-tight text-ink">{t.pos.cart.title}</h2>
@@ -57,10 +57,10 @@ export function CartPanel({ onPay, onClose, closeRef }: { onPay: () => void; onC
                 type="button"
                 aria-label={t.pos.cart.clearAria}
                 onClick={handleClear}
-                className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-error transition-colors hover:bg-error/10 min-[1200px]:min-h-0"
+                className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-error transition-colors hover:bg-error/10 min-[1200px]:min-h-0 min-[1200px]:min-w-0"
               >
                 <Trash2 size={13} aria-hidden="true" />
-                {t.pos.cart.clear}
+                <span className="max-[399px]:sr-only">{t.pos.cart.clear}</span>
               </button>
             )}
             {onClose && (
@@ -73,7 +73,7 @@ export function CartPanel({ onPay, onClose, closeRef }: { onPay: () => void; onC
         <OrderTypeSelector />
       </div>
       <div className="receipt-perforation mx-4 shrink-0" aria-hidden="true" />
-      <CartLines />
+      <CartLines inSheet={onClose !== undefined} />
       <CartSummary onPay={onPay} />
     </section>
   );

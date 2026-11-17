@@ -56,7 +56,7 @@ export function CartSummary({ onPay }: { onPay: () => void }) {
   };
 
   return (
-    <div className="shrink-0 space-y-1 border-t border-border bg-surface px-4 py-2 shadow-lg">
+    <div className="sticky bottom-0 shrink-0 space-y-1 border-t border-border bg-surface px-4 py-2 shadow-lg">
       {canDiscount && (
         <div className="flex items-center justify-between border-b border-border pb-1.5">
           <button

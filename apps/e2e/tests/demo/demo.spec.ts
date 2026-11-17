@@ -23,6 +23,21 @@ test("demo mode is labelled, ready for cash sales, and resets", async ({ page })
   await expect(page.getByText(`#${orderNo}`, { exact: true })).toHaveCount(0);
 });
 
+test("switching between takeaway and dine-in keeps the order being built", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Burger Keju, Rp .*Tambahkan ke pesanan$/ }).click();
+  const ticket = page.getByRole("region", { name: "Pesanan saat ini" });
+  await expect(ticket.getByText("Burger Keju")).toBeVisible();
+
+  await ticket.getByRole("button", { name: "Makan di tempat" }).click();
+  await expect(ticket.getByText("Burger Keju")).toBeVisible();
+  await ticket.getByLabel("Pilih meja").selectOption({ label: "Meja 01" });
+  await expect(ticket.getByText("Burger Keju")).toBeVisible();
+  await ticket.getByRole("button", { name: "Bawa pulang" }).click();
+  await expect(ticket.getByText("Burger Keju")).toBeVisible();
+  await expect(ticket.getByText(/^1 item dipilih · Bawa pulang$/)).toBeVisible();
+});
+
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 412, height: 839 }, isMobile: true, hasTouch: true });
 

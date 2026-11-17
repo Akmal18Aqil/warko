@@ -209,7 +209,7 @@ Aturan peran sama dengan API: menambah/mengubah produk, kategori, meja, dan paja
 
 ### 1. 🛒 Kasir & Transaksi POS (`/`)
 - **Pencarian Cepat (`Ctrl + K`)**: Cari menu berdasarkan nama atau SKU barcode.
-- **Multi-Tab Cart Meja**: Simpan draf transaksi di beberapa meja tanpa takut data hilang saat beralih.
+- **Multi-Tab Cart Meja**: Simpan draf transaksi di beberapa meja. Pesanan yang sedang dibuat ikut pindah saat jenis pesanan (bawa pulang / makan di tempat) atau meja diganti, jadi item tidak pernah hilang; bila tujuan sudah punya draf, keduanya digabung (item yang sama dijumlahkan) dan kasir diberi tahu. Dengan keranjang kosong, memilih meja membuka draf meja itu.
 - **Kustomisasi Pesanan**: Tambahkan catatan per item (*less sugar, tanpa bawang, pedas sedang*).
 - **Kalkulasi Otomatis**: Subtotal, diskon (persen/nominal), biaya layanan (*Service Charge*), dan pajak (PPN, tarif dapat diatur; bawaan 11%).
 - **Multi-Metode Pembayaran**: Tunai dengan kalkulator uang kembalian cepat, QRIS Dinamis Mandiri, Kartu Debit/Kredit, dan Transfer Bank.

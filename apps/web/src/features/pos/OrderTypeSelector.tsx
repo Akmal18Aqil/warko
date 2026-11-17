@@ -19,7 +19,13 @@ export function OrderTypeSelector() {
         <TypeToggle active={orderType === "bawa-pulang"} label={t.pos.cart.takeaway} onClick={() => setOrderType("bawa-pulang")} />
         <TypeToggle
           active={orderType === "meja"}
-          label={selectedTable ? t.pos.cart.dineInTable(selectedTable.name) : t.pos.cart.dineIn}
+          label={
+            <>
+              {t.pos.cart.dineIn}
+              {/* The table picker right below already names the table on narrow screens. */}
+              {selectedTable && <span className="max-[399px]:hidden">{t.pos.cart.dineInTableSuffix(selectedTable.name)}</span>}
+            </>
+          }
           onClick={() => setOrderType("meja")}
         />
       </fieldset>
@@ -75,7 +81,7 @@ export function OrderTypeSelector() {
   );
 }
 
-function TypeToggle({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function TypeToggle({ active, label, onClick }: { active: boolean; label: ReactNode; onClick: () => void }) {
   return (
     <button
       type="button"

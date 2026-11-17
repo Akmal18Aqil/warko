@@ -25,6 +25,17 @@ export function removeLine(lines: readonly CartLine[], itemId: string): CartLine
   return lines.filter((l) => l.itemId !== itemId);
 }
 
+/** `incoming` added onto `target`: same items sum their quantities and keep the target's note when it has one. */
+export function mergeLines(target: readonly CartLine[], incoming: readonly CartLine[]): CartLine[] {
+  const merged = [...target];
+  for (const line of incoming) {
+    const index = merged.findIndex((l) => l.itemId === line.itemId);
+    if (index < 0) merged.push(line);
+    else merged[index] = { ...merged[index], qty: merged[index].qty + line.qty, note: merged[index].note || line.note };
+  }
+  return merged;
+}
+
 /** Why one more portion of `itemId` cannot be added, or null when it fits the ready stock. */
 export function stockLimitMessage(lines: readonly CartLine[], products: readonly MenuItem[], itemId: string): string | null {
   const product = products.find((p) => p.id === itemId);

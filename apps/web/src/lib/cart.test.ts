@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MenuItem } from "../data/menu";
-import { addLine, decreaseLine, removeLine, setLineNote, stockLimitMessage } from "./cart";
+import { addLine, decreaseLine, mergeLines, removeLine, setLineNote, stockLimitMessage } from "./cart";
 
 const item = (id: string, stock?: number | null): MenuItem => ({
   id,
@@ -41,6 +41,23 @@ describe("cart lines", () => {
     ];
     expect(setLineNote(lines, "b", "pedas")[1].note).toBe("pedas");
     expect(removeLine(lines, "a")).toEqual([{ itemId: "b", qty: 1 }]);
+  });
+
+  it("merges an order into another: same items add up and the target's note wins", () => {
+    const target = [
+      { itemId: "a", qty: 1, note: "pedas" },
+      { itemId: "b", qty: 1 },
+    ];
+    const incoming = [
+      { itemId: "a", qty: 2, note: "tidak pedas" },
+      { itemId: "b", qty: 1, note: "tanpa es" },
+      { itemId: "c", qty: 1 },
+    ];
+    expect(mergeLines(target, incoming)).toEqual([
+      { itemId: "a", qty: 3, note: "pedas" },
+      { itemId: "b", qty: 2, note: "tanpa es" },
+      { itemId: "c", qty: 1 },
+    ]);
   });
 });
 

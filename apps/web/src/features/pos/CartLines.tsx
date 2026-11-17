@@ -11,8 +11,11 @@ import { FoodImage } from "../../ui/FoodImage";
 import { Input } from "../../ui/Input";
 import { QtyButton } from "./OrderTypeSelector";
 
-/** The scrolling list of cart lines (or the empty state). */
-export function CartLines() {
+/**
+ * The cart lines (or the empty state). In the side rail the list scrolls on its own between the order
+ * header and the summary; in the sheet (`inSheet`) the whole sheet scrolls, which leaves far more room.
+ */
+export function CartLines({ inSheet = false }: { inSheet?: boolean }) {
   const { lines } = useCart();
   const products = useProducts();
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -29,7 +32,12 @@ export function CartLines() {
   }
 
   return (
-    <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain bg-mineral/20 px-3.5 py-3 min-[1200px]:min-h-[230px]">
+    <ul
+      className={cn(
+        "space-y-2 bg-mineral/20 px-3.5 py-3",
+        inSheet ? "flex-none" : "min-h-0 flex-1 overflow-y-auto overscroll-contain min-[1200px]:min-h-[230px]",
+      )}
+    >
       {lines.map((line) => {
         const item = products.find((p) => p.id === line.itemId);
         if (!item) return null;
@@ -64,7 +72,7 @@ function CartLineItem({
   return (
     <li className="rounded-xl border border-border bg-surface p-2.5 shadow-clay transition-colors hover:border-border-hover">
       <div className="flex items-start gap-2.5">
-        <FoodImage item={item} className="h-12 w-12 shrink-0 rounded-lg border border-border object-cover" />
+        <FoodImage item={item} className="hidden h-12 w-12 shrink-0 rounded-lg border border-border object-cover min-[1200px]:block" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-1.5">
             <p className="truncate text-sm font-bold leading-snug text-ink min-[1200px]:text-xs">{item.name}</p>
@@ -75,7 +83,7 @@ function CartLineItem({
           <p className="mt-0.5 text-xs2 text-text-muted">{t.pos.cart.unitPrice(formatIDR(item.price))}</p>
 
           <div className="mt-2 flex items-center justify-between gap-1.5">
-            <div className="flex items-center gap-0.5 rounded-lg border border-border bg-mineral/60 p-0.5">
+            <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-mineral/60 p-0.5">
               <QtyButton label={t.pos.cart.qtyDecrease(item.name)} onClick={() => decreaseItem(line.itemId)}>
                 <Minus size={11} strokeWidth={2.6} aria-hidden="true" />
               </QtyButton>
@@ -100,8 +108,8 @@ function CartLineItem({
                   : "border-border bg-surface text-text-muted hover:border-border-hover hover:text-ink",
               )}
             >
-              <MessageSquarePlus size={11} aria-hidden="true" />
-              {line.note ? t.pos.cart.editNote : t.pos.cart.addNote}
+              <MessageSquarePlus size={14} aria-hidden="true" className="min-[1200px]:size-[11px]" />
+              <span className="max-[359px]:sr-only">{line.note ? t.pos.cart.editNote : t.pos.cart.addNote}</span>
             </button>
 
             <button
@@ -109,7 +117,7 @@ function CartLineItem({
               aria-label={t.pos.cart.removeLine(item.name)}
               title={t.pos.cart.removeLine(item.name)}
               onClick={() => removeItem(line.itemId)}
-              className="ml-auto inline-flex h-10 w-10 items-center justify-center rounded-md text-text-light transition-colors hover:bg-error/10 hover:text-error min-[1200px]:h-6 min-[1200px]:w-6"
+              className="ml-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-error/30 text-error transition-colors hover:bg-error/10 hover:text-error active:bg-error/15 min-[1200px]:h-6 min-[1200px]:w-6 min-[1200px]:border-0 min-[1200px]:text-text-light"
             >
               <Trash2 size={14} aria-hidden="true" />
             </button>
@@ -161,7 +169,7 @@ function NoteEditor({ line, name, onClose }: { line: CartLine; name: string; onC
           type="button"
           aria-label={t.pos.cart.noteCancel}
           onClick={onClose}
-          className="flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium text-text-muted hover:bg-ink/5"
+          className="flex min-h-10 items-center gap-1 rounded px-3 py-0.5 text-xs font-medium text-text-muted hover:bg-ink/5 min-[1200px]:min-h-0 min-[1200px]:px-2"
         >
           <X size={11} aria-hidden="true" /> {t.common.cancel}
         </button>
@@ -169,7 +177,7 @@ function NoteEditor({ line, name, onClose }: { line: CartLine; name: string; onC
           type="button"
           aria-label={t.pos.cart.noteSave}
           onClick={save}
-          className="flex items-center gap-1 rounded bg-ink px-2 py-0.5 text-xs font-bold text-white hover:bg-ink/90"
+          className="flex min-h-10 items-center gap-1 rounded bg-ink px-3 py-0.5 text-xs font-bold text-white hover:bg-ink/90 min-[1200px]:min-h-0 min-[1200px]:px-2"
         >
           <Check size={11} aria-hidden="true" /> {t.common.save}
         </button>
