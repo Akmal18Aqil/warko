@@ -1,18 +1,23 @@
 import { STAFF_ROLES, type StaffRole } from "@wakro/shared";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { jsonBody, request } from "../../data/api";
+import { jsonBody, request, SESSION_REJECTED_EVENT } from "../../data/api";
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../../data/authApi";
 import { t } from "../../locales/id";
+import { useRemoteSession } from "../../state/remoteSession";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { Input, Select } from "../../ui/Input";
 import { LoadingText } from "../../ui/Spinner";
+import { PasswordConfirmModal } from "./PasswordConfirmModal";
+import { StaffPinModal } from "./StaffPinModal";
 
-type Staff = { id: string; username: string; name: string; role: StaffRole; active: boolean };
+type Staff = { id: string; username: string; name: string; role: StaffRole; active: boolean; hasPin?: boolean };
+
+/** The action waiting for the admin's password. */
+type Pending = { kind: "save" } | { kind: "toggle"; member: Staff } | { kind: "pin"; member: Staff; mode: "set" | "clear" };
 
 const USERNAME_PATTERN = "[a-z0-9._-]{3,80}";
 const NAME_MAX_LENGTH = 120;
-const PASSWORD_MIN_LENGTH = 12;
-const PASSWORD_MAX_LENGTH = 256;
 const DEFAULT_ROLE: StaffRole = "pelayan";
 
 function staffPath(id?: string): string {
@@ -27,7 +32,6 @@ function messageOf(cause: unknown, fallback: string): string {
 export function RemoteStaffManager({ currentStaffId }: { currentStaffId: string }) {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
@@ -35,6 +39,8 @@ export function RemoteStaffManager({ currentStaffId }: { currentStaffId: string 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<StaffRole>(DEFAULT_ROLE);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const refreshDevice = useRemoteSession()?.refreshDevice;
 
   const refresh = useCallback(async () => {
     try {
@@ -66,41 +72,82 @@ export function RemoteStaffManager({ currentStaffId }: { currentStaffId: string 
     setPassword("");
   };
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setBusy(true);
-    setError("");
-    setMessage("");
-    try {
-      const data = { name, username, role, ...(password ? { password } : {}) };
-      await request(staffPath(editing ?? undefined), { method: editing ? "PATCH" : "POST", ...jsonBody(data) });
-      if (editing === currentStaffId && password) {
-        window.location.reload();
-        return;
-      }
-      clearForm();
-      setMessage(t.settings.staff.saved);
-      await refresh();
-    } catch (cause) {
-      setError(messageOf(cause, t.settings.staff.saveFailed));
-    } finally {
-      setBusy(false);
-    }
+  /** Changing the signed-in admin's own account can end their session; let the gate check right away. */
+  const recheckSessionIf = (selfAffected: boolean) => {
+    if (selfAffected) window.dispatchEvent(new Event(SESSION_REJECTED_EVENT));
   };
 
-  const toggle = async (member: Staff) => {
-    setBusy(true);
+  const askToSave = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setError("");
     setMessage("");
-    try {
-      await request(staffPath(member.id), { method: "PATCH", ...jsonBody({ active: !member.active }) });
-      setMessage(member.active ? t.settings.staff.deactivated : t.settings.staff.activated);
-      await refresh();
-    } catch (cause) {
-      setError(messageOf(cause, t.settings.staff.toggleFailed));
-    } finally {
-      setBusy(false);
+    setPending({ kind: "save" });
+  };
+
+  const save = async (confirmPassword: string) => {
+    const data = { name, username, role, ...(password ? { password } : {}), confirmPassword };
+    await request(staffPath(editing ?? undefined), { method: editing ? "PATCH" : "POST", ...jsonBody(data) });
+    const selfAffected = editing === currentStaffId;
+    setPending(null);
+    clearForm();
+    setMessage(t.settings.staff.saved);
+    recheckSessionIf(selfAffected);
+    await refresh();
+    await refreshDevice?.();
+  };
+
+  const toggle = async (member: Staff, confirmPassword: string) => {
+    await request(staffPath(member.id), { method: "PATCH", ...jsonBody({ active: !member.active, confirmPassword }) });
+    setPending(null);
+    setMessage(member.active ? t.settings.staff.deactivated : t.settings.staff.activated);
+    recheckSessionIf(member.id === currentStaffId);
+    await refresh();
+    await refreshDevice?.();
+  };
+
+  const pinDone = async (member: Staff, mode: "set" | "clear", selfRevoked: boolean) => {
+    setPending(null);
+    setMessage(mode === "set" ? t.settings.staff.pin.saved(member.name) : t.settings.staff.pin.cleared(member.name));
+    recheckSessionIf(selfRevoked);
+    await refresh();
+    await refreshDevice?.();
+  };
+
+  const confirmDialog = () => {
+    if (!pending) return null;
+    if (pending.kind === "pin") {
+      const { member, mode } = pending;
+      return (
+        <StaffPinModal
+          member={{ id: member.id, name: member.name, hasPin: member.hasPin === true }}
+          mode={mode}
+          onClose={() => setPending(null)}
+          onDone={({ selfRevoked }) => void pinDone(member, mode, selfRevoked)}
+        />
+      );
     }
+    if (pending.kind === "toggle") {
+      const { member } = pending;
+      return (
+        <PasswordConfirmModal
+          title={t.settings.staff.confirm.toggleTitle(member.active)}
+          description={t.settings.staff.confirm.toggleBody(member.active, member.name)}
+          submitLabel={t.settings.staff.confirm.submit}
+          danger={member.active}
+          onClose={() => setPending(null)}
+          onConfirm={(confirmPassword) => toggle(member, confirmPassword)}
+        />
+      );
+    }
+    return (
+      <PasswordConfirmModal
+        title={t.settings.staff.confirm.saveTitle(editing !== null)}
+        description={t.settings.staff.confirm.saveBody(name, editing !== null)}
+        submitLabel={t.settings.staff.confirm.submit}
+        onClose={() => setPending(null)}
+        onConfirm={save}
+      />
+    );
   };
 
   return (
@@ -124,27 +171,52 @@ export function RemoteStaffManager({ currentStaffId }: { currentStaffId: string 
                   <Badge tone={member.active ? "success" : "neutral"}>
                     {member.active ? t.settings.staff.active : t.settings.staff.inactive}
                   </Badge>
+                  <Badge tone={member.hasPin ? "accent" : "neutral"}>
+                    {member.hasPin ? t.settings.staff.hasPin : t.settings.staff.noPin}
+                  </Badge>
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" aria-label={t.settings.staff.editMember(member.name)} onClick={() => startEdit(member)}>
                   {t.common.edit}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={busy}
                   aria-label={t.settings.staff.toggleMember(member.active, member.name)}
-                  onClick={() => void toggle(member)}
+                  onClick={() => setPending({ kind: "toggle", member })}
                 >
                   {member.active ? t.settings.staff.deactivate : t.settings.staff.activate}
                 </Button>
+                {member.active && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={t.settings.staff.pinAction(
+                      member.hasPin ? t.settings.staff.resetPin : t.settings.staff.setPin,
+                      member.name,
+                    )}
+                    onClick={() => setPending({ kind: "pin", member, mode: "set" })}
+                  >
+                    {member.hasPin ? t.settings.staff.resetPin : t.settings.staff.setPin}
+                  </Button>
+                )}
+                {member.hasPin && (
+                  <Button
+                    variant="danger-ghost"
+                    size="sm"
+                    aria-label={t.settings.staff.pinAction(t.settings.staff.clearPin, member.name)}
+                    onClick={() => setPending({ kind: "pin", member, mode: "clear" })}
+                  >
+                    {t.settings.staff.clearPin}
+                  </Button>
+                )}
               </div>
             </li>
           ))}
         </ul>
       )}
-      <form onSubmit={(event) => void submit(event)} className="mt-5 grid gap-3 border-t border-ink/10 pt-4 sm:grid-cols-2">
+      <form onSubmit={askToSave} className="mt-5 grid gap-3 border-t border-ink/10 pt-4 sm:grid-cols-2">
         <h3 className="font-semibold text-ink sm:col-span-2">{editing ? t.settings.staff.formEdit : t.settings.staff.formAdd}</h3>
         <Input
           label={t.settings.staff.name}
@@ -190,9 +262,7 @@ export function RemoteStaffManager({ currentStaffId }: { currentStaffId: string 
           </p>
         )}
         <div className="flex gap-2 sm:col-span-2">
-          <Button type="submit" loading={busy}>
-            {t.common.save}
-          </Button>
+          <Button type="submit">{t.common.save}</Button>
           {editing && (
             <Button variant="outline" onClick={clearForm}>
               {t.common.cancel}
@@ -200,6 +270,7 @@ export function RemoteStaffManager({ currentStaffId }: { currentStaffId: string 
           )}
         </div>
       </form>
+      {confirmDialog()}
     </section>
   );
 }

@@ -33,7 +33,9 @@ export const app = {
     demoBadgeTitle: "Mode Demo: data hanya di browser ini. Buka info sinkronisasi tab",
     accountMenu: (name: string) => `Menu akun ${name}`,
     manageStaff: "Kelola akun staf",
-    logout: "Keluar / ganti akun",
+    logout: "Keluar",
+    lock: "Kunci layar",
+    switchUser: "Ganti pengguna",
     /** Computed when rendered, so a tab left open overnight shows the right day. */
     today: (date: Date) =>
       new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(date).toUpperCase(),
@@ -95,8 +97,6 @@ export const app = {
   },
 
   quickSwitch: {
-    remoteTitle: (name: string) => `Akun ${name}`,
-    remoteBody: "Keluar untuk masuk menggunakan akun staf lain.",
     title: "Ganti Peran & Masuk Staf",
     subtitle: "Pilih profil staf dan masukkan PIN 4 digit untuk akses modul khusus",
     subtitleDemo: "Mode demo: PIN setiap staf tertera di kartunya. Ketuk kartu lalu masukkan PIN, atau pakai pintasan di bawah.",
@@ -117,11 +117,49 @@ export const app = {
     logoutFailed: "Gagal keluar. Coba lagi.",
     badCredentials: "Nama pengguna atau kata sandi tidak benar.",
     sessionFailed: "Sesi tidak dapat dibuka.",
+    sessionEnded: "Sesi berakhir. Silakan masuk kembali.",
     title: "Masuk staf",
     username: "Nama pengguna",
     password: "Kata sandi",
     submit: "Masuk",
     submitting: "Memuat…",
+    passwordIntro: "Masuk dengan nama pengguna dan kata sandi.",
+    deviceHint: "Perangkat ini terdaftar. Staf cukup memakai PIN untuk masuk.",
+    usePin: "Masuk dengan PIN",
+    deviceRevoked: "Perangkat ini tidak lagi terdaftar. Masuk dengan kata sandi, lalu minta admin mendaftarkannya kembali.",
+    pinTitle: "Masukkan PIN",
+    pinIntro: (deviceName: string) => `Perangkat terdaftar: ${deviceName}`,
+    forgotPin: "Lupa PIN atau PIN tidak diterima?",
+    usePassword: "Masuk dengan kata sandi",
+    forgotPinHelp: "Masuk dengan kata sandi, lalu minta admin mengatur ulang PIN di Pengaturan.",
+    checkingSession: "Memeriksa sesi…",
+  },
+
+  pin: {
+    chooseStaff: "Pilih akun staf",
+    chooseStaffFirst: "Pilih akun staf terlebih dahulu.",
+    noStaffWithPin: "Belum ada staf yang memiliki PIN. Masuk dengan kata sandi, lalu minta admin mengatur PIN staf di Pengaturan.",
+    dotsLabel: (filled: number, total: number) => `${filled} dari ${total} digit PIN terisi`,
+    digit: (d: string) => `Angka ${d}`,
+    clear: "Hapus",
+    deleteDigit: "Hapus satu digit",
+    checking: "Memeriksa PIN…",
+    waitFor: (seconds: number) => {
+      const minutes = Math.ceil(seconds / 60);
+      return seconds >= 60 ? `Terlalu banyak percobaan. Coba lagi dalam ${minutes} menit.` : `Terlalu banyak percobaan. Coba lagi dalam ${seconds} detik.`;
+    },
+  },
+
+  remoteSwitch: {
+    title: "Ganti pengguna",
+    subtitle: "Pilih akun staf dan masukkan PIN 6 digit. Sesi akun saat ini berakhir.",
+    lockHint: "Kunci layar tanpa keluar dari perangkat ini.",
+    lock: "Kunci layar",
+    unregisteredTitle: (name: string) => `Akun ${name}`,
+    unregisteredBody: "Perangkat ini belum terdaftar untuk masuk dengan PIN. Keluar untuk masuk dengan akun staf lain.",
+    adminRegisterHint: "Admin dapat mendaftarkan perangkat ini di Pengaturan > Perangkat PIN.",
+    openSettings: "Buka Pengaturan",
+    loadingStaff: "Memuat daftar staf…",
   },
 
   layout: {

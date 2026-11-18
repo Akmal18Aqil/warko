@@ -1,4 +1,6 @@
 # Copy to `.dev.vars` (git-ignored) for `wrangler dev`. Never commit real values.
 # Generate each with:  node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 SESSION_SECRET=
+# Server-side pepper for PIN hashes. Must differ from SESSION_SECRET (>= 32 chars). Rotating it invalidates every stored PIN.
+PIN_PEPPER=
 BOOTSTRAP_SECRET=

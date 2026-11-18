@@ -14,6 +14,7 @@ export default defineConfig(async () => {
           bindings: {
             TEST_MIGRATIONS: migrations,
             SESSION_SECRET: "test-session-secret-test-session-secret",
+            PIN_PEPPER: "test-pin-pepper-test-pin-pepper-0000",
             BOOTSTRAP_SECRET: "test-bootstrap-secret-test-bootstrap-secret",
             MIDTRANS_SERVER_KEY: "SB-Mid-server-test-key",
           },

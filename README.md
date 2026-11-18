@@ -148,6 +148,12 @@ Perilaku transaksi:
 
 Pemilihan dilakukan sekali saat aplikasi dimulai (`apps/web/src/data/index.ts`); mode remote tidak menulis ke IndexedDB. Perangkat staf memuat ulang `/api/bootstrap` setiap 5 detik dengan `If-None-Match`, sehingga data yang tidak berubah dijawab `304` tanpa render ulang.
 
+### Akses staf di mode remote
+
+Kata sandi akun staf minimal delapan karakter; hindari kata sandi umum dan yang mudah ditebak. Admin mendaftarkan perangkat kasir menggunakan kata sandinya. Pada perangkat terdaftar, staf yang telah memiliki PIN enam digit dapat memilih akun dan menggunakan PIN untuk masuk atau berganti staf. Pengelolaan staf dan perangkat memerlukan konfirmasi kata sandi admin.
+
+PIN berbeda dari kata sandi dan hanya berlaku bersama kredensial perangkat terdaftar. Cabut perangkat yang hilang melalui pengaturan perangkat, dan segera reset PIN yang diduga diketahui orang lain. Lindungi perangkat kasir secara fisik; pendaftaran perangkat tidak melindungi dari seseorang yang menguasai perangkat sekaligus mengetahui PIN.
+
 ---
 
 ## 📘 Handbook Operasional
@@ -299,7 +305,7 @@ Aturan peran sama dengan API: menambah/mengubah produk, kategori, meja, dan paja
 
 ```bash
 pnpm install
-cp apps/api/.dev.vars.example apps/api/.dev.vars     # isi SESSION_SECRET & BOOTSTRAP_SECRET
+cp apps/api/.dev.vars.example apps/api/.dev.vars     # isi SESSION_SECRET, PIN_PEPPER & BOOTSTRAP_SECRET
 pnpm --filter @wakro/api migrate:local                # skema D1 lokal
 pnpm dev                                              # web :5173 + API wrangler :8787
 ```
@@ -330,10 +336,13 @@ Satu Worker (`kasa-pos`) melayani web dan `/api/*`, dengan database D1 `kasa-pos
 
 ```bash
 pnpm exec wrangler secret put SESSION_SECRET
+pnpm exec wrangler secret put PIN_PEPPER
 pnpm exec wrangler secret put BOOTSTRAP_SECRET
 pnpm migrate:remote
 pnpm run deploy   # `pnpm deploy` adalah perintah bawaan pnpm, jadi pakai `run`
 ```
+
+`PIN_PEPPER` harus berupa secret acak yang berbeda dari `SESSION_SECRET` dan disimpan terpisah dari cadangan database. Mengubah atau kehilangan secret ini membuat PIN yang ada tidak dapat diverifikasi; admin perlu mengatur ulang PIN staf. Tambahkan secret ini juga pada deployment yang sudah ada sebelum menggunakan fitur PIN.
 
 Buat admin pertama dengan `POST /api/setup/bootstrap` (header `X-Bootstrap-Secret`, body JSON `username`, `name`, `password`). Setelah admin pertama ada, endpoint ini menolak permintaan berikutnya (`409`).
 

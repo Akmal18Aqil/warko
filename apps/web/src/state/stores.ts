@@ -51,3 +51,8 @@ export const cartStore = createStore({
   guests: 2,
   carts: {} as Record<string, CartEntry>,
 });
+
+/** Drops every cashier draft (lines, discounts, selected table), e.g. when another staff member takes over this browser. */
+export function resetCartStore(): void {
+  cartStore.set({ orderType: lastOrderType(), tableId: null, guests: 2, carts: {} });
+}

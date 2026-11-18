@@ -9,6 +9,7 @@ import { DemoStaffCard } from "./DemoStaffCard";
 import { NetworkCard } from "./NetworkCard";
 import { PricingCard } from "./PricingCard";
 import { PrinterCard } from "./PrinterCard";
+import { RemoteDeviceManager } from "./RemoteDeviceManager";
 import { RemoteStaffManager } from "./RemoteStaffManager";
 import { ShiftLinkCard } from "./ShiftLinkCard";
 import { StoreCard } from "./StoreCard";
@@ -35,8 +36,9 @@ export default function SettingsPage() {
           </div>
         )}
         {isRemoteDataSource && currentStaff.role === "admin" && (
-          <div className="lg:max-w-4xl">
+          <div className="space-y-4 lg:max-w-4xl">
             <RemoteStaffManager currentStaffId={currentStaff.id} />
+            <RemoteDeviceManager />
           </div>
         )}
       </div>

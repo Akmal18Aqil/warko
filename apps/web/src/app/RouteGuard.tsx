@@ -5,6 +5,7 @@ import { isRemoteDataSource } from "../data/api";
 import { cn } from "../lib/cn";
 import { t } from "../locales/id";
 import { useAuth } from "../state/auth";
+import { useRemoteSession } from "../state/remoteSession";
 import { Button } from "../ui/Button";
 import { Header } from "./Header";
 
@@ -16,6 +17,7 @@ interface RouteGuardProps {
 
 export function RouteGuard({ path, children, moduleName = t.app.guard.defaultModule }: RouteGuardProps) {
   const { currentStaff, hasAccessTo, openSwitchModal, getAllowedDefaultRoute } = useAuth();
+  const remote = useRemoteSession();
   const [, setLocation] = useLocation();
 
   const allowed = hasAccessTo(path);
@@ -58,7 +60,7 @@ export function RouteGuard({ path, children, moduleName = t.app.guard.defaultMod
           <div className="mt-6 flex flex-col gap-2.5">
             <Button variant="primary" onClick={openSwitchModal} className="w-full gap-2 font-bold justify-center">
               <KeyRound size={16} />
-              {isRemoteDataSource ? t.app.header.logout : t.app.guard.switchStaff}
+              {isRemoteDataSource && !remote?.device.registered ? t.app.header.logout : t.app.guard.switchStaff}
             </Button>
 
             <Button variant="outline" onClick={() => setLocation(defaultRoute)} className="w-full gap-2 text-xs justify-center">

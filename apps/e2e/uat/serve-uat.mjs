@@ -27,7 +27,13 @@ const children = instances.map(({ port, persist, vars }) => {
   run(`pnpm exec wrangler d1 migrations apply DB --local --persist-to ${persist}`);
   run(`pnpm exec wrangler d1 execute DB --local --persist-to ${persist} --file "${seedFile}"`);
   const args = ["exec", "wrangler", "dev", "--local", "--port", String(port), "--persist-to", persist];
-  for (const v of [`SESSION_SECRET:${E2E.sessionSecret}`, `BOOTSTRAP_SECRET:${E2E.bootstrapSecret}`, ...vars]) args.push("--var", v);
+  for (const v of [
+    `SESSION_SECRET:${E2E.sessionSecret}`,
+    `PIN_PEPPER:${E2E.pinPepper}`,
+    `BOOTSTRAP_SECRET:${E2E.bootstrapSecret}`,
+    ...vars,
+  ])
+    args.push("--var", v);
   args.push("--show-interactive-dev-session=false");
   return spawn("pnpm", args, { cwd: apiDir, stdio: "inherit", shell: process.platform === "win32" });
 });

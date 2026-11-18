@@ -1,14 +1,12 @@
 import type { StaffRole } from "@wakro/shared";
 import { CheckCircle2, ChefHat, Delete, KeyRound, Receipt, ShieldCheck, Sparkles, UtensilsCrossed } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { isRemoteDataSource } from "../data/index";
 import { cn } from "../lib/cn";
 import { t } from "../locales/id";
 import { type StaffUser, useAuth } from "../state/auth";
 import { isDemoMode } from "../state/demo";
 import { Button } from "../ui/Button";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "../ui/Modal";
-import { REMOTE_LOGOUT_EVENT } from "./RemoteAuthGate";
 
 export function QuickSwitchRoleModal() {
   const { isSwitchModalOpen, closeSwitchModal, currentStaff, staffList, switchStaffByPin, switchStaffDirect } = useAuth();
@@ -67,7 +65,6 @@ export function QuickSwitchRoleModal() {
     if (!isSwitchModalOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isRemoteDataSource) return;
       if (e.key >= "0" && e.key <= "9") {
         handleKeyPress(e.key);
       } else if (e.key === "Backspace") {
@@ -80,31 +77,6 @@ export function QuickSwitchRoleModal() {
   }, [isSwitchModalOpen, handleKeyPress, handleDelete]);
 
   if (!isSwitchModalOpen) return null;
-
-  if (isRemoteDataSource) {
-    return (
-      <Modal onClose={closeSwitchModal} size="sm">
-        <ModalHeader title={t.app.quickSwitch.remoteTitle(currentStaff.name)} />
-        <ModalBody>
-          <p className="text-sm text-ink/70">{t.app.quickSwitch.remoteBody}</p>
-        </ModalBody>
-        <ModalFooter>
-          <Button type="button" variant="outline" onClick={closeSwitchModal}>
-            {t.common.cancel}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              closeSwitchModal();
-              window.dispatchEvent(new Event(REMOTE_LOGOUT_EVENT));
-            }}
-          >
-            {t.app.header.logout}
-          </Button>
-        </ModalFooter>
-      </Modal>
-    );
-  }
 
   const getRoleIcon = (role: StaffRole) => {
     switch (role) {

@@ -5,6 +5,8 @@ export interface Env {
   ASSETS: Fetcher;
   /** Signs session cookies. Required; set with `wrangler secret put SESSION_SECRET`. */
   SESSION_SECRET?: string;
+  /** Server-side pepper for PIN hashes. Required, >= 32 chars and different from SESSION_SECRET; `wrangler secret put PIN_PEPPER`. */
+  PIN_PEPPER?: string;
   /** Gates the one-time admin bootstrap. Optional; delete it after setup. */
   BOOTSTRAP_SECRET?: string;
   /** Midtrans server key. Unset = QRIS self-payment disabled (customers pay at the cashier). */
@@ -25,4 +27,5 @@ export interface SessionStaff {
   avatarColor: string;
   initials: string;
   active: boolean;
+  hasPin: boolean;
 }

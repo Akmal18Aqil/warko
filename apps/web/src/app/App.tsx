@@ -1,6 +1,7 @@
 import { type ComponentType, type LazyExoticComponent, lazy, type ReactNode, Suspense } from "react";
 import { Toaster } from "sonner";
 import { Route, Switch } from "wouter";
+import { isRemoteDataSource } from "../data/api";
 import { PrintLayer } from "../features/printing/PrintLayer";
 import { t } from "../locales/id";
 import { AuthProvider } from "../state/auth";
@@ -9,6 +10,7 @@ import { PrintProvider } from "../state/print";
 import { AppLayout } from "./AppLayout";
 import { QuickSwitchRoleModal } from "./QuickSwitchRoleModal";
 import { RemoteAuthGate } from "./RemoteAuthGate";
+import { RemoteSwitchModal } from "./RemoteSwitchModal";
 import { RouteFallback } from "./RouteFallback";
 import { RouteGuard } from "./RouteGuard";
 
@@ -44,7 +46,8 @@ export default function App() {
   return (
     <RemoteAuthGate>
       {(remoteStaff) => (
-        <AuthProvider remoteStaff={remoteStaff}>
+        // Any change of the signed-in staff member (switch, unlock, role or name change) remounts the app so nothing from the previous identity stays on screen.
+        <AuthProvider key={remoteStaff ? JSON.stringify(remoteStaff) : "local"} remoteStaff={remoteStaff}>
           <DataSync />
           <PrintProvider>
             <Switch>
@@ -94,7 +97,7 @@ export default function App() {
               </Route>
             </Switch>
 
-            <QuickSwitchRoleModal />
+            {isRemoteDataSource ? <RemoteSwitchModal /> : <QuickSwitchRoleModal />}
             <PrintLayer />
             <Toaster position="top-center" richColors closeButton duration={3200} />
           </PrintProvider>

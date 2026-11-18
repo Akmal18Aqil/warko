@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Radio, Smartphone, Users } from "lucide-react";
+import { Bell, ChevronDown, Lock, LogOut, Radio, Repeat, Smartphone, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -9,10 +9,13 @@ import { t } from "../locales/id";
 import { getNetworkHostInfo } from "../services/networkHost";
 import { useAuth } from "../state/auth";
 import { isDemoMode } from "../state/demo";
+import { useRemoteSession } from "../state/remoteSession";
 import { IconButton } from "../ui/Button";
 import { StatusDot } from "../ui/KasaLogo";
 import { DemoModeBadge } from "./DemoModeBadge";
-import { REMOTE_LOGOUT_EVENT } from "./RemoteAuthGate";
+
+const ACCOUNT_MENU_ITEM =
+  "flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent";
 
 export function Header({ title, showSavedStatus = false }: { title: string; showSavedStatus?: boolean }) {
   const [networkModalOpen, setNetworkModalOpen] = useState(false);
@@ -22,6 +25,7 @@ export function Header({ title, showSavedStatus = false }: { title: string; show
   const [, setLocation] = useLocation();
   const hostInfo = getNetworkHostInfo();
   const { currentStaff, openSwitchModal } = useAuth();
+  const remote = useRemoteSession();
 
   useEffect(() => {
     if (!accountMenuOpen) return;
@@ -124,7 +128,7 @@ export function Header({ title, showSavedStatus = false }: { title: string; show
                 {currentStaff.role === "admin" && (
                   <button
                     type="button"
-                    className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent"
+                    className={ACCOUNT_MENU_ITEM}
                     onClick={() => {
                       setAccountMenuOpen(false);
                       setLocation("/pengaturan");
@@ -133,15 +137,28 @@ export function Header({ title, showSavedStatus = false }: { title: string; show
                     <Users size={16} aria-hidden="true" /> {t.app.header.manageStaff}
                   </button>
                 )}
+                {remote?.device.registered && (
+                  <button
+                    type="button"
+                    className={ACCOUNT_MENU_ITEM}
+                    onClick={() => {
+                      setAccountMenuOpen(false);
+                      openSwitchModal();
+                    }}
+                  >
+                    <Repeat size={16} aria-hidden="true" /> {t.app.header.switchUser}
+                  </button>
+                )}
                 <button
                   type="button"
-                  className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm hover:bg-mineral focus-visible:outline-2 focus-visible:outline-accent"
+                  className={ACCOUNT_MENU_ITEM}
                   onClick={() => {
                     setAccountMenuOpen(false);
-                    window.dispatchEvent(new Event(REMOTE_LOGOUT_EVENT));
+                    void remote?.signOut();
                   }}
                 >
-                  <LogOut size={16} aria-hidden="true" /> {t.app.header.logout}
+                  {remote?.device.registered ? <Lock size={16} aria-hidden="true" /> : <LogOut size={16} aria-hidden="true" />}{" "}
+                  {remote?.device.registered ? t.app.header.lock : t.app.header.logout}
                 </button>
               </div>
             )}

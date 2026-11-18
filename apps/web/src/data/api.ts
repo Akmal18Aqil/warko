@@ -10,11 +10,16 @@ export class RemoteDataError extends Error {
     message: string,
     public readonly cause?: unknown,
     public readonly status?: number,
+    /** Seconds until a throttled request may be retried (`Retry-After` header), when the server sent one. */
+    public readonly retryAfter?: number,
   ) {
     super(message);
     this.name = "RemoteDataError";
   }
 }
+
+/** Dispatched on `window` when the API rejects a request with 401; the auth gate re-checks whether the session is still valid. */
+export const SESSION_REJECTED_EVENT = "wakro-session-rejected";
 
 export const UNREACHABLE_MESSAGE = "Server data tidak dapat dijangkau. Periksa koneksi lalu coba lagi.";
 
@@ -42,12 +47,16 @@ async function errorFor(response: Response): Promise<RemoteDataError> {
   } catch {
     // Non-JSON error body: keep the HTTP status message.
   }
-  return new RemoteDataError(message, undefined, response.status);
+  const retryAfter = Number.parseInt(response.headers.get("Retry-After") ?? "", 10);
+  return new RemoteDataError(message, undefined, response.status, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined);
 }
+
+/** Sign-in and session probes answer 401 for ordinary reasons (wrong credentials, no session yet). */
+const AUTH_ENTRY_PATH = /^\/auth\/(login|pin-login|session|device|logout)$/;
 
 async function send(path: string, init?: RequestInit): Promise<Response> {
   try {
-    return await fetch(`${API_BASE}${path}`, {
+    const response = await fetch(`${API_BASE}${path}`, {
       credentials: "same-origin",
       ...init,
       headers: {
@@ -56,6 +65,9 @@ async function send(path: string, init?: RequestInit): Promise<Response> {
         ...init?.headers,
       },
     });
+    // Login and PIN failures are also 401s; only requests for data mean the session itself was revoked or expired.
+    if (response.status === 401 && !AUTH_ENTRY_PATH.test(path)) window.dispatchEvent(new Event(SESSION_REJECTED_EVENT));
+    return response;
   } catch (error) {
     throw new RemoteDataError(UNREACHABLE_MESSAGE, error);
   }

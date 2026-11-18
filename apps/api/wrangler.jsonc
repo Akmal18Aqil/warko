@@ -37,7 +37,7 @@
     "crons": ["17 3 * * *"]
   },
   "secrets": {
-    "required": ["SESSION_SECRET", "BOOTSTRAP_SECRET"]
+    "required": ["SESSION_SECRET", "PIN_PEPPER", "BOOTSTRAP_SECRET"]
   },
   // Staging: separate Worker (kasa-pos-staging) and separate D1; deploy with `pnpm run deploy:staging`.
   // Bindings and secrets are not inherited, so they are repeated here.
@@ -52,7 +52,7 @@
         }
       ],
       "secrets": {
-        "required": ["SESSION_SECRET", "BOOTSTRAP_SECRET"]
+        "required": ["SESSION_SECRET", "PIN_PEPPER", "BOOTSTRAP_SECRET"]
       }
     }
   }

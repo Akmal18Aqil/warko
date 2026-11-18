@@ -23,7 +23,9 @@ const LOGIN: Record<Exclude<Role, "kasir2" | "admin">, { username: string; home:
 
 async function createStaff(username: string, role = "kasir") {
   const admin = await apiAs("admin");
-  const res = await admin.post("/api/staff", { data: { username, name: `Uji ${username}`, role, password: UAT.password } });
+  const res = await admin.post("/api/staff", {
+    data: { username, name: `Uji ${username}`, role, password: UAT.password, confirmPassword: E2E.admin.password },
+  });
   expect([201, 409]).toContain(res.status());
   await admin.dispose();
 }

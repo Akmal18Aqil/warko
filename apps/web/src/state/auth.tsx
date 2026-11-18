@@ -66,7 +66,7 @@ function getInitialCurrentStaff(list: StaffUser[]): StaffUser {
   return list[0] ?? DEMO_STAFF[0];
 }
 
-function defaultRouteFor(role: StaffRole): string {
+export function defaultRouteFor(role: StaffRole): string {
   switch (role) {
     case "pelayan":
       return "/pelayan";

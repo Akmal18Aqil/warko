@@ -1,3 +1,4 @@
+import { purgeAudit } from "./audit";
 import { purgeExpired } from "./auth";
 import type { Env } from "./env";
 import { errorResponse, HttpError, json } from "./http";
@@ -20,8 +21,8 @@ export default {
     }
   },
 
-  /** Daily cron (see `triggers.crons` in wrangler.jsonc): drops expired sessions and login counters. */
+  /** Daily cron (see `triggers.crons` in wrangler.jsonc): drops expired sessions, login counters and old audit rows. */
   async scheduled(_controller, env, ctx) {
-    ctx.waitUntil(purgeExpired(env));
+    ctx.waitUntil(Promise.all([purgeExpired(env), purgeAudit(env)]));
   },
 } satisfies ExportedHandler<Env>;

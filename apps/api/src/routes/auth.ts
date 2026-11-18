@@ -1,7 +1,9 @@
 import { ADMIN_ROLES, READ_ROLES, STAFF_ROLES, type StaffRole } from "@wakro/shared";
+import { audit } from "../audit";
 import {
   clearAttempts,
   clearSessionCookie,
+  clientIp,
   consumeAttempt,
   createSession,
   destroySession,
@@ -14,10 +16,12 @@ import {
   throttledError,
   toSessionStaff,
 } from "../auth";
-import { hashPassword, safeEqual, sha256Hex, verifyPassword } from "../crypto";
+import { confirmActorPassword } from "../confirm";
+import { DUMMY_PASSWORD_HASH, hashPassword, safeEqual, sha256Hex, verifyPassword } from "../crypto";
 import type { Env } from "../env";
 import { isUniqueViolation } from "../guards";
 import { conflict, HttpError, invalid, json, Reader, readJsonObject, type StringOptions } from "../http";
+import { MAX_PASSWORD, passwordErrors } from "../passwords";
 import { type AuthedContext, get, publicGet, publicPost, type Route, type RouteContext, send } from "../router";
 
 type StaffRowFull = StaffRow & { password_hash: string; updated_at: number };
@@ -25,22 +29,15 @@ type StaffRowFull = StaffRow & { password_hash: string; updated_at: number };
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,80}$/;
 const STAFF_ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 const AVATAR_COLOR_PATTERN = /^[A-Za-z0-9:_\-/[\]#. ]{1,80}$/;
-const MIN_PASSWORD = 12;
-const MAX_PASSWORD = 256;
 const SETUP_ATTEMPT_LIMIT = 5;
 const LOGIN_USER_ATTEMPT_LIMIT = 5;
 const LOGIN_IP_ATTEMPT_LIMIT = 30;
-/**
- * PBKDF2 hash of a throwaway password. Unknown usernames are verified against it so the response
- * time does not reveal whether an account exists.
- */
-const DUMMY_PASSWORD_HASH = "pbkdf2$sha256$100000$eqPA3csp5JX4FBZgd1luHQ$3HYJ0_wwoI1mpRy0RR4g0rkcsCfLeEj2GwglS5fm1Yk";
-
 /** Login credentials: only shape checks, never leaks password policy beyond length. */
 function credentials(body: Record<string, unknown>): { username: string; password: string } {
   const username = typeof body.username === "string" ? body.username.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
-  if (!USERNAME_PATTERN.test(username) || password.length < MIN_PASSWORD || password.length > MAX_PASSWORD) {
+  // Shape only: legacy passwords may contain any characters, and the policy applies when one is set.
+  if (!USERNAME_PATTERN.test(username) || password.length < 1 || password.length > MAX_PASSWORD) {
     throw new HttpError(422, "Nama pengguna atau kata sandi tidak valid.");
   }
   return { username, password };
@@ -55,7 +52,7 @@ const USERNAME_FIELD: StringOptions = {
   patternMessage: "username harus 3-80 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung.",
 };
 const NAME_FIELD: StringOptions = { max: 120, nonBlank: true, normalize: (value) => value.trim().replace(/\s+/g, " ") };
-// Length bounds are enforced by `passwordErrors` so the messages stay in one place.
+// Length bounds and the denylist are enforced by `passwordErrors` so the messages stay in one place.
 const PASSWORD_FIELD: StringOptions = { max: 4096 };
 const TITLE_FIELD: StringOptions = { max: 80, normalize: (value) => value.trim() };
 const DESCRIPTION_FIELD: StringOptions = { max: 255, normalize: (value) => value.trim() };
@@ -72,17 +69,6 @@ function readAppearance(r: Reader) {
     description: r.string("description", { ...DESCRIPTION_FIELD, optional: true }),
     avatarColor: r.string("avatarColor", { ...AVATAR_FIELD, optional: true }),
   };
-}
-
-/** Strong-password policy for any password the server will store. */
-function passwordErrors(password: string, username: string): string[] {
-  const errors: string[] = [];
-  if (password.length < MIN_PASSWORD) errors.push(`password minimal ${MIN_PASSWORD} karakter.`);
-  if (password.length > MAX_PASSWORD) errors.push(`password maksimal ${MAX_PASSWORD} karakter.`);
-  if (password.trim().length === 0) errors.push("password tidak boleh hanya spasi.");
-  if (new Set(password).size < 4) errors.push("password terlalu mudah ditebak.");
-  if (username && password.toLowerCase().includes(username)) errors.push("password tidak boleh memuat nama pengguna.");
-  return errors;
 }
 
 function assertStrongPassword(password: string, username: string): void {
@@ -145,33 +131,45 @@ async function bootstrap({ request, env }: RouteContext): Promise<Response> {
 
 async function login({ request, env, url }: RouteContext): Promise<Response> {
   const { username, password } = credentials(await readJsonObject(request));
-  const client = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const client = clientIp(request);
   const userKey = await sha256Hex(`login:${client}:${username}`);
   const ipKey = await sha256Hex(`login-ip:${client}`);
   // Count the attempt before the slow hash so a burst of parallel guesses cannot all pass the check.
   const userAllowed = await consumeAttempt(env, userKey, LOGIN_USER_ATTEMPT_LIMIT);
   const ipAllowed = await consumeAttempt(env, ipKey, LOGIN_IP_ATTEMPT_LIMIT);
-  if (!userAllowed || !ipAllowed) throw throttledError();
+  if (!userAllowed || !ipAllowed) {
+    await audit(env, request, { action: "password.login", outcome: "blocked", detail: { username } });
+    throw throttledError();
+  }
 
-  const row = await env.DB.prepare("SELECT id, password_hash FROM staff WHERE username = ? AND active = 1")
+  const row = await env.DB.prepare("SELECT id, name, password_hash FROM staff WHERE username = ? AND active = 1")
     .bind(username)
-    .first<{ id: string; password_hash: string }>();
+    .first<{ id: string; name: string; password_hash: string }>();
   const verified = await verifyPassword(password, row?.password_hash ?? DUMMY_PASSWORD_HASH);
-  if (!row || !verified) throw new HttpError(401, "Nama pengguna atau kata sandi salah.");
+  if (!row || !verified) {
+    await audit(env, request, { action: "password.login", outcome: "failure", targetId: row?.id ?? null, detail: { username } });
+    throw new HttpError(401, "Nama pengguna atau kata sandi salah.");
+  }
 
   await Promise.all([clearAttempts(env, userKey), releaseAttempt(env, ipKey)]);
+  // Signing in replaces whatever session this browser still holds.
+  await destroySession(env, request, url);
   const cookie = await createSession(env, row.id, url);
+  await audit(env, request, { action: "password.login", outcome: "success", actorId: row.id, actorName: row.name });
   return json({ data: true }, 200, { "Set-Cookie": cookie });
 }
 
 async function currentSession({ request, env, url }: RouteContext): Promise<Response> {
-  const staff = await readSession(env, request, url);
-  if (!staff) throw new HttpError(401, "Sesi tidak valid. Silakan masuk.");
-  return json({ data: staff });
+  const session = await readSession(env, request, url);
+  if (!session) throw new HttpError(401, "Sesi tidak valid. Silakan masuk.");
+  return json({ data: { ...session.staff, authMethod: session.authMethod } });
 }
 
 async function logout({ request, env, url }: RouteContext): Promise<Response> {
+  const session = await readSession(env, request, url);
   await destroySession(env, request, url);
+  if (session)
+    await audit(env, request, { action: "session.logout", outcome: "success", actorId: session.staff.id, actorName: session.staff.name });
   return json({ data: true }, 200, { "Set-Cookie": clearSessionCookie(url) });
 }
 
@@ -185,10 +183,10 @@ async function listStaff({ env, staff: actor }: AuthedContext): Promise<Response
     `SELECT ${STAFF_COLUMNS} FROM staff ${where} ORDER BY active DESC, name COLLATE NOCASE, username`,
   ).all<StaffRow>();
   const members = results.map(toSessionStaff);
-  return json({ data: isAdmin ? members : members.map(({ username: _username, ...rest }) => rest) });
+  return json({ data: isAdmin ? members : members.map(({ username: _username, hasPin: _hasPin, ...rest }) => rest) });
 }
 
-async function createStaff({ request, env }: AuthedContext): Promise<Response> {
+async function createStaff({ request, env, staff: actor }: AuthedContext): Promise<Response> {
   const r = new Reader(await readJsonObject(request));
   const username = r.string("username", USERNAME_FIELD);
   const name = r.string("name", NAME_FIELD);
@@ -196,8 +194,10 @@ async function createStaff({ request, env }: AuthedContext): Promise<Response> {
   const password = r.string("password", PASSWORD_FIELD);
   const active = r.boolean("active", { optional: true }) ?? true;
   const appearance = readAppearance(r);
+  const confirm = r.string("confirmPassword", PASSWORD_FIELD);
   r.done();
   assertStrongPassword(password, username);
+  await confirmActorPassword(env, request, actor, confirm, "confirmPassword");
 
   const defaults = ROLE_DEFAULTS[role];
   const id = crypto.randomUUID();
@@ -217,6 +217,14 @@ async function createStaff({ request, env }: AuthedContext): Promise<Response> {
     if (isUniqueViolation(error, "staff.username")) throw usernameTaken();
     throw error;
   }
+  await audit(env, request, {
+    action: "staff.create",
+    outcome: "success",
+    actorId: actor.id,
+    actorName: actor.name,
+    targetId: id,
+    detail: { role, active },
+  });
   return json(
     {
       data: toSessionStaff({
@@ -229,6 +237,7 @@ async function createStaff({ request, env }: AuthedContext): Promise<Response> {
         avatar_color: avatarColor,
         initials: initialsOf(name),
         active: active ? 1 : 0,
+        has_pin: 0,
       }),
     },
     201,
@@ -243,7 +252,7 @@ async function loadStaff(env: Env, id: string): Promise<StaffRowFull> {
   return row;
 }
 
-function staffId(raw: string): string {
+export function staffId(raw: string): string {
   if (!STAFF_ID_PATTERN.test(raw)) throw new HttpError(404, "Staf tidak ditemukan.");
   return raw;
 }
@@ -259,11 +268,13 @@ async function updateStaff({ request, env, url, staff: actor, params }: AuthedCo
   const active = r.boolean("active", { optional: true });
   const password = r.string("password", { ...PASSWORD_FIELD, optional: true });
   const appearance = readAppearance(r);
+  const confirm = r.string("confirmPassword", PASSWORD_FIELD);
   r.done();
   if (Object.values({ username, name, role, active, password, ...appearance }).every((v) => v === undefined)) {
     throw new HttpError(422, "Tidak ada perubahan yang dikirim.");
   }
 
+  await confirmActorPassword(env, request, actor, confirm, "confirmPassword");
   const current = await loadStaff(env, id);
   const isSelf = current.id === actor.id;
   if (isSelf && active === false) throw conflict("Anda tidak dapat menonaktifkan akun sendiri.");
@@ -342,14 +353,32 @@ async function updateStaff({ request, env, url, staff: actor, params }: AuthedCo
     avatar_color: avatarColor,
     initials: initialsOf(nextName),
     active: nextActive ? 1 : 0,
+    has_pin: current.has_pin,
+  });
+  await audit(env, request, {
+    action: "staff.update",
+    outcome: "success",
+    actorId: actor.id,
+    actorName: actor.name,
+    targetId: id,
+    detail: {
+      fields: Object.entries({ username, name, role, active, password, ...appearance })
+        .filter(([, value]) => value !== undefined)
+        .map(([field]) => field),
+      sessionsRevoked: revoke,
+    },
   });
   // Own password change revokes every session, including this one.
   const headers = isSelf && revoke ? { "Set-Cookie": clearSessionCookie(url) } : undefined;
   return json({ data: updated }, 200, headers);
 }
 
-async function deleteStaff({ env, staff: actor, params }: AuthedContext): Promise<Response> {
+async function deleteStaff({ request, env, staff: actor, params }: AuthedContext): Promise<Response> {
   const id = staffId(params.id);
+  const r = new Reader(await readJsonObject(request));
+  const confirm = r.string("confirmPassword", PASSWORD_FIELD);
+  r.done();
+  await confirmActorPassword(env, request, actor, confirm, "confirmPassword");
   if (id === actor.id) throw conflict("Anda tidak dapat menghapus akun sendiri.");
   const current = await loadStaff(env, id);
   const results = await env.DB.batch([
@@ -365,6 +394,14 @@ async function deleteStaff({ env, staff: actor, params }: AuthedContext): Promis
     if (current.role === "admin" && current.active === 1) throw conflict(LAST_ADMIN_MESSAGE);
     throw conflict("Data staf berubah oleh pihak lain. Muat ulang lalu coba lagi.");
   }
+  await audit(env, request, {
+    action: "staff.delete",
+    outcome: "success",
+    actorId: actor.id,
+    actorName: actor.name,
+    targetId: id,
+    detail: { role: current.role },
+  });
   return json({ data: true });
 }
 

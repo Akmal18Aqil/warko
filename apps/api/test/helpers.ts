@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import type { StaffRole } from "@wakro/shared";
 import { createSession } from "../src/auth";
+import { hashPassword } from "../src/crypto";
 import worker from "../src/index";
 
 export const ORIGIN = "https://pos.test";
@@ -42,6 +43,8 @@ const TABLES_IN_DELETE_ORDER = [
   "cash_movements",
   "shifts",
   "sessions",
+  "devices",
+  "audit_log",
   "staff",
   "auth_throttle",
   "app_state",
@@ -58,18 +61,33 @@ export async function resetDb(): Promise<void> {
 
 let staffCounter = 0;
 
-/** Inserts a staff member and returns a ready-to-send session cookie plus the staff id. */
-export async function signIn(role: StaffRole, name = `Staf ${role}`): Promise<{ session: string; id: string; name: string }> {
+/**
+ * Inserts a staff member and returns a ready-to-send session cookie plus the staff id.
+ * `password` gives the account a real password hash (needed to pass password confirmation).
+ */
+export async function signIn(
+  role: StaffRole,
+  name = `Staf ${role}`,
+  password?: string,
+): Promise<{ session: string; id: string; name: string; username: string }> {
   const id = crypto.randomUUID();
   const now = Date.now();
+  const username = `${role}${++staffCounter}`;
   await env.DB.prepare(
     `INSERT INTO staff (id, username, name, role, title, description, avatar_color, initials, password_hash, created_at, updated_at)
-     VALUES (?, ?, ?, ?, '', '', '', '', 'unused', ?, ?)`,
+     VALUES (?, ?, ?, ?, '', '', '', '', ?, ?, ?)`,
   )
-    .bind(id, `${role}${++staffCounter}`, name, role, now, now)
+    .bind(id, username, name, role, password === undefined ? "unused" : await hashPassword(password), now, now)
     .run();
   const setCookie = await createSession(env, id, new URL(ORIGIN));
-  return { session: setCookie.split(";")[0], id, name };
+  return { session: setCookie.split(";")[0], id, name, username };
+}
+
+/** The `name=value` pair of a response's Set-Cookie header, ready for a Cookie request header. */
+export function cookiePair(response: Response): string {
+  const header = response.headers.get("Set-Cookie");
+  if (!header) throw new Error("response has no Set-Cookie header");
+  return header.split(";")[0];
 }
 
 export async function seedCategory(id = "cat-1", name = "Makanan Utama"): Promise<string> {

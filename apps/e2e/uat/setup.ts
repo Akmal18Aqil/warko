@@ -26,7 +26,9 @@ setup("buat akun admin & staf per peran, simpan sesi", async ({ baseURL }) => {
   for (const role of ROLES.filter((r): r is Exclude<Role, "admin"> => r !== "admin")) {
     const { username, name } = UAT.staff[role];
     const apiRole = role === "kasir2" ? "kasir" : role;
-    const res = await adminCtx.post("/api/staff", { data: { username, name, role: apiRole, password: UAT.password } });
+    const res = await adminCtx.post("/api/staff", {
+      data: { username, name, role: apiRole, password: UAT.password, confirmPassword: E2E.admin.password },
+    });
     expect([201, 409], await res.text()).toContain(res.status());
     await login(base, username, UAT.password, authFile(role));
   }

@@ -35,7 +35,7 @@ export async function hmacSign(secret: string, message: string): Promise<string>
   return toBase64Url(new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(message))));
 }
 
-async function pbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
+export async function pbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, 256);
   return new Uint8Array(bits);
@@ -58,3 +58,9 @@ export async function verifyPassword(password: string, stored: string): Promise<
   if (expected.length !== actual.length) return false;
   return crypto.subtle.timingSafeEqual(actual, expected);
 }
+
+/**
+ * PBKDF2 hash of a throwaway password. Unknown accounts are verified against it so the response
+ * time does not reveal whether an account exists.
+ */
+export const DUMMY_PASSWORD_HASH = "pbkdf2$sha256$100000$eqPA3csp5JX4FBZgd1luHQ$3HYJ0_wwoI1mpRy0RR4g0rkcsCfLeEj2GwglS5fm1Yk";

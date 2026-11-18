@@ -28,6 +28,8 @@ const server = spawn(
     "--var",
     `SESSION_SECRET:${E2E.sessionSecret}`,
     "--var",
+    `PIN_PEPPER:${E2E.pinPepper}`,
+    "--var",
     `BOOTSTRAP_SECRET:${E2E.bootstrapSecret}`,
     "--show-interactive-dev-session=false",
   ],

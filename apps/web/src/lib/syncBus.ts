@@ -20,7 +20,9 @@ export type SyncEvent =
   | { type: "DATA_IMPORTED" }
   /** The demo database was reset: reload the page. */
   | { type: "DEMO_RESET" }
-  | { type: "DEVICE_HEARTBEAT"; payload: ConnectedDevice };
+  | { type: "DEVICE_HEARTBEAT"; payload: ConnectedDevice }
+  /** Remote mode: this tab signed in, switched user or signed out; the session cookie is shared, so other tabs re-read it. */
+  | { type: "AUTH_CHANGED" };
 
 export type SyncMessage = SyncEvent & { senderId: string; timestamp: number };
 

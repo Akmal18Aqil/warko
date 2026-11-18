@@ -83,6 +83,7 @@ function subscribeTabEvents(): () => void {
         window.location.reload();
         break;
       case "DEVICE_HEARTBEAT":
+      case "AUTH_CHANGED": // handled by the sign-in gate
         break;
     }
   });
