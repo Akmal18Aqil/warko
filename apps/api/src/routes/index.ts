@@ -4,8 +4,8 @@ import { bootstrapRoutes } from "./bootstrap";
 import { cashRoutes } from "./cash";
 import { catalogRoutes } from "./catalog";
 import { orderRoutes } from "./orders";
-import { pinRoutes } from "./pin";
 import { paymentRoutes } from "./payments";
+import { pinRoutes } from "./pin";
 import { publicRoutes } from "./public";
 
 /** The single route table of the API. */

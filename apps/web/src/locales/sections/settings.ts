@@ -96,7 +96,8 @@ export const settings = {
   },
   staff: {
     title: "Akun staf",
-    intro: "Akun dikelola di server. Perubahan peran, status, kata sandi, dan PIN mengakhiri sesi staf. Setiap perubahan meminta kata sandi Anda.",
+    intro:
+      "Akun dikelola di server. Perubahan peran, status, kata sandi, dan PIN mengakhiri sesi staf. Setiap perubahan meminta kata sandi Anda.",
     loadFailed: "Tidak dapat memuat staf.",
     saveFailed: "Tidak dapat menyimpan staf.",
     toggleFailed: "Tidak dapat mengubah staf.",
@@ -127,7 +128,9 @@ export const settings = {
     confirm: {
       saveTitle: (editing: boolean) => (editing ? "Konfirmasi perubahan akun" : "Konfirmasi akun baru"),
       saveBody: (name: string, editing: boolean) =>
-        editing ? `Masukkan kata sandi Anda untuk menyimpan perubahan akun ${name}.` : `Masukkan kata sandi Anda untuk menambahkan akun ${name}.`,
+        editing
+          ? `Masukkan kata sandi Anda untuk menyimpan perubahan akun ${name}.`
+          : `Masukkan kata sandi Anda untuk menambahkan akun ${name}.`,
       toggleTitle: (active: boolean) => (active ? "Nonaktifkan akun" : "Aktifkan akun"),
       toggleBody: (active: boolean, name: string) =>
         active
@@ -184,7 +187,8 @@ export const settings = {
     revoke: "Cabut",
     revokeLabel: (name: string) => `Cabut perangkat ${name}`,
     revokeTitle: (name: string) => `Cabut perangkat ${name}`,
-    revokeBody: "Perangkat ini tidak dapat lagi masuk dengan PIN dan semua sesi dari perangkat ini berakhir. Masukkan kata sandi Anda untuk melanjutkan.",
+    revokeBody:
+      "Perangkat ini tidak dapat lagi masuk dengan PIN dan semua sesi dari perangkat ini berakhir. Masukkan kata sandi Anda untuk melanjutkan.",
     revokeSubmit: "Cabut perangkat",
     revokedToast: (name: string) => `Perangkat ${name} dicabut.`,
     actionFailed: "Tindakan perangkat gagal.",

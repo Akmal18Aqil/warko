@@ -146,7 +146,9 @@ export const app = {
     checking: "Memeriksa PIN…",
     waitFor: (seconds: number) => {
       const minutes = Math.ceil(seconds / 60);
-      return seconds >= 60 ? `Terlalu banyak percobaan. Coba lagi dalam ${minutes} menit.` : `Terlalu banyak percobaan. Coba lagi dalam ${seconds} detik.`;
+      return seconds >= 60
+        ? `Terlalu banyak percobaan. Coba lagi dalam ${minutes} menit.`
+        : `Terlalu banyak percobaan. Coba lagi dalam ${seconds} detik.`;
     },
   },
 
